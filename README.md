@@ -6,5 +6,3 @@
 
 We will use the data set described in Galvez et al. (2019, ApJS).
 https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
-
-
