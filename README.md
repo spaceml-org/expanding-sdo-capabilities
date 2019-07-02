@@ -6,3 +6,15 @@
 
 We will use the data set described in Galvez et al. (2019, ApJS).
 https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
+
+# How to use the repo
+
+1) Notebooks live in the notebooks folder and they follow the following naming convention {number}{initial of your name}_{topic}(i.e. 01v_exploration.ipynb)
+
+2) Reusable code lives inside src in the form of a package called sdo that can be installed. This makes easy to import our codes between notebooks and scripts. 
+    In order to install the package:
+        1) cd expanding-sdo-capabilities
+        2) pip install --user -e .
+    In order to import a specific function inside a notebook just use:
+        1) from sdo.name_of_the_module import name_of_the_function
+        2) Look at notebooks/01v_explore.ipynb for an example
