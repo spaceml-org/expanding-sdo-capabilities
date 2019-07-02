@@ -1,1 +1,5 @@
 .DS_Store
+.eggs/
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+src/sdo/__pycache__/
