@@ -18,3 +18,12 @@ https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
     In order to import a specific function inside a notebook just use:
         1) from sdo.name_of_the_module import name_of_the_function
         2) Look at notebooks/01v_explore.ipynb for an example
+
+# Tutorials/Documents
+
+Documents to help you get up to speed on how we are working as a team:
+
+* IBM Cluster Password-less SSH: https://paper.dropbox.com/doc/IBM-Cluster-Password-less-SSH--AgN6kpiN98HiNFQPzvEiHjZxAQ-cl3lH5Ho6yjBWyZyETqS8
+* SDO Git Workflow: https://paper.dropbox.com/doc/SDO-Git-Workflow--AgMf~CdQohUUTtrWKPfTOf1FAQ-fbjyVjGRf7ZHO7d8iHOin
+* IBM Cluster: Jupyter Notebooks & Local Editing: https://paper.dropbox.com/doc/IBM-Cluster-Jupyter-Notebooks-Local-Editing--AgOsVInIcJwFv9sNix~GRWNiAQ-rBUYR0tw0kE1l1NPPfsrm
+
