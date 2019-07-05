@@ -3,3 +3,5 @@
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
 src/sdo/__pycache__/
+data/
+training_results/

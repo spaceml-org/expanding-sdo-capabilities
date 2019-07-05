@@ -19,6 +19,8 @@ https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
         1) from sdo.name_of_the_module import name_of_the_function
         2) Look at notebooks/01v_explore.ipynb for an example
 
+3) There are two directories set up that you can put data and training results into; these directories have been added to `.gitignore` so that they _won't_ be checked into the repo, so that you can safely have training artifacts present without getting git messages on them: `data/` and `training_results/`
+
 # Tutorials/Documents
 
 Documents to help you get up to speed on how we are working as a team:
