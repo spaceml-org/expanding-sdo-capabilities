@@ -1,0 +1,31 @@
+#BSUB -L /bin/bash
+#BSUB -J "SDOGANp"
+#BSUB -o "SDOGANp.%J"
+#BSUB -gpu "num=4"
+#BSUB -q "ac922_v100" 
+#BSUB -W 144:00
+#BSUB -x
+
+# Initialize Anaconda
+CONDA_ROOT=/gpfs/software/wmlce/anaconda3
+. ${CONDA_ROOT}/etc/profile.d/conda.sh
+#conda activate
+conda activate wmlce_py3_sdo
+
+# Set up the GPUs and delete any existing scratch directory
+sudo ppc64_cpu --smt=4                 # Set the SMT mode to 2 if DDL used, otherwise 4
+ppc64_cpu --smt                        # Verify the SMT mode
+#sudo nvidia-smi -ac 715,1480          # For POWER8+P100
+sudo nvidia-smi -rac                   # For POWER9+V100
+sudo nvidia-smi --compute-mode=DEFAULT # Set the compute mode to DEFAULT
+
+#sudo nvidia-smi --compute-mode=EXCLUSIVE_PROCESS # Compute mode back to p10 default
+
+
+# Run the program
+python train_mark.py
+
+# Reset the GPUs
+sudo ppc64_cpu --smt=on                          # SMT mode back to default
+sudo nvidia-smi -rac                             # Clocks back to defaults
+sudo nvidia-smi --compute-mode=EXCLUSIVE_PROCESS # Compute mode back to p10 default
