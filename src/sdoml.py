@@ -1,10 +1,11 @@
 def sdo_bytescale(img, ch):
+    from numpy import sqrt
     from scipy.misc import bytescale
     """
     Purpose: Given an SDO image of a given channel, returns scaled image
     appropriate for 8-bit display (uint8)
     """
-    aunit = 100.0 #units of 100 DN/s/pixel
+    aunit = 100.0 #
     bunit = 2000.0 #units of 2 kGauss  
 
     if ch == 'bx':
@@ -14,23 +15,23 @@ def sdo_bytescale(img, ch):
     if ch == 'bz':
         return bytescale(img,cmin=-bunit,cmax=bunit)
     if ch == '1600':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '1700':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0094':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0131':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0171':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0193':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0211':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0304':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
     if ch == '0335':
-        return bytescale(img,cmin=0,cmax=aunit)
+        return bytescale(sqrt(img),cmin=0,cmax=aunit)
 
     return bytescale(img)
 
