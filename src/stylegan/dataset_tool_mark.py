@@ -527,49 +527,20 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
             tfr.add_image(img)
 
 #--------------------------Mark Cheung-----------------------------
-def sdo_read(year, month, day, hour, min, instrs=['AIA','AIA','HMI'], channels= ['0171','0193','bx'],subsample=1,basedir='/gpfs/gpfs_gl4_16mb/b9p111/b9p111ai/SDOML_holdout'):
-    """
-    Parameters:
-    year / month / day - a date between May 17 2010 to 12/31/2018
-    hour - between 0 and 23
-    min - between 0 and 59 (note AIA data is at 6 min cadence, HMI at 12 min cadence)
-    instr - 'AIA' or 'HMI'
-    channel - 
-       if instr=='AIA', channel should be one of '0094', '0131', '0171', '0193', '0211', '0304', '0335', '1600', '1700'
-       if instr=='HMI', channel should be one of 'bx', 'by', 'bz' (last is the line-of-sight component of the magnetic field)
-    subsample - return image with every subsample-th pixel in both dimensions
-    basedir - directory where the SDO data set is stored.
-    """
-    from os import path
-    from numpy import load
-    files_exist = True
-    files = []
-    img = np.zeros(shape=(3,int(512/subsample),int(512/subsample)))
-    ind = 0
-    for ch in channels:
-        files.append('{0:s}/{1:04d}/{2:02d}/{3:02d}/{4:s}{5:04d}{6:02d}{7:02d}_{8:02d}{9:02d}_{10:s}.npz'.format(basedir,year,month,day,instrs[ind],year,month,day,hour,min,ch))
-        files_exist = files_exist*path.isfile(files[-1])
-        #if files_exist:
-        #    img[ind,:,:] = load(files[-1])['x'][::subsample,::subsample]
-        #ind = ind+1
-        ind = ind+1
-    if files_exist:
-        return files
-#    return img
-    else:
-        return -1
+import sdoml
     
 def create_from_sdo(tfrecord_dir, image_dir, shuffle):
+    instrs = ['HMI','HMI','HMI']
+    channels = ['bx','by','bz']
     print('Loading SDOML from "%s"' % image_dir)
     files = []
     for y in np.arange(2010,2015):
         for m in np.arange(1,13):
             for d in np.arange(1,32):
                 for h in np.arange(0,24,6):
-                    result = sdo_read(y,m,d,h,0,instrs=['AIA','AIA','HMI'],channels= ['0171','0193','bx'])
+                    result = sdoml.sdo_find(y,m,d,h,0,instrs=instrs,channels=channels)
                     if result != -1: 
                         files.append(result)
-    #image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     print("MCMCMCMCMCMCMCMC Number of SDO files = ",len(files))
     if len(files) == 0:
         error('No input images found')
@@ -591,9 +562,9 @@ def create_from_sdo(tfrecord_dir, image_dir, shuffle):
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(files))
         for idx in range(order.size):
             img = np.zeros(shape=(int(resolution/subsample),int(resolution/subsample),3),dtype=np.uint8)
-            img[:,:,0] = bytescale(np.sqrt(np.load(files[order[idx]][0])['x'][::subsample,::subsample]),cmin=0,cmax=100)
-            img[:,:,1] = bytescale(np.sqrt(np.load(files[order[idx]][1])['x'][::subsample,::subsample]), cmin=0,cmax=100)
-            img[:,:,2] = bytescale(np.load(files[order[idx]][2])['x'][::subsample,::subsample], cmin=-2000,cmax=2000)
+            img[:,:,0] = sdoml.sdo_bytescale(np.load(files[order[idx]][0])['x'][::subsample,::subsample],channels[0])
+            img[:,:,1] = sdoml.sdo_bytescale(np.load(files[order[idx]][1])['x'][::subsample,::subsample],channels[1])
+            img[:,:,2] = sdoml.sdo_bytescale(np.load(files[order[idx]][2])['x'][::subsample,::subsample],channels[2])
             #img = np.asarray(PIL.Image.open(image_filenames[order[idx]]))
             if channels == 1:
                 img = img[np.newaxis, :, :] # HW => CHW
