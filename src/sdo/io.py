@@ -96,13 +96,19 @@ def sdo_bytescale(img, ch):
     """
     Purpose: Given an SDO image of a given channel, returns scaled image
     appropriate for 8-bit display (uint8)
+    
+    Params:
+    img (np.array): image to be rescaled
+    ch (str): string describing the channel img belongs to
+    
+    Returns np.array of the same size of img
     """
     if ch in B_CHANNELS:
         return bytescale(img,cmin=-bunit,cmax=bunit)
-    else if ch == UV_CHANNELS:
+    elif ch in UV_CHANNELS:
         return bytescale(sqrt(img),cmin=0,cmax=aunit)
     else:
-         _logger.warning("Channel not found, simply bytescaled image is returned")
+        _logger.warning("Channel not found, simply bytescaled image is returned")
         return bytescale(img)
 
 
@@ -110,22 +116,37 @@ def sdo_scale(img, ch, aunit=AUNIT, bunit=BUNIT):
     """
     Purpose: Given an SDO image of a given channel, returned scaled image.
     Currently a placeholder. scaling functions are subject to change based on EDA.
+     
+    Params:
+    img (np.array): image to be rescaled
+    ch (str): string describing the channel img belongs to
+    aunit: units UV channels
+    bunit: units magnetogram 
+    
+    Returns np.array of the same size of img
     """
-   
-    if ch in b_channels:
+    if ch in B_CHANNELS:
         return img/aunit       
-    else if ch in uv_channels:
+    elif ch in UV_CHANNELS:
         return img/bunit
     else:
-         _logger.error("Channel not found, input image is returned")
+        _logger.error("Channel not found, input image is returned")
         return img
 
-       
-def sdo_reverse_scale(img, ch, aunit=AUNIT, bunit=BUNIT)
+    
+def sdo_reverse_scale(img, ch, aunit=AUNIT, bunit=BUNIT):
     """
     Purpose: Given a scaled SDO image of a given channel, returned the unscaled image.
     Currently a placeholder. scaling functions are subject to change based on EDA.
+    
+    Params:
+    img (np.array): image to be rescaled
+    ch (str): string describing the channel img belongs to
+    aunit: units UV channels
+    bunit: units magnetogram 
+    
+    Returns np.array of the same size of img
     """
-    aunit= 1.0/aunit
-    bunit: 1.0/bunit
+    aunit = 1./aunit
+    bunit = 1./bunit
     return sdo_scale(img, ch, aunit=aunit, bunit=bunit)
