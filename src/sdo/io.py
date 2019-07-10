@@ -91,7 +91,7 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
         return -1
 
 
-def sdo_bytescale(img, ch):
+def sdo_bytescale(img, ch, aunit=AUNIT, bunit=BUNIT):
     """
     Purpose: Given an SDO image of a given channel, returns scaled image
     appropriate for 8-bit display (uint8)
@@ -99,6 +99,8 @@ def sdo_bytescale(img, ch):
     Params:
     img (np.array): image to be rescaled
     ch (str): string describing the channel img belongs to
+    aunit: units UV channels
+    bunit: units magnetogram 
 
     Returns np.array of the same size of img
     """
