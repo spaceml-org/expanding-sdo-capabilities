@@ -1,6 +1,6 @@
+.gitignore
 AUTHORS.rst
 CHANGELOG.rst
-LICENSE.txt
 README.md
 requirements.txt
 setup.cfg
@@ -12,9 +12,16 @@ docs/conf.py
 docs/index.rst
 docs/license.rst
 docs/_static/.gitignore
-notebooks/sample.ipynb
+notebooks/01v_explore.ipynb
+notebooks/02v_use_generator.ipynb
+scripts/styleGAN/sdo_dataset_tool.py
+scripts/styleGAN/sdo_train.py
+src/__init__.py
 src/sdo/__init__.py
+src/sdo/ds_utility.py
+src/sdo/global_vars.py
 src/sdo/io.py
+src/sdo/sdo_dataset.py
 src/sdo/skeleton.py
 src/sdo.egg-info/PKG-INFO
 src/sdo.egg-info/SOURCES.txt
