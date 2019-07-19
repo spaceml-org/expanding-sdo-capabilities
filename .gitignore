@@ -4,3 +4,4 @@
 notebooks/.ipynb_checkpoints/
 src/sdo/__pycache__/
 src/sdo.egg-info
+src/sdo/models/__pycache__/

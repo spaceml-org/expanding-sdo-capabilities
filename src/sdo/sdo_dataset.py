@@ -12,8 +12,6 @@ from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
 import logging
 
-import pdb
-
 
 _logger = logging.getLogger(__name__)
 
