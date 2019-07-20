@@ -7,7 +7,7 @@ import torch
 import random
 from torch.utils.data import Dataset
 from sdo.global_vars import BASEDIR
-from sdo.io import sdo_find, sdo_bytescale
+from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
 import logging
@@ -30,8 +30,8 @@ class SDO_Dataset(Dataset):
         yr_range=[2010, 2018],
         mnt_step=1,
         day_step=1,
-        h_step=1,
-        min_step=6,
+        h_step=6,
+        min_step=60,
         resolution=512,
         subsample=1,
         base_dir=BASEDIR,
@@ -41,6 +41,7 @@ class SDO_Dataset(Dataset):
         normalization=0,
         scaling=True,
         shuffle_seed=1234,
+        holdout = False
     ):
         """
 
@@ -70,6 +71,7 @@ class SDO_Dataset(Dataset):
                             (see sdo.io.sdo_scale)
             shuffle_seed (int): seed to be used when shuffling the rows of the dataset. 
                                 if shuffle=False this is ignored
+            holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
 
         """
         self.device = device
@@ -89,17 +91,22 @@ class SDO_Dataset(Dataset):
         self.normalization = normalization
         self.scaling = scaling
         self.shuffle_seed = shuffle_seed
+        self.holdout = holdout
         self.files = self.create_list_files()
 
     def find_months(self):
-        months = np.arange(1, 13, self.mnt_step)
-        if self.test:
-            n_months = int(len(months) * self.test_ratio)
-            months = months[-n_months:]
+        # November and December are kept as holdout
+        if not self.holdout:
+            months = np.arange(1, 11, self.mnt_step)
+            if self.test:
+                n_months = int(len(months) * self.test_ratio)
+                months = months[-n_months:]
+            else:
+                n_months = int(len(months) * (1 - self.test_ratio))
+                months = months[:n_months]
+            _logger.info('Running on months "%s"' % months)
         else:
-            n_months = int(len(months) * (1 - self.test_ratio))
-            months = months[:n_months]
-        _logger.info('Running on months "%s"' % months)
+            n_months = [11, 12]
         return months
 
     def create_list_files(self):
@@ -170,11 +177,10 @@ class SDO_Dataset(Dataset):
             img = np.load(self.files[index][i])["x"][
                 ::self.subsample, ::self.subsample]
             if self.scaling:
-                item[:, :, i] = sdo_scale(img, self.channels[i])
-            if self.normalization > 0:
-                img = self.normalize_by_img(img, self.normalization)
-            else:
-                item[:, :, i] = img
+                img = sdo_scale(img, self.channels[i])
+                if self.normalization > 0:
+                    img = self.normalize_by_img(img, self.normalization)
+            item[:, :, i] = img
         if n_channels == 1:
             item = item[np.newaxis, :, :]  # HW => CHW
         else:
