@@ -1,12 +1,13 @@
 """
 In this module we define a pytorch SDO dataset
 """
+from os import path
 import numpy as np
 import pandas as pd
 import torch
 import random
 from torch.utils.data import Dataset
-from sdo.global_vars import BASEDIR
+from sdo.global_vars import BASEDIR, INVENTORY
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
@@ -41,7 +42,8 @@ class SDO_Dataset(Dataset):
         normalization=0,
         scaling=True,
         shuffle_seed=1234,
-        holdout = False
+        holdout=False,
+        inventory=INVENTORY
     ):
         """
 
@@ -72,6 +74,8 @@ class SDO_Dataset(Dataset):
             shuffle_seed (int): seed to be used when shuffling the rows of the dataset. 
                                 if shuffle=False this is ignored
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
+            inventory (str): path to an pre-computed inventory file that contains a dataframe of exisiting
+                files. If False(or not valid) the file search is done by folder and it is much slower.
 
         """
         self.device = device
@@ -92,60 +96,119 @@ class SDO_Dataset(Dataset):
         self.scaling = scaling
         self.shuffle_seed = shuffle_seed
         self.holdout = holdout
-        self.files = self.create_list_files()
+        if path.isfile(inventory):
+            self.inventory = inventory
+        else:
+            _logger.warning("A valid inventory file has NOT be passed"
+                            "If this is not expected check the path.")
+            self.inventory = False
+        # TODO self.timestamps is not used in get_item
+        self.files, self.timestamps = self.create_list_files()
 
     def find_months(self):
+        "select months for training and test based on test ratio"
         # November and December are kept as holdout
         if not self.holdout:
             months = np.arange(1, 11, self.mnt_step)
             if self.test:
                 n_months = int(len(months) * self.test_ratio)
                 months = months[-n_months:]
+                _logger.info('Testing on months "%s"' % months)
             else:
                 n_months = int(len(months) * (1 - self.test_ratio))
                 months = months[:n_months]
-            _logger.info('Running on months "%s"' % months)
+                _logger.info('Training on months "%s"' % months)
         else:
             n_months = [11, 12]
         return months
 
     def create_list_files(self):
         """
+        Find path to files that correspond to the requested timestamps. A timestamp
+        is returned only if the files from ALL the requested channels are found.
 
-        Returns: list of strings
+        Returns: list of lists of strings, list of tuples. The first argument are the 
+             path to the files, each row is a timestamp. The second argument are the
+             correspondant timestamps.
 
         """
         _logger.info('Loading SDOML from "%s"' % self.dir)
-        files = []
-        discarded_tm = 0
+        indexes = ['year', 'month', 'day', 'hour', 'min']
+        yrs = np.arange(self.yr_range[0], self.yr_range[1]+1)
         months = self.find_months()
-        for y in np.arange(self.yr_range[0], self.yr_range[1]+1):
-            for month in months:
-                for d in np.arange(1, 32, self.day_step):
-                    for h in np.arange(0, 25, self.h_step):
-                        for minu in np.arange(0, 61, self.min_step):
-                            # if a single channel is missing for the combination
-                            # of parameters result is -1
-                            result = sdo_find(y, month, d, h, minu,
-                                              instrs=self.instr,
-                                              channels=self.channels,
-                                              basedir=self.dir,
-                                              )
-                        if result != -1:
-                            files.append(result)
-                        else:
-                            discarded_tm +=1
+        days = np.arange(1, 32, self.day_step)
+        hours = np.arange(0, 24, self.h_step)
+        minus = np.arange(0, 60, self.min_step)
+        tot_timestamps = np.prod([len(x) for x in [yrs, months, days, hours, minus]])
+        _logger.debug("Timestamps requested values: ")
+        _logger.debug("Years: %s" % ','.join('{}'.format(i) for i in (yrs)))
+        _logger.debug("Months: %s" % ','.join('{}'.format(i) for i in (months)))
+        _logger.debug("Days: %s" % ','.join('{}'.format(i) for i in (days)))
+        _logger.debug("Hours: %s" % ','.join('{}'.format(i) for i in (hours)))
+        _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in (minus)))
+        _logger.info("Max number of timestamps: %d" % tot_timestamps)
+
+        if self.inventory:
+            df = pd.read_pickle(self.inventory)
+            cond0 = df['channel'].isin(self.channels)
+            cond1 = df['year'].isin(yrs)
+            cond2 = df['month'].isin(months)
+            cond3 = df['day'].isin(days)
+            cond4 = df['hour'].isin(hours)
+            cond5 = df['min'].isin(minus)
+
+            sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
+            n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+            _logger.info("Timestamps found in the inventory: %d (%.2f)" % 
+                         (n_sel_timestamps, float(n_sel_timestamps)/tot_timestamps))
+            grouped_df = sel_df.groupby(indexes).size()
+            # we select only timestamp that have files for all the channels
+            grouped_df = grouped_df[grouped_df == len(self.channels)].to_frame()
+            sel_df = sel_df.reset_index().drop('index', axis=1)
+            sel_df = pd.merge(grouped_df, sel_df, how='inner',
+                              left_on=indexes, right_on=indexes)
+            # sorting is essential, the order of the channels must be consistent
+            s_files = sel_df.sort_values('channel').groupby(indexes)['file'].apply(list)
+            files = s_files.values.tolist()
+            timestamps = s_files.index.tolist()
+            discarded_tm = n_sel_timestamps - len(timestamps)
+        else:
+            _logger.warning(
+                'A valid inventory file has not be passed, be prepared to wait.')
+            files = []
+            timestamps = []
+            discarded_tm = 0
+            for y in yrs:
+                for month in months:
+                    for d in days:
+                        for h in hours:
+                            for minu in minus:
+                                # if a single channel is missing for the combination
+                                # of parameters result is -1
+                                result = sdo_find(y, month, d, h, minu,
+                                                  instrs=self.instr,
+                                                  channels=self.channels,
+                                                  basedir=self.dir,
+                                                  )
+                            if result != -1:
+                                files.append(result)
+                                timestamp = (y, month, d, h, minu)
+                                timestamps.append(timestamp)
+                            else:
+                                discarded_tm += 1
         if len(files) == 0:
             _logger.error("No input images found")
         else:
-            _logger.info("Number of found timestamps = %d" % len(files))
-            _logger.info("Number of discarded timestamps = %d" % discarded_tm)
-            _logger.info("Number of SDO files = %d" % (len(files)*len(self.channels)))
+            _logger.info("N timestamps discarded because channel is missing = %d (%.5f)" % 
+                         (discarded_tm, float(discarded_tm)/n_sel_timestamps))
+            _logger.info("Selected timestamps = %d" % len(files))
+            _logger.info("N images = %d" % (len(files)*len(self.channels)))
             if self.shuffle:
-                _logger.warning("Shuffling is being applied, this will alter the time sequence.")
+                _logger.warning(
+                    "Shuffling is being applied, this will alter the time sequence.")
                 random.seed(self.shuffle_seed)
                 random.shuffle(files)
-        return files
+        return files, timestamps
 
     def normalize_by_img(self, img, norm_type):
         if norm_type == 1:
