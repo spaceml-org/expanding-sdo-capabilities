@@ -77,7 +77,7 @@ class AutoEncoder(nn.Module):
         x = self.dconv2(x)
         x = F.relu(x)
         x = self.dconv1(x)
-        x = torch.sigmoid(x)
+        x = torch.relu(x)
         return x
 
     def forward(self, x):

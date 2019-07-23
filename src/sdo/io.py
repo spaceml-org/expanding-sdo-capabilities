@@ -2,6 +2,7 @@
 This module contains functions for input output of the data
 '''
 from os import path
+import numpy as np
 from numpy import zeros, load
 from numpy import sqrt
 from scipy.misc import bytescale
@@ -9,8 +10,12 @@ import logging
 from sdo.global_vars import (BASEDIR, FILENAME_TEMPLATE, INITIAL_SIZE,
                              B_CHANNELS, UV_CHANNELS)
 
-AUNIT = 100.0  # units of 100 DN/s/pixel
 BUNIT = 2000.0  # units of 2 kGauss
+AUNIT = 100.0  # units of 100 DN/s/pixel
+# the following units have been chosen looking at Fig3 of Galvez et all, 
+# they represent the approximate mean of the channels across the full time period
+AUNIT_BYCH = {'1600': 500.0, '1700': 7000.0, '0094': 10.0, '0131': 80.0, '0171': 2000.0,
+               '0193': 3000.0, '0211': 1000.0, '0304': 500.0, '0335': 80.0}
 
 _logger = logging.getLogger(__name__)
 
@@ -114,41 +119,43 @@ def sdo_bytescale(img, ch, aunit=AUNIT, bunit=BUNIT):
         return bytescale(img)
 
 
-def sdo_scale(img, ch, aunit=AUNIT, bunit=BUNIT):
+def sdo_scale(img, ch, aunit_dict=AUNIT_BYCH, bunit=BUNIT):
     """
     Purpose: Given an SDO image of a given channel, returned scaled image.
-    Currently a placeholder. scaling functions are subject to change based on EDA.
+    Scaling values are supposed to be the mean of the channel across
+    the full time period.
 
     Params:
     img (np.array): image to be rescaled
     ch (str): string describing the channel img belongs to
-    aunit: units UV channels
-    bunit: units magnetogram 
+    aunit_dict (dict int): units UV channels
+    bunit (int): units magnetogram 
 
     Returns np.array of the same size of img
     """
     if ch in B_CHANNELS:
-        return img/aunit
-    elif ch in UV_CHANNELS:
         return img/bunit
+    elif ch in UV_CHANNELS:
+        return img/aunit_dict[ch]       
     else:
         _logger.error("Channel not found, input image is returned")
         return img
 
 
-def sdo_reverse_scale(img, ch, aunit=AUNIT, bunit=BUNIT):
+def sdo_reverse_scale(img, ch, aunit_dict=AUNIT, bunit=BUNIT):
     """
     Purpose: Given a scaled SDO image of a given channel, returned the unscaled image.
-    Currently a placeholder. scaling functions are subject to change based on EDA.
+    Scaling values are supposed to be the mean of the channel across
+    the full time period.
 
     Params:
     img (np.array): image to be rescaled
     ch (str): string describing the channel img belongs to
-    aunit: units UV channels
-    bunit: units magnetogram 
+    aunit_dict (dict int): units UV channels
+    bunit (int): units magnetogram 
 
     Returns np.array of the same size of img
     """
-    aunit = 1./aunit
+    aunit_dict.update((x, 1./y) for x, y in aunit_dict.items())
     bunit = 1./bunit
-    return sdo_scale(img, ch, aunit=aunit, bunit=bunit)
+    return sdo_scale(img, ch, aunit=aunit_dict, bunit=bunit)

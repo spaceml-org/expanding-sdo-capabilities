@@ -6,3 +6,4 @@ src/sdo/__pycache__/
 data/
 training_results/
 src/sdo.egg-info
+src/sdo/models/__pycache__/
