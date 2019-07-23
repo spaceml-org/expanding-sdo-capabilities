@@ -7,8 +7,8 @@ from numpy import zeros, load
 from numpy import sqrt
 from scipy.misc import bytescale
 import logging
-from sdo.global_vars import (BASEDIR, FILENAME_TEMPLATE, INITIAL_SIZE,
-                             B_CHANNELS, UV_CHANNELS)
+from sdo.global_vars import (DATA_BASEDIR, DATA_FILENAME_TEMPLATE,
+                             INITIAL_SIZE, B_CHANNELS, UV_CHANNELS)
 
 BUNIT = 2000.0  # units of 2 kGauss
 AUNIT = 100.0  # units of 100 DN/s/pixel
@@ -21,7 +21,7 @@ _logger = logging.getLogger(__name__)
 
 
 def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
-             subsample=1, basedir=BASEDIR):
+             subsample=1, basedir=DATA_BASEDIR):
     """
     Purpose: Find an SDOML file, and return image if it exists.
     Parameters:
@@ -40,8 +40,9 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
 
     Returns: np.array. Returns -1 if file is not found.
     """
-    file = FILENAME_TEMPLATE.format(basedir, year, month, day, instr, year,
-                                    month, day, hour, min, channel)
+    file = DATA_FILENAME_TEMPLATE.format(basedir, year, month, day, instr,
+                                         year, month, day, hour, min,
+                                         channel)
     if path.isfile(file):
         return ((load(file))['x'])[::subsample, ::subsample]
     print('{0:s} is missing'.format(file))
@@ -49,7 +50,7 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
 
 
 def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
-             channels=['0171', '0193', 'bx'], subsample=1, basedir=BASEDIR,
+             channels=['0171', '0193', 'bx'], subsample=1, basedir=DATA_BASEDIR,
              return_images=False):
     """
     Purpose: Find filenames of multiple channels of the SDOML dataset with the same 
@@ -77,9 +78,9 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
     files_exist = True
     files = []
     for ind, ch in enumerate(channels):
-        files.append(FILENAME_TEMPLATE.format(basedir, year, month, day,
-                                              instrs[ind], year, month,
-                                              day, hour, minu, ch))
+        files.append(DATA_FILENAME_TEMPLATE.format(basedir, year, month, day,
+                                                   instrs[ind], year, month,
+                                                   day, hour, minu, ch))
         files_exist = files_exist*path.isfile(files[-1])
     if files_exist:
         if (not return_images):

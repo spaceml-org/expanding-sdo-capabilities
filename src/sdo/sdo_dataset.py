@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 import random
 from torch.utils.data import Dataset
-from sdo.global_vars import BASEDIR, INVENTORY
+from sdo.global_vars import DATA_BASEDIR, INVENTORY
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
@@ -35,7 +35,7 @@ class SDO_Dataset(Dataset):
         min_step=60,
         resolution=512,
         subsample=1,
-        base_dir=BASEDIR,
+        base_dir=DATA_BASEDIR,
         test=False,
         test_ratio=0.3,
         shuffle=False,
