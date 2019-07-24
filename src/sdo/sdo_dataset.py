@@ -206,7 +206,6 @@ class SDO_Dataset(Dataset):
             if self.shuffle:
                 _logger.warning(
                     "Shuffling is being applied, this will alter the time sequence.")
-                random.seed(self.shuffle_seed)
                 random.shuffle(files)
         return files, timestamps
 
