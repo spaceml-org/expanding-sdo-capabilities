@@ -53,10 +53,10 @@ class SDO_Dataset(Dataset):
             instr (list string): instrument to which each channel corresponds to. 
                                  It has to be of the same size of channels.
             yr_range (list int): range of years to be selected
-            mnt_step (int): month frequence
-            day_step (int): day frequence
-            h_step (int): hour frequence
-            min_step (int): minute frequence
+            mnt_step (int): month frequency
+            day_step (int): day frequency
+            h_step (int): hour frequency
+            min_step (int): minute frequency
             resolution (int): original resolution
             base_dir (str): path to the main dataset folder
             test (bool): if True, a test dataset is returned. By default the training dataset is returned.
@@ -66,7 +66,7 @@ class SDO_Dataset(Dataset):
             subsample (int): if 1 resolution of the final images will be as the original. 
                              If > 1 the image is downsampled. i.e. if resolution=512 and 
                              subsample=4, the images will be 128*128
-            normalization (int): if 0 normalization is not applied, if >  0 a normalization
+            normalization (int): if 0 normalization is not applied, if > 0 a normalization
                                  by image is applied (only one type of normalization implemented 
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
@@ -74,7 +74,7 @@ class SDO_Dataset(Dataset):
             shuffle_seed (int): seed to be used when shuffling the rows of the dataset. 
                                 if shuffle=False this is ignored
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
-            inventory (str): path to an pre-computed inventory file that contains a dataframe of exisiting
+            inventory (str): path to an pre-computed inventory file that contains a dataframe of existing
                 files. If False(or not valid) the file search is done by folder and it is much slower.
 
         """
