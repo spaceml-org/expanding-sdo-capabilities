@@ -1,5 +1,5 @@
 """
-In this module we want to define some encoder decoder architectures.
+Defines our encoder/decoder architecture.
 """
 import torch
 import torch.nn as nn
@@ -12,12 +12,12 @@ def prod(iterable):
     return reduce(operator.mul, iterable, 1)
 
 
-class AutoEncoder(nn.Module):
+class EncoderDecoder(nn.Module):
     """
-    This is an autoencoder that reconstructs the input (input size = output size).
+    This is an encoder/decoder that reconstructs the input (input size = output size).
     """
     def __init__(self, input_shape=[3, 128, 128], hidden_dim=512):
-        super(AutoEncoder, self).__init__()
+        super(EncoderDecoder, self).__init__()
         num_channels = input_shape[0]
         self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=32, kernel_size=3)
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
@@ -41,7 +41,7 @@ class AutoEncoder(nn.Module):
         self.lin1 = nn.Linear(sample_encoder_output_dim, hidden_dim)
         self.lin2 = nn.Linear(hidden_dim, sample_encoder_output_dim)
 
-        print('Autoencoder architecture:')
+        print('EncoderDecoder architecture:')
         print('Input shape: {}'.format(input_shape))
         print('Input dim  : {}'.format(prod(input_shape)))
         print('Encoded dim: {}'.format(sample_encoder_output_dim))
