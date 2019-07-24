@@ -3,10 +3,11 @@ import os
 import random
 
 import torch
+
 import numpy as np
 
-_logger = logging.getLogger(__name__)
 
+_logger = logging.getLogger(__name__)
 _dtype = torch.float #this corresponds to float32
 #_device = torch.device('cuda') # change to cuda tor un on GPU
 
