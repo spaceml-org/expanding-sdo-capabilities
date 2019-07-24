@@ -1,0 +1,30 @@
+pipeline-name: AutocalibrationPipeline
+log-minimal: True
+num-epochs: 5
+batch-size-train: 10
+batch-size-test: 10
+save-interval: 3
+log-interval: 10
+height: 128
+width: 128
+wavelengths:
+  - "0094"
+  - "0131"
+  - "0171"
+  - "0193"
+  - "0211"
+  - "0304"
+  - "0335"
+instruments:
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+num-channels: 7
+subsample: 4
+yr-range:
+  - 2012
+  - 2013
