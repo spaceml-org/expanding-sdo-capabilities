@@ -8,6 +8,8 @@ import numpy as np
 
 import torch
 
+from sdo.io import format_epoch
+
 
 _logger = logging.getLogger(__name__)
 
@@ -161,7 +163,8 @@ class TrainingPipeline(object):
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')
             plt.title('Training/testing loss after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, 'loss_graph_epoch_{}.png'.format(epoch))
+            img_file = os.path.join(self.results_path, '{}_loss_graph.png'.format(
+                format_epoch(epoch)))
             plt.savefig(img_file, bbox_inches='tight')
             _logger.info('\nTraining/testing loss graph for epoch {} saved to {}'.format(
                 epoch, img_file))

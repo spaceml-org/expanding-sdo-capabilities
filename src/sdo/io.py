@@ -160,3 +160,12 @@ def sdo_reverse_scale(img, ch, aunit_dict=AUNIT, bunit=BUNIT):
     aunit_dict.update((x, 1./y) for x, y in aunit_dict.items())
     bunit = 1./bunit
     return sdo_scale(img, ch, aunit=aunit_dict, bunit=bunit)
+
+
+def format_epoch(epoch):
+    """
+    Given some epoch, expands and formats it as a string with leading zeros
+    so that its suitable for prefixing to a filename, such as turning 3
+    into 00003.
+    """
+    return str(epoch).zfill(4)

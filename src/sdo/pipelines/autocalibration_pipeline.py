@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 import pandas
 
 from sdo.dimmed_sdo_dataset import DimmedSDO_Dataset
+from sdo.io import format_epoch
 from sdo.models.autocalibration import Autocalibration
 from sdo.pipelines.training_pipeline import TrainingPipeline
 
@@ -91,7 +92,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         for c in range(self.num_channels):
             ax[c].title.set_text('Channel {}'.format(c + 1))
             ax[c].imshow(item[c].cpu().numpy(), cmap='gray')
-        img_file = os.path.join(self.results_path, 'debug_sample.png')
+        img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
+            format_epoch(0)))
         plt.savefig(img_file, bbox_inches='tight')
         _logger.info('Debug sample saved to {}'.format(img_file))
 
@@ -129,8 +131,8 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax3.axis('off')
             ax3.imshow(channel_dimmed / float(output[0, i]), norm=None, cmap='hot', vmin=data_min,
                        vmax=data_max)
-        img_file = os.path.join(self.results_path, 'debug_sample_epoch_{}_{}.png'.format(
-            epoch, 'train' if train else 'test'))
+        img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
+            format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         _logger.info('Debug sample saved to {}'.format(img_file))
 
@@ -142,8 +144,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         title = 'training dimming factors' if train else 'testing dimming factors'
         plt.title(title)
         plt.legend()
-        img_file = os.path.join(self.results_path, 'dimming_factors_graph_epoch_{}_{}.png'.format(
-            epoch, 'train' if train else 'test'))
+        img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
+            format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
 
