@@ -19,7 +19,7 @@ import logging
 import sys
 from sdo.sdo_dataset import SDO_Dataset
 from torch.utils.data import DataLoader
-from sdo.metrics.azimuth_average import azimuthal_average, compute_2Dpsd
+from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
 from sdo.models.encoder_decoder import EncoderDecoder
 
 output_path = '/gpfs/gpfs_gl4_16mb/b9p111/b9p111ar/results_VT/'
