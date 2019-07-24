@@ -9,7 +9,7 @@ import numpy as np
 
 _logger = logging.getLogger(__name__)
 _dtype = torch.float #this corresponds to float32
-#_device = torch.device('cuda') # change to cuda tor un on GPU
+
 
 def to_tensor(value, dtype=_dtype):
     if not torch.is_tensor(value):
@@ -20,6 +20,7 @@ def to_tensor(value, dtype=_dtype):
         else:
             value = torch.tensor(value)
     return value
+
 
 def to_numpy(value):
     if torch.is_tensor(value):
