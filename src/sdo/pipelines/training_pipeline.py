@@ -63,7 +63,7 @@ class TrainingPipeline(object):
         pass
 
     def train(self, epoch, final_epoch=False):
-        # TODO: Something is slow in here for the autocalibration pipeline at least.
+        # TODO: IO from the SDO_Dataset is causing a bottleneck for training, making this slow.
         _logger.info('\n\n')
         _logger.info("===================================\n\n\n\n")
         _logger.info("Training epoch {}\n".format(epoch))
