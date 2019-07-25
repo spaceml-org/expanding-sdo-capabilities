@@ -1,17 +1,21 @@
 """
 In this module we define a pytorch SDO dataset
 """
+import logging
 from os import path
-import numpy as np
-import pandas as pd
-import torch
 import random
+
+import numpy as np
+
+import pandas as pd
+
+import torch
 from torch.utils.data import Dataset
+
 from sdo.global_vars import DATA_BASEDIR, INVENTORY
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
-import logging
 
 
 _logger = logging.getLogger(__name__)
