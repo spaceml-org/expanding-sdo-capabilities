@@ -72,6 +72,28 @@ Note that both in the YAML config file and on the command line, the major pipeli
 (whether the autocalibration architecture or the encoder/decoder architecture), is controlled
 by --pipeline-name, which can either be AutocalibrationPipeline or EncoderDecoderPipeline.
 EncoderDecoderPipeline is not yet implemented.
+
+To easily copy over training artifacts from a run to see how things went, first add the following
+to your laptop's ~/.bash_profile or ~/.bashrc file:
+
+sync_results_func() {
+        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:~/expanding-sdo-capabilities/training_results/$1 training_results
+}
+alias sync_results=sync_results_func
+
+Quit and save, then:
+
+source ~/.bash_profile
+
+Now you can use the following command to easily pull results back over to your laptop to view them:
+
+export EXPERIMENT_NAME=01b_experiment_1
+cd ~/expanding-sdo-capabilities
+sync_results
+open ./training_results/$EXPERIMENT_NAME
+
+Note that this skips syncing the very large *.pth files for saved checkpoint models and optimizer
+details to your laptop; those will remain on the IBM machine.
 """
 def parse_args(args):
     """Parse command line parameters
