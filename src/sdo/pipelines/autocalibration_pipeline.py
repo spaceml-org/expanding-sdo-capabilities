@@ -199,5 +199,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         # Which batch results have _all_ of their channel predictions fully correct?
         num_fully_correct_all_channels = np.where(pct_correct_per_channel == 1.0, 1, 0).sum()
 
+        # Note: this is whether things are correct across _all_ channels for a given batch
+        # sample.
         correct = num_fully_correct_all_channels
         return correct
