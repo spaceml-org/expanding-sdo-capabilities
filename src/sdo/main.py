@@ -24,6 +24,55 @@ __license__ = "mit"
 _logger = logging.getLogger(__name__)
 
 
+"""
+Provides a common pipeline for running and restarting training/testing experiments.
+
+Arguments can be passed to main.py either from the command-line as switches, or
+as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of
+available configuration options.
+
+
+To start a new training run:
+
+cd ~/expanding-sdo-capabilities
+export CONFIG_FILE=config/autocalibration_default.yaml
+export EXPERIMENT_NAME=01b_experiment_1
+export NUM_EPOCHS=5
+./src/sdo/main.py \
+    -c $CONFIG_FILE \
+    --experiment-name=$EXPERIMENT_NAME \
+    --num-epochs=$NUM_EPOCHS
+
+Where CONFIG_FILE is a path to a YAML file that might have common configuration options
+that you don't want to have to type every time on the command line (see the above
+config/autocalibration_default.yaml for an example); EXPERIMENT_NAME is a unique
+experiment name used to partition your training results to ./training_results/$EXPERIMENT_NAME;
+and NUM_EPOCHS is the total number of training epochs you want.
+
+
+To resume a previously checkpointed training session:
+
+cd ~/expanding-sdo-capabilities
+export CONFIG_FILE=config/autocalibration_default.yaml
+export EXPERIMENT_NAME=01b_experiment_1
+export START_EPOCH_AT=2
+export NUM_EPOCHS=5
+./src/sdo/main.py \
+    -c $CONFIG_FILE \
+    --experiment-name=$EXPERIMENT_NAME \
+    --num-epochs=$NUM_EPOCHS \
+    --continue-training=True \
+    --saved-model-path=./training_results/$EXPERIMENT_NAME/model_epoch_$START_EPOCH_AT.pth \
+    --saved-optimizer-path=./training_results/$EXPERIMENT_NAME/optimizer_epoch_$START_EPOCH_AT.pth \
+    --start-epoch-at=$START_EPOCH_AT
+
+Where START_EPOCH_AT is the new training epoch to begin training from.
+
+Note that both in the YAML config file and on the command line, the major pipeline to run
+(whether the autocalibration architecture or the encoder/decoder architecture), is controlled
+by --pipeline-name, which can either be AutocalibrationPipeline or EncoderDecoderPipeline.
+EncoderDecoderPipeline is not yet implemented.
+"""
 def parse_args(args):
     """Parse command line parameters
 
