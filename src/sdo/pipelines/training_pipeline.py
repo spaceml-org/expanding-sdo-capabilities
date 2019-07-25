@@ -141,12 +141,12 @@ class TrainingPipeline(object):
             # Print extra debug output on the final batch.
             self.print_final_batch_details(orig_data, output, input_data, gt_output, epoch,
                                            train=False)
-                        
-            _logger.info('\n\nEpoch {}, test set: avg. loss: {:.8f}, Accuracy all channels correct: {}/{} ({:.0f}%)'.format(
-                  epoch, np.mean(losses), correct, len(self.test_loader.dataset),
-                  100.0 * (correct / len(self.test_loader.dataset))))
 
-            return np.mean(losses)
+            accuracy = 100.0 * (correct / len(self.test_loader.dataset))
+            _logger.info('\n\nEpoch {}, test set: avg. loss: {:.8f}, Accuracy: {} correct/{} total test size ({:.0f}%)'.format(
+                  epoch, np.mean(losses), correct, len(self.test_loader.dataset), accuracy))
+
+            return np.mean(losses), accuracy
 
     def run(self):
         """ Actually does the train/test cycle for num_epochs. """
@@ -154,10 +154,16 @@ class TrainingPipeline(object):
 
         train_losses = []
         test_losses = []
+        test_accuracies = []
         for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
             final_epoch = True if epoch == (self.start_epoch_at + self.num_epochs - 1) else False
-            train_losses.append(self.train(epoch, final_epoch))
-            test_losses.append(self.test(epoch))
+
+            train_loss = self.train(epoch, final_epoch)
+            train_losses.append(train_loss)
+
+            test_loss, test_accuracy = self.test(epoch)
+            test_losses.append(test_loss)
+            test_accuracies.append(test_accuracy)
 
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
@@ -166,10 +172,23 @@ class TrainingPipeline(object):
             img_file = os.path.join(self.results_path, '{}_loss_graph.png'.format(
                 format_epoch(epoch)))
             plt.savefig(img_file, bbox_inches='tight')
+            plt.close()
             _logger.info('\nTraining/testing loss graph for epoch {} saved to {}'.format(
+                epoch, img_file))
+
+            fig = plt.figure()
+            plt.plot(test_accuracies, label='Test Accuracies')
+            plt.title('Testing accuracy after {} epochs'.format(epoch))
+            img_file = os.path.join(self.results_path, '{}_training_accuracy_graph.png'.format(
+                format_epoch(epoch)))
+            plt.savefig(img_file, bbox_inches='tight')
+            plt.close()
+            _logger.info('\nTesting accuracy graph for epoch {} saved to {}'.format(
                 epoch, img_file))
           
         _logger.info('\n\nFinal mean training loss after {} epochs: {}'.format(
-                     self.num_epochs, np.mean(train_losses)))
+            self.num_epochs, np.mean(train_losses)))
         _logger.info('Final mean testing loss after {} epochs: {}'.format(
-                     self.num_epochs, np.mean(test_losses)))
+            self.num_epochs, np.mean(test_losses)))
+        _logger.info('Final best accuracy: {}%, encountered at epoch: {}'.format(
+            max(test_accuracies), np.array(test_accuracies).argmax() + 1))
