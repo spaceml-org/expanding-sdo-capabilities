@@ -95,6 +95,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
             format_epoch(0)))
         plt.savefig(img_file, bbox_inches='tight')
+        plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
 
     def get_loss_func(self, output, gt_output):
@@ -134,6 +135,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
             format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
+        plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
 
         fig = plt.figure()
@@ -147,6 +149,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
             format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
+        plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
 
         num_subsample = 3 # For the final batch, the number of entries to subsample to print out for debugging.
