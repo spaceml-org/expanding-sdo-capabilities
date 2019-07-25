@@ -35,7 +35,7 @@ def to_numpy(value):
             raise TypeError('Cannot convert to Numpy array.')
             
 
-def init_gpu(cuda_device):
+def init_gpu(cuda_device=None):
     """ Use the GPU. """
     torch.backends.cudnn.enabled = True
     if not torch.cuda.is_available():
@@ -48,7 +48,9 @@ def init_gpu(cuda_device):
         for cuda_device in devices:
             _logger.info('Trying to use CUDA device {}...'.format(cuda_device))
             try:
-                device = torch.device("cuda:{}".format(cuda_device))
+                device_str = "cuda:{}".format(cuda_device)
+                torch.cuda.set_device(device_str)
+                device = torch.device(device_str)
                 success = True
                 break
             except Exception as error:
