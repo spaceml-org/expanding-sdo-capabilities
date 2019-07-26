@@ -29,7 +29,6 @@ class SDO_Dataset(Dataset):
 
     def __init__(
         self,
-        device,
         instr=["AIA", "AIA", "HMI"],
         channels=["0171", "0193", "bz"],
         yr_range=[2010, 2018],
@@ -52,7 +51,6 @@ class SDO_Dataset(Dataset):
         """
 
         Args:
-            device (torch.device): device where to send the data
             channels (list string): channels to be selected
             instr (list string): instrument to which each channel corresponds to. 
                                  It has to be of the same size of channels.
@@ -82,7 +80,6 @@ class SDO_Dataset(Dataset):
                 files. If False(or not valid) the file search is done by folder and it is much slower.
 
         """
-        self.device = device
         self.dir = base_dir
         self.instr = instr
         self.channels = channels
@@ -251,5 +248,5 @@ class SDO_Dataset(Dataset):
             item = item[np.newaxis, :, :]  # HW => CHW
         else:
             item = item.transpose([2, 0, 1])  # HWC => CHW
-        tensor = to_tensor(item)
-        return tensor.to(device=self.device, dtype=torch.float)
+        tensor = to_tensor(item, dtype=torch.float)
+        return tensor

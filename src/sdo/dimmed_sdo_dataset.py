@@ -9,10 +9,9 @@ from sdo.sdo_dataset import SDO_Dataset
 
 
 class DimmedSDO_Dataset(SDO_Dataset):
-  def __init__(self, num_channels, device, *args, **kwargs):
-    super(DimmedSDO_Dataset, self).__init__(device, *args, **kwargs)
+  def __init__(self, num_channels, *args, **kwargs):
+    super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
     self.num_channels = num_channels
-    self.device = device
     
     # TODO: Compute mean and std across dataset, and normalize them.
     
@@ -23,8 +22,8 @@ class DimmedSDO_Dataset(SDO_Dataset):
     # TODO: This functionality has now been replaced inside of SDO_Dataset
     # itsel; adapt to use that instead.
     imgs = imgs / imgs.max()
-    dimmed_imgs = imgs.clone().to(self.device)
-    dim_factor = torch.rand(self.num_channels).to(self.device)    
+    dimmed_imgs = imgs.clone()
+    dim_factor = torch.rand(self.num_channels)
     for c in range(self.num_channels):
       dimmed_imgs[c] *= dim_factor[c]
       

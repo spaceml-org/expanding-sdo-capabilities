@@ -79,3 +79,13 @@ def set_seed(random_seed=1, deterministic_cuda=True):
     if deterministic_cuda:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
+
+def pass_seed_to_worker(worker_id):
+    """
+    Given some pytorch DataLoader that is spawning worker forks, this method
+    will ensure that they are all given the correct random seed on
+    initialization to prevent the following problem:
+    https://github.com/pytorch/pytorch/issues/5059
+    """
+    set_seed(np.random.get_state()[1][0] + worker_id)

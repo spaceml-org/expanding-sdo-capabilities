@@ -71,6 +71,8 @@ class TrainingPipeline(object):
         losses = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
             self.optimizer.zero_grad()
+            input_data = input_data.to(self.device)
+            gt_output = gt_output.to(self.device)
             output = self.model(input_data)
             loss = self.get_loss_func(output, gt_output)
             loss.backward()

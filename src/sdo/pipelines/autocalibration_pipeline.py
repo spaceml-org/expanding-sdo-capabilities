@@ -1,5 +1,6 @@
 import logging
 import os
+import multiprocessing
 
 import matplotlib.pyplot as plt
 
@@ -16,6 +17,7 @@ from sdo.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
 from sdo.models.autocalibration import Autocalibration
 from sdo.pipelines.training_pipeline import TrainingPipeline
+from sdo.pytorch_utilities import pass_seed_to_worker
 
 
 _logger = logging.getLogger(__name__)
@@ -35,11 +37,11 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Using following year range for both training and testing: {}'.format(
             yr_range))
 
-        train_dataset = DimmedSDO_Dataset(num_channels, device, instr=instruments,
+        train_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
                                           subsample=subsample,
                                           normalization=0, scaling=True)
-        test_dataset = DimmedSDO_Dataset(num_channels, device, instr=instruments,
+        test_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
                                          subsample=subsample,
                                          normalization=0, scaling=True,
@@ -50,10 +52,21 @@ class AutocalibrationPipeline(TrainingPipeline):
         # loader. Note that we might not want to apply the std as this might
         # remove our brightness correlations.
 
+        num_workers = multiprocessing.cpu_count() - 1
+        _logger.info('Using {} workers for the pytorch DataLoader'.format(
+            num_workers))
         train_loader = DataLoader(train_dataset, batch_size=batch_size_train,
-                                  shuffle=True)
+                                  shuffle=True, num_workers=num_workers,
+                                  # Ensure workers spawn with the right newly
+                                  # incremented random seed.
+                                  worker_init_fn=pass_seed_to_worker,
+                                  # Make sure that results returned from our
+                                  # SDO_DataSet are placed onto the GPU.
+                                  pin_memory=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size_test,
-                                 shuffle=True)
+                                 shuffle=True, num_workers=num_workers,
+                                 worker_init_fn=pass_seed_to_worker,
+                                 pin_memory=True)
 
         model = Autocalibration(input_shape=[num_channels, height, width],
                                 output_dim=num_channels)
