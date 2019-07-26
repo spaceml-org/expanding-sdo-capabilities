@@ -193,4 +193,4 @@ class TrainingPipeline(object):
         _logger.info('Final mean testing loss after {} epochs: {}'.format(
             self.num_epochs, np.mean(test_losses)))
         _logger.info('Final best accuracy: {}%, encountered at epoch: {}'.format(
-            max(test_accuracies), np.array(test_accuracies).argmax() + 1))
+            round(max(test_accuracies), 1), np.array(test_accuracies).argmax() + 1))
