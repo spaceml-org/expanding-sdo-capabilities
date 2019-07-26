@@ -22,7 +22,7 @@ _logger = logging.getLogger(__name__)
 
 
 class SDO_Dataset(Dataset):
-    """ Custom Dataset class compatible with torch.utils.data.DataLoader. 
+    """ Custom Dataset class compatible with torch.utils.data.DataLoader.
     It can be used to flexibly load a train or test dataset from the SDO local folder,
     asking for a specific range of years and a specific frequency in months, days, hours,
     minutes. Scaling is applied by default, normalization can be optionally applied. """
