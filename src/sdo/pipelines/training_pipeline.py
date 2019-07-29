@@ -88,7 +88,7 @@ class TrainingPipeline(object):
         _logger.info('\n\n')
         _logger.info("===================================\n\n\n\n")
         _logger.info("Training epoch {}\n".format(epoch))
-        self.model.train()
+        self.model.train() # Indicate to PyTorch that we are in training mode.
         losses = []
         total_progress = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
@@ -123,7 +123,7 @@ class TrainingPipeline(object):
     def test(self, epoch):
         _logger.info("\n\nTesting epoch {}\n".format(epoch))
         with torch.no_grad():
-            self.model.eval()
+            self.model.eval() # Indicate to PyTorch that we are in testing mode.
             losses = []
             total_progress = []
             correct = 0
