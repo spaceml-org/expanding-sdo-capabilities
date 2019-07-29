@@ -8,7 +8,7 @@ from numpy import sqrt
 from scipy.misc import bytescale
 import logging
 from sdo.global_vars import (DATA_BASEDIR, DATA_FILENAME_TEMPLATE,
-                             INITIAL_SIZE, B_CHANNELS, UV_CHANNELS)
+                             B_CHANNELS, UV_CHANNELS)
 
 BUNIT = 2000.0  # units of 2 kGauss
 AUNIT = 100.0  # units of 100 DN/s/pixel
@@ -49,7 +49,7 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
     return -1
 
 
-def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
+def sdo_find(year, month, day, hour, minu, initial_size, instrs=['AIA', 'AIA', 'HMI'],
              channels=['0171', '0193', 'bx'], subsample=1, basedir=DATA_BASEDIR,
              return_images=False):
     """
@@ -60,6 +60,7 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
     year / month / day - a date between May 17 2010 to 12/31/2018
     hour - between 0 and 23
     minu - between 0 and 59 (note AIA data is at 6 min cadence, HMI at 12 min cadence)
+    initial_size - Unscaled resolution of images.
     instr - 'AIA' or 'HMI'
     channel - 
        if instr=='AIA', channel should be one of '0094', '0131', '0171', '0193', '0211',
@@ -86,8 +87,8 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
         if (not return_images):
             return files
         else:
-            img = zeros(shape=(int(INITIAL_SIZE/subsample),
-                               int(INITIAL_SIZE/subsample),
+            img = zeros(shape=(int(initial_size/subsample),
+                               int(initial_size/subsample),
                                len(channels)), dtype='float32')
             for c in range(len(channels)):
                 img[:, :, c] = sdo_scale((

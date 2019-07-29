@@ -13,6 +13,7 @@ from dataset_tool import TFRecordExporter, error
 
 
 def create_from_sdo(tfrecord_dir, image_dir, shuffle=True):
+    initial_size = 512
     instrs = ['AIA', 'AIA', 'HMI']
     channels = ['0171', '0193', 'bz']
     print('Loading SDOML from "%s"' % image_dir)
@@ -23,7 +24,10 @@ def create_from_sdo(tfrecord_dir, image_dir, shuffle=True):
             for d in np.arange(1, 32):
                 for h in np.arange(0, 24, 6):
                     result = sdo_find(
-                        y, m, d, h, 0, instrs=instrs, channels=channels, 
+                        y, m, d, h, 0,
+                        initial_size=initial_size,
+                        instrs=instrs,
+                        channels=channels,
                         basedir=image_dir)
                     if result != -1:
                         files.append(result)

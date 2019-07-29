@@ -187,6 +187,7 @@ class SDO_Dataset(Dataset):
                                 # if a single channel is missing for the combination
                                 # of parameters result is -1
                                 result = sdo_find(y, month, d, h, minu,
+                                                  initial_size=self.resolution,
                                                   instrs=self.instr,
                                                   channels=self.channels,
                                                   basedir=self.dir,
