@@ -1,7 +1,6 @@
 pipeline-name: AutocalibrationPipeline
 model-version: 1
 log-minimal: True
-num-epochs: 5
 batch-size-train: 64
 batch-size-test: 256
 save-interval: 3
