@@ -207,7 +207,7 @@ def parse_args(args):
         '--dataloader-workers',
         dest='dataloader_workers',
         type=int,
-        default=4,
+        default=6,
         help='The number of workers to use when preparing data for feeding into the deep net')
 
     args = vars(p.parse_args(args))
