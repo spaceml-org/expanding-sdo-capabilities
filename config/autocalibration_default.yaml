@@ -21,7 +21,6 @@ instruments:
   - AIA
   - AIA
   - AIA
-num-channels: 7
 actual-resolution: 512
 subsample: 4
 yr-range:

@@ -200,12 +200,6 @@ def parse_args(args):
         default='AIA AIA',
         help='For each input wavelength, the instrument to use for its data; Ex: --instruments AIA AIA')
     p.add_argument(
-        '--num-channels',
-        dest='num_channels',
-        type=int,
-        default=2,
-        help='The number of input channels for the deep net')
-    p.add_argument(
         '--actual-resolution',
         dest='actual_resolution',
         type=int,
@@ -288,6 +282,8 @@ def parse_args(args):
     args['scaled_height'] = args['scaled_width']
     _logger.info('Actual resolution: {}, subsample: {}, scaled size: {}',
         args['actual_resolution'], args['subsample'], args['scaled_width'])
+
+    args['num_channels'] = len(args['wavelengths'])
 
     return configargparse.Namespace(**args)
     
