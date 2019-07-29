@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import random
 
@@ -89,3 +90,20 @@ def pass_seed_to_worker(worker_id):
     https://github.com/pytorch/pytorch/issues/5059
     """
     set_seed(np.random.get_state()[1][0] + worker_id)
+
+
+def create_dataloader(dataset, batch_size, num_dataloader_workers):
+    assert num_dataloader_workers <= (multiprocessing.cpu_count() - 1), \
+        'There are not enough CPU cores ({}) for requested dataloader '
+        'workers ({})'.format(num_dataloader_workers, (multiprocessing.cpu_count() - 1))
+
+    _logger.info('Using {} workers for the pytorch DataLoader'.format(num_dataloader_workers))
+    loader = DataLoader(dataset, batch_size=batch_size,
+                        shuffle=True, num_workers=num_dataloader_workers,
+                        # Ensure workers spawn with the right newly
+                        # incremented random seed.
+                        worker_init_fn=pass_seed_to_worker,
+                        # Make sure that results returned from our
+                        # SDO_DataSet are placed onto the GPU.
+                        pin_memory=True)
+    return loader

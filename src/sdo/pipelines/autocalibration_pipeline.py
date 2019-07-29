@@ -1,6 +1,5 @@
 import logging
 import os
-import multiprocessing
 
 import matplotlib.pyplot as plt
 
@@ -17,7 +16,7 @@ from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
 from sdo.models.autocalibration import Autocalibration1
 from sdo.pipelines.training_pipeline import TrainingPipeline
-from sdo.pytorch_utilities import pass_seed_to_worker
+from sdo.pytorch_utilities import create_dataloader
 
 
 _logger = logging.getLogger(__name__)
@@ -63,24 +62,10 @@ class AutocalibrationPipeline(TrainingPipeline):
         # loader. Note that we might not want to apply the std as this might
         # remove our brightness correlations.
 
-        assert dataloader_workers <= (multiprocessing.cpu_count() - 1), \
-            'There are not enough CPU cores ({}) for requested dataloader '
-            'workers ({})'.format(dataloader_workers, (multiprocessing.cpu_count() - 1))
-
-        _logger.info('Using {} workers for the pytorch DataLoader'.format(
-            dataloader_workers))
-        train_loader = DataLoader(train_dataset, batch_size=batch_size_train,
-                                  shuffle=True, num_workers=dataloader_workers,
-                                  # Ensure workers spawn with the right newly
-                                  # incremented random seed.
-                                  worker_init_fn=pass_seed_to_worker,
-                                  # Make sure that results returned from our
-                                  # SDO_DataSet are placed onto the GPU.
-                                  pin_memory=True)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size_test,
-                                 shuffle=True, num_workers=dataloader_workers,
-                                 worker_init_fn=pass_seed_to_worker,
-                                 pin_memory=True)
+        train_loader = create_dataloader(train_dataset, batch_size_train,
+                                         dataloader_workers)
+        test_loader = create_dataloader(test_dataset, batch_size_test,
+                                        dataloader_workers)
 
         if model_version == 1:
             model = Autocalibration1(input_shape=[num_channels, args.scaled_height,
