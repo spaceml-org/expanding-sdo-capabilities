@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 import pandas
 
-from sdo.dimmed_sdo_dataset import DimmedSDO_Dataset
+from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
 from sdo.models.autocalibration import Autocalibration
 from sdo.pipelines.training_pipeline import TrainingPipeline

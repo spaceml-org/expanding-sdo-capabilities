@@ -5,7 +5,7 @@ to aid training.
 
 import torch
 
-from sdo.sdo_dataset import SDO_Dataset
+from sdo.datasets.sdo_dataset import SDO_Dataset
 
 
 class DimmedSDO_Dataset(SDO_Dataset):
