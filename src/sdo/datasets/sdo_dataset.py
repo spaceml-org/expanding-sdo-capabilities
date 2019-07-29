@@ -234,21 +234,19 @@ class SDO_Dataset(Dataset):
         n_channels = len(self.channels)
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
-        item = np.zeros(shape=(size, size, n_channels), dtype=np.float32)
-        for i in range(n_channels):
-            img = np.load(self.files[index][i])["x"][
-                ::self.subsample, ::self.subsample]
+        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
+        for c in range(n_channels):
+            img = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
+                            dtype=np.float32)
+
+            # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
+            item[c, :, :] = img[::self.subsample, ::self.subsample]
+
             if self.scaling:
-                img = sdo_scale(img, self.channels[i])
+                img = sdo_scale(img, self.channels[c])
                 if self.normalization > 0:
                     img = self.normalize_by_img(img, self.normalization)
-            item[:, :, i] = img
-        if n_channels == 1:
-            item = item[np.newaxis, :, :]  # HW => CHW
-        else:
-            item = item.transpose([2, 0, 1])  # HWC => CHW
-        tensor = to_tensor(item, dtype=torch.float)
 
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return tensor
+        return to_tensor(item, dtype=torch.float)
