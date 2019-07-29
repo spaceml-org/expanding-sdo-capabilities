@@ -127,6 +127,8 @@ class AutocalibrationPipeline(TrainingPipeline):
 
     def get_loss_func(self, output, gt_output):
         """ Return the loss function this pipeline is using. """
+        # Both the output and gt_output should be a vector num_channels wide, where each vector entry is the
+        # brightness dimming factor.
         return nn.MSELoss()(output, gt_output)
 
     def print_final_batch_details(self, orig_data, output, input_data, gt_output, epoch, train):
