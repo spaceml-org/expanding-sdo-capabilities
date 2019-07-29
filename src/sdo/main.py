@@ -8,6 +8,7 @@ import logging
 import torch
 
 from sdo import __version__
+from sdo.io import format_epoch
 from sdo.parse_args import parse_args
 from sdo.py_utils import split_path
 from sdo.pytorch_utilities import init_gpu, set_seed
@@ -40,6 +41,18 @@ def create_dirs(args):
         os.makedirs(path)
 
 
+def save_config_details(args, results_path, experiment_name):
+    """
+    Given some final arguments, save them as a YAML config to make it easier to
+    both see what was configured as well as easily re-run an experiment given some config.
+    """
+    args_dict = vars(args)
+    filename = os.path.join(results_path, '{}_config_{}.yaml'.format(
+        format_epoch(0), experiment_name))
+    with open(filename, 'w') as outfile:
+        yaml.dump(args_dict, outfile, default_flow_style=False)
+
+
 def main(args):
     """Main entry point allowing external calls
 
@@ -51,6 +64,7 @@ def main(args):
     _logger.info('Parsed arguments: {}'.format(args))
 
     create_dirs(args)
+    save_config_details(args, args.results_path, args.experiment_name)
 
     device = init_gpu(args.cuda_device)
     set_seed(args.random_seed, args.determininistic_cuda)
