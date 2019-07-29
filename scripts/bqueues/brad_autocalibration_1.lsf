@@ -4,7 +4,7 @@
 #BSUB -gpu "num=1"
 #BSUB -q "s822lc_p100"
 #BSUB -R "affinity[core]"
-#BSUB -W 11:30
+#BSUB -W 48:00
 #BSUB -x
 
 CONDA_ENV=wmlce_py3_sdo_bradneuberg
