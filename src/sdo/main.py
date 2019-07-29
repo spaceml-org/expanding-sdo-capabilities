@@ -89,6 +89,10 @@ def main(args):
                                            saved_optimizer_path=args.saved_optimizer_path,
                                            start_epoch_at=args.start_epoch_at,
                                            yr_range=args.yr_range,
+                                           mnt_step=args.mnt_step,
+                                           day_step=args.day_step,
+                                           h_step=args.h_step,
+                                           min_step=args.min_step,
                                            dataloader_workers=args.dataloader_workers)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')

@@ -174,6 +174,30 @@ def parse_args(args):
         default=[],
         help='Start and stop year range, inclusive at both ends. Ex: --yr-range 2012 2013')
     p.add_argument(
+        '--mnt-step',
+        dest='mnt_step',
+        type=int,
+        default=1,
+        help='Month frequency, starting from January. Values must be 1 or greater.')
+    p.add_argument(
+        '--day-step',
+        dest='day_step',
+        type=int,
+        default=1,
+        help='Day frequency starting from 1. Values must be 1 or greater.')
+    p.add_argument(
+        '--h-step',
+        dest='h_step',
+        type=int,
+        default=6,
+        help='Hourly frequency starting from 0. Values must be 1 or greater.')
+    p.add_argument(
+        '--min-step',
+        dest='min_step',
+        type=int,
+        default=60,
+        help='Minute frequency starting from 0. Values must be 1 or greater.')
+    p.add_argument(
         '--dataloader-workers',
         dest='dataloader_workers',
         type=int,

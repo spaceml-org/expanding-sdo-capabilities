@@ -27,8 +27,8 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, scaled_height, scaled_width, device, instruments, wavelengths,
                  subsample, batch_size_train, batch_size_test, log_interval, results_path,
                  num_epochs, save_interval, continue_training, saved_model_path,
-                 saved_optimizer_path, start_epoch_at, yr_range, dataloader_workers,
-                 pct_close=0.15):
+                 saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
+                 day_step, h_step, min_step, dataloader_workers, pct_close=0.15):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
 
@@ -44,11 +44,15 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         train_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
+                                          mnt_step=mnt_step, day_step=day_step,
+                                          h_step=h_step, min_step=min_step,
                                           resolution=args.actual_resolution,
                                           subsample=subsample,
                                           normalization=0, scaling=True)
         test_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
+                                         mnt_step=mnt_step, day_step=day_step,
+                                         h_step=h_step, min_step=min_step,
                                          resolution=args.actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=True,
