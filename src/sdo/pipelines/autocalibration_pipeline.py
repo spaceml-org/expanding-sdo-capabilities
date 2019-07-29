@@ -24,12 +24,12 @@ _logger = logging.getLogger(__name__)
 
 
 class AutocalibrationPipeline(TrainingPipeline):
-    def __init__(self, num_channels, scaled_height, scaled_width, device, instruments, wavelengths,
+    def __init__(self, scaled_height, scaled_width, device, instruments, wavelengths,
                  subsample, batch_size_train, batch_size_test, log_interval, results_path,
                  num_epochs, save_interval, continue_training, saved_model_path,
                  saved_optimizer_path, start_epoch_at, yr_range, dataloader_workers,
                  pct_close=0.15):
-        self.num_channels = num_channels
+        self.num_channels = len(wavelengths)
         self.results_path = results_path
 
         assert yr_range is not None and len(yr_range) > 0, \

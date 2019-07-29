@@ -283,8 +283,6 @@ def parse_args(args):
     _logger.info('Actual resolution: {}, subsample: {}, scaled size: {}',
         args['actual_resolution'], args['subsample'], args['scaled_width'])
 
-    args['num_channels'] = len(args['wavelengths'])
-
     return configargparse.Namespace(**args)
     
 
@@ -324,8 +322,7 @@ def main(args):
     pipeline = None
     _logger.info('Using {}'.format(args.pipeline_name))
     if args.pipeline_name == 'AutocalibrationPipeline':
-        pipeline = AutocalibrationPipeline(num_channels=args.num_channels,
-                                           scaled_height=args.scaled_height,
+        pipeline = AutocalibrationPipeline(scaled_height=args.scaled_height,
                                            scaled_width=args.scaled_width,
                                            device=device,
                                            instruments=args.instruments,
