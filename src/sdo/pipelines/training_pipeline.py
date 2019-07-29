@@ -4,6 +4,8 @@ import os
 
 import matplotlib.pyplot as plt
 
+from contexttimer import Timer
+
 import numpy as np
 
 import torch
@@ -84,29 +86,32 @@ class TrainingPipeline(object):
         pass
 
     def train(self, epoch, final_epoch=False):
-        # TODO: IO from the SDO_Dataset is causing a bottleneck for training, making this slow.
         _logger.info('\n\n')
         _logger.info("===================================\n\n\n\n")
         _logger.info("Training epoch {}\n".format(epoch))
         self.model.train() # Indicate to PyTorch that we are in training mode.
         losses = []
         total_progress = []
+        times = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
-            self.optimizer.zero_grad()
-            # Send the entire batch to the GPU as one to increase efficiency.
-            input_data = input_data.to(self.device)
-            gt_output = gt_output.to(self.device)
-            output = self.model(input_data)
-            loss = self.get_loss_func(output, gt_output)
-            loss.backward()
-            self.optimizer.step()
-            losses.append(float(loss))
+            with Timer() as t:
+                self.optimizer.zero_grad()
+                # Send the entire batch to the GPU as one to increase efficiency.
+                input_data = input_data.to(self.device)
+                gt_output = gt_output.to(self.device)
+                output = self.model(input_data)
+                loss = self.get_loss_func(output, gt_output)
+                loss.backward()
+                self.optimizer.step()
+                losses.append(float(loss))
+
+            times.append(t.elapsed)
 
             if batch_idx % self.log_interval == 0:
                 progress = self.calculate_progress(epoch, output, gt_output)
                 total_progress.append(progress)
                 self.print_epoch_details(self.batch_size_train, orig_data, loss, progress,
-                                         train=True)
+                                         t.elapsed, train=True)
 
         # Generate extra metrics useful for debugging and analysis.
         self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
@@ -114,7 +119,7 @@ class TrainingPipeline(object):
 
 
         self.print_epoch_details(self.batch_size_train, orig_data, np.mean(losses), 100.0,
-                                 train=True)
+                                 np.mean(times), train=True)
 
         if epoch % self.save_interval == 0 or final_epoch:
             self.save_training_results(epoch)
@@ -127,40 +132,44 @@ class TrainingPipeline(object):
             self.model.eval() # Indicate to PyTorch that we are in testing mode.
             losses = []
             total_progress = []
+            times = []
             correct = 0
             for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
-                # Send the entire batch to the GPU as one to increase efficiency.
-                input_data = input_data.to(self.device)
-                gt_output = gt_output.to(self.device)
-                output = self.model(input_data)
-                output = output.to(self.device)
-                loss = self.get_loss_func(output, gt_output)
-                losses.append(float(loss))
+                with Timer() as t:
+                    # Send the entire batch to the GPU as one to increase efficiency.
+                    input_data = input_data.to(self.device)
+                    gt_output = gt_output.to(self.device)
+                    output = self.model(input_data)
+                    output = output.to(self.device)
+                    loss = self.get_loss_func(output, gt_output)
+                    losses.append(float(loss))
+
+                times.append(t.elapsed)
 
                 if batch_idx % self.log_interval == 0:
                     progress = self.calculate_progress(epoch, output, gt_output)
                     total_progress.append(progress)
                     self.print_epoch_details(self.batch_size_test, orig_data, loss, progress,
-                                             train=False)
+                                             t.elapsed, train=False)
 
             # Generate extra metrics useful for debugging and analysis.
             self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                            train=False)
 
             self.print_epoch_details(self.batch_size_test, orig_data, np.mean(losses), 100.0,
-                                     train=False)
+                                     t.elapsed, train=False)
 
             return np.mean(losses), np.mean(total_progress)
 
-    def print_epoch_details(self, batch_size, orig_data, loss, progress, train):
+    def print_epoch_details(self, batch_size, orig_data, loss, progress, time, train):
         """
         During epochs, this method prints some details every `log_interval` steps.
         """
         num_batches = len(orig_data) / batch_size
         epoch_percentage_done = int(100.0 * float(batch_idx) / num_batches)
-        _logger.info('{} Epoch: {} [{}% ({:.2f})]\tLoss: {:.6f}'.format(
+        _logger.info('{} Epoch: {} [{}% ({:.2f})]\tLoss: {:.6f}, Time to run: {} s'.format(
             'Train' if train else 'Test', epoch, epoch_percentage_done, progress,
-            float(loss)))
+            float(loss)), time)
 
     def load_saved_checkpoint(self, model, model_path, optimizer, optimizer_path, start_epoch_at):
         """ Given some saved model and optimizer, load and return them. """
