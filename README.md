@@ -31,8 +31,22 @@ Documents to help you get up to speed on how we are working as a team:
 
 # Training/Testing Runs
 
-Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of
-available configuration options.
+Before you can run the training/testing pipeline, you need to ensure you have your Anaconda and Python PIP environments correctly set up.
+
+SSH into the IBM p10login1 edge host and run the following:
+
+```
+ssh p10login1
+cd ~/expanding-sdo-capabilities
+
+# Install Anaconda requirements
+conda env update -f conda_environment.yml
+
+# Install PIP requirements
+pip install -r requirements.txt
+```
+
+Now you can run the pipeline. Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of available configuration options.
 
 To start a new training run:
 
