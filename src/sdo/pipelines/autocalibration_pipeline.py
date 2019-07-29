@@ -32,6 +32,11 @@ class AutocalibrationPipeline(TrainingPipeline):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
 
+        _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
+            self.num_channels))
+        _logger.info('Wavelengths: {}'.format(wavelengths))
+        _logger.info('Instruments: {}'.format(instruments))
+
         assert yr_range is not None and len(yr_range) > 0, \
             'The AutocalibrationPipeline requires a yr_range: {}'.format(yr_range)
         _logger.info('Using following year range for both training and testing: {}'.format(
