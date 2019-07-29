@@ -261,6 +261,12 @@ def parse_args(args):
         type=int,
         default=[],
         help='Start and stop year range, inclusive at both ends. Ex: --yr-range 2012 2013')
+    p.add_argument(
+        '--dataloader-workers',
+        dest='dataloader_workers',
+        type=int,
+        default=4,
+        help='The number of workers to use when preparing data for feeding into the deep net')
 
     args = vars(p.parse_args(args))
 
@@ -339,7 +345,8 @@ def main(args):
                                            saved_model_path=args.saved_model_path,
                                            saved_optimizer_path=args.saved_optimizer_path,
                                            start_epoch_at=args.start_epoch_at,
-                                           yr_range=args.yr_range)
+                                           yr_range=args.yr_range,
+                                           dataloader_workers=args.dataloader_workers)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')
         # TODO: Implement

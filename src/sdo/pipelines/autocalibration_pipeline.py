@@ -27,7 +27,8 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, num_channels, scaled_height, scaled_width, device, instruments, wavelengths,
                  subsample, batch_size_train, batch_size_test, log_interval, results_path,
                  num_epochs, save_interval, continue_training, saved_model_path,
-                 saved_optimizer_path, start_epoch_at, yr_range, pct_close=0.15):
+                 saved_optimizer_path, start_epoch_at, yr_range, dataloader_workers,
+                 pct_close=0.15):
         self.num_channels = num_channels
         self.results_path = results_path
 
@@ -53,11 +54,14 @@ class AutocalibrationPipeline(TrainingPipeline):
         # loader. Note that we might not want to apply the std as this might
         # remove our brightness correlations.
 
-        num_workers = multiprocessing.cpu_count() - 1
+        assert dataloader_workers <= (multiprocessing.cpu_count() - 1), \
+            'There are not enough CPU cores ({}) for requested dataloader '
+            'workers ({})'.format(dataloader_workers, (multiprocessing.cpu_count() - 1))
+
         _logger.info('Using {} workers for the pytorch DataLoader'.format(
-            num_workers))
+            dataloader_workers))
         train_loader = DataLoader(train_dataset, batch_size=batch_size_train,
-                                  shuffle=True, num_workers=num_workers,
+                                  shuffle=True, num_workers=dataloader_workers,
                                   # Ensure workers spawn with the right newly
                                   # incremented random seed.
                                   worker_init_fn=pass_seed_to_worker,
@@ -65,7 +69,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                   # SDO_DataSet are placed onto the GPU.
                                   pin_memory=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size_test,
-                                 shuffle=True, num_workers=num_workers,
+                                 shuffle=True, num_workers=dataloader_workers,
                                  worker_init_fn=pass_seed_to_worker,
                                  pin_memory=True)
 
