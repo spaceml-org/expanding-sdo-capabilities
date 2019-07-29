@@ -28,7 +28,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  subsample, batch_size_train, batch_size_test, log_interval, results_path,
                  num_epochs, save_interval, continue_training, saved_model_path,
                  saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
-                 day_step, h_step, min_step, dataloader_workers, pct_close=0.15):
+                 day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
 
@@ -94,10 +94,6 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters())
-
-        # If a channel brightness prediction is within this percentage of the ground truth then we
-        # consider that prediction correct.
-        self.pct_close = pct_close
 
         super(AutocalibrationPipeline, self).__init__(
             train_dataset=train_dataset,
@@ -196,7 +192,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
 
         num_subsample = 3 # For the final batch, the number of entries to subsample to print out for debugging.
-        column_labels = ['Pred', 'GT', 'Delta', 'Pct Correct']
+        column_labels = ['Pred', 'GT', 'Mean Delta']
         pretty_results = np.zeros((min(num_subsample, len(output)), len(column_labels)),
                                   dtype=np.float32)
 
@@ -213,39 +209,10 @@ class AutocalibrationPipeline(TrainingPipeline):
         pretty_results[:, 2] = np.round(np.abs(gt_output - output).mean(axis=1)[:num_subsample],
                                         decimals=2)
 
-        # Percentage correct across all the channels for a given batch row?
-        per_channel_diff = np.abs(gt_output - output)
-        per_channel_correct = per_channel_diff <= np.abs(self.pct_close * gt_output)
-        correct_per_channel = np.sum(np.where(per_channel_correct, 1, 0), axis=1, keepdims=True,
-                                     dtype=np.int)
-        pct_correct_per_channel = correct_per_channel / self.num_channels
-        pretty_results[:, 3] = np.round(pct_correct_per_channel * 100.0,
-                                        decimals=0)[:num_subsample, 0].astype(np.int)
-
         df = pandas.DataFrame(pretty_results, columns=column_labels)
         _logger.info("\n\nRandom sample of mean predictions across channels, "
                      "where each row is a sample in the training batch:\n")
         _logger.info(df.to_string(index=False))
-
-    def get_correct_count(self, output, gt_output):
-        """ Given some predictions and ground truth, calculate how many are 'correct' over the batch.
-            What is considered 'correct' differs based on what a pipeline is trying to do. """
-        preds = output.detach().cpu().numpy()
-        targets = gt_output.detach().cpu().numpy()
-
-        per_channel_diff = np.abs(targets - preds)
-        per_channel_correct = per_channel_diff <= np.abs(self.pct_close * targets)
-        correct_per_channel = np.sum(np.where(per_channel_correct, 1, 0), axis=1, keepdims=True,
-                                     dtype=np.int)
-        pct_correct_per_channel = correct_per_channel / self.num_channels
-
-        # Which batch results have _all_ of their channel predictions fully correct?
-        num_fully_correct_all_channels = np.where(pct_correct_per_channel == 1.0, 1, 0).sum()
-
-        # Note: this is whether things are correct across _all_ channels for a given batch
-        # sample.
-        correct = num_fully_correct_all_channels
-        return correct
 
     def calculate_progress(self, epoch, output, gt_output):
         """
