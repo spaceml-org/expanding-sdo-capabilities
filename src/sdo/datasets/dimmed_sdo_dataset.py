@@ -28,5 +28,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
     dim_factor = torch.rand(self.num_channels)
     for c in range(self.num_channels):
       dimmed_imgs[c] *= dim_factor[c]
-      
+    
+    # Note: For efficiency reasons, don't send each item to the GPU;
+    # rather, later, send the entire batch to the GPU.
     return dimmed_imgs, dim_factor, imgs

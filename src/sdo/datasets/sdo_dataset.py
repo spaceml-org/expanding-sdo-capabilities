@@ -248,4 +248,7 @@ class SDO_Dataset(Dataset):
         else:
             item = item.transpose([2, 0, 1])  # HWC => CHW
         tensor = to_tensor(item, dtype=torch.float)
+
+        # Note: For efficiency reasons, don't send each item to the GPU;
+        # rather, later, send the entire batch to the GPU.
         return tensor
