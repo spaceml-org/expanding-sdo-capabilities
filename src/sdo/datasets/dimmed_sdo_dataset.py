@@ -19,10 +19,12 @@ class DimmedSDO_Dataset(SDO_Dataset):
     imgs = super(DimmedSDO_Dataset, self).__getitem__(idx)    
     # Scale the image to between [0.0, 1.0]
     # Note: if we don't do this scaling, training and testing don't work!
-    # TODO: This functionality has now been replaced inside of SDO_Dataset
-    # itsel; adapt to use that instead.
+
+    # TODO: Use the max() that sdo_dataset has calculated across the full
+    # data instead of our own, because this is currently by image below.
     imgs = imgs / imgs.max()
     dimmed_imgs = imgs.clone()
+    # TODO: Degrade the brightness _before_ scaling the values.
     dim_factor = torch.rand(self.num_channels)
     for c in range(self.num_channels):
       dimmed_imgs[c] *= dim_factor[c]
