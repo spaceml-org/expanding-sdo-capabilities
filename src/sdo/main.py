@@ -188,18 +188,6 @@ def parse_args(args):
         default=10,
         help='While processing batches during training, how often to print out log statistics')
     p.add_argument(
-        '--height',
-        dest='height',
-        type=int,
-        default=128,
-        help='Pixel height of images for training and testing')
-    p.add_argument(
-        '--width',
-        dest='width',
-        type=int,
-        default=128,
-        help='Pixel width of images for training and testing')
-    p.add_argument(
         '--wavelengths',
         dest='wavelengths',
         nargs='+',
@@ -218,11 +206,17 @@ def parse_args(args):
         default=2,
         help='The number of input channels for the deep net')
     p.add_argument(
+        '--actual-resolution',
+        dest='actual_resolution',
+        type=int,
+        default=512,
+        help='Actual pixel resolution of training/testing images before subsampling is applied')
+    p.add_argument(
         '--subsample',
         dest='subsample',
         type=int,
         default=4,
-        help='By default, images in the SDO dataset are 512x512; subsample indicates what to reduce them by. Ex: 512/4 = 128')
+        help='Indicates what to reduce images by, against --actual-resolution. Ex: 512/4 = 128')
     p.add_argument(
         '--cuda-device',
         dest='cuda_device',
@@ -284,6 +278,11 @@ def parse_args(args):
         args['saved_model_path'] = os.path.abspath(args['saved_model_path'])
         args['saved_optimizer_path'] = os.path.abspath(args['saved_optimizer_path'])
 
+    args['scaled_width'] = int(args['actual_resolution'] / args['subsample'])
+    args['scaled_height'] = args['scaled_width']
+    _logger.info('Actual resolution: {}, subsample: {}, scaled size: {}',
+        args['actual_resolution'], args['subsample'], args['scaled_width'])
+
     return configargparse.Namespace(**args)
     
 
@@ -324,8 +323,8 @@ def main(args):
     _logger.info('Using {}'.format(args.pipeline_name))
     if args.pipeline_name == 'AutocalibrationPipeline':
         pipeline = AutocalibrationPipeline(num_channels=args.num_channels,
-                                           height=args.height,
-                                           width=args.width,
+                                           scaled_height=args.scaled_height,
+                                           scaled_width=args.scaled_width,
                                            device=device,
                                            instruments=args.instruments,
                                            wavelengths=args.wavelengths,

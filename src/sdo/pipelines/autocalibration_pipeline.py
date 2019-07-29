@@ -24,11 +24,10 @@ _logger = logging.getLogger(__name__)
 
 
 class AutocalibrationPipeline(TrainingPipeline):
-    def __init__(self, num_channels, height, width, device, instruments, wavelengths,
-                 subsample, batch_size_train, batch_size_test, log_interval,
-                 results_path, num_epochs, save_interval, continue_training,
-                 saved_model_path, saved_optimizer_path, start_epoch_at,
-                 yr_range, pct_close=0.15):
+    def __init__(self, num_channels, scaled_height, scaled_width, device, instruments, wavelengths,
+                 subsample, batch_size_train, batch_size_test, log_interval, results_path,
+                 num_epochs, save_interval, continue_training, saved_model_path,
+                 saved_optimizer_path, start_epoch_at, yr_range, pct_close=0.15):
         self.num_channels = num_channels
         self.results_path = results_path
 
@@ -39,10 +38,12 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         train_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
+                                          resolution=args.actual_resolution,
                                           subsample=subsample,
                                           normalization=0, scaling=True)
         test_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
+                                         resolution=args.actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=True,
                                          test=True)
@@ -68,8 +69,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                  worker_init_fn=pass_seed_to_worker,
                                  pin_memory=True)
 
-        model = Autocalibration(input_shape=[num_channels, height, width],
-                                output_dim=num_channels)
+        model = Autocalibration(input_shape=[num_channels, args.scaled_height,
+                                args.scaled_width], output_dim=num_channels)
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters())
 
