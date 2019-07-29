@@ -10,7 +10,6 @@ import torch
 from sdo import __version__
 from sdo.io import format_epoch
 from sdo.parse_args import parse_args
-from sdo.py_utils import split_path
 from sdo.pytorch_utilities import init_gpu, set_seed
 from sdo.pipelines.autocalibration_pipeline import AutocalibrationPipeline
 
