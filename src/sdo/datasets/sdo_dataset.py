@@ -80,6 +80,8 @@ class SDO_Dataset(Dataset):
                 files. If False(or not valid) the file search is done by folder and it is much slower.
 
         """
+        assert day_step > 0 and h_step > 0 and min_step > 0
+
         self.dir = base_dir
         self.instr = instr
         self.channels = channels
