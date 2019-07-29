@@ -15,7 +15,7 @@ import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
-from sdo.models.autocalibration import Autocalibration
+from sdo.models.autocalibration import Autocalibration1
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import pass_seed_to_worker
 
@@ -24,7 +24,7 @@ _logger = logging.getLogger(__name__)
 
 
 class AutocalibrationPipeline(TrainingPipeline):
-    def __init__(self, scaled_height, scaled_width, device, instruments, wavelengths,
+    def __init__(self, model_version, scaled_height, scaled_width, device, instruments, wavelengths,
                  subsample, batch_size_train, batch_size_test, log_interval, results_path,
                  num_epochs, save_interval, continue_training, saved_model_path,
                  saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
@@ -82,8 +82,16 @@ class AutocalibrationPipeline(TrainingPipeline):
                                  worker_init_fn=pass_seed_to_worker,
                                  pin_memory=True)
 
-        model = Autocalibration(input_shape=[num_channels, args.scaled_height,
-                                args.scaled_width], output_dim=num_channels)
+        if model_version == 1:
+            model = Autocalibration1(input_shape=[num_channels, args.scaled_height,
+                                     args.scaled_width], output_dim=num_channels)
+        else:
+            # Note: For other model_versions, simply instantiate whatever class
+            # you want to test your experiment for. You will have to update the code
+            # here to reference that class, preferably in sdo.models.*, such as
+            # sdo.models.Autocalibration2.
+            raise Exception('Unknown model version: {}'.format(model_version))
+
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters())
 

@@ -68,6 +68,12 @@ def parse_args(args):
         default=None,
         help='The name of this experiment, used to partition result artifacts; defaults to date and time')
     p.add_argument(
+        '--model-version',
+        dest='model_version',
+        type=int,
+        required=True,
+        help='Which version of the model for your particular pipeline you want to run')
+    p.add_argument(
         '--results-path',
         dest='results_path',
         default='./training_results',

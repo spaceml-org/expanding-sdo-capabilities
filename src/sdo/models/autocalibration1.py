@@ -10,7 +10,7 @@ import torch.nn as nn
 _logger = logging.getLogger(__name__)
 
 
-class Autocalibration(nn.Module):
+class Autocalibration1(nn.Module):
     def __init__(self, input_shape, output_dim):
         super().__init__()
         if (len(input_shape) != 3):
