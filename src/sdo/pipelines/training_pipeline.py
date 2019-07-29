@@ -93,6 +93,7 @@ class TrainingPipeline(object):
         total_progress = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
             self.optimizer.zero_grad()
+            # Send the entire batch to the GPU as one to increase efficiency.
             input_data = input_data.to(self.device)
             gt_output = gt_output.to(self.device)
             output = self.model(input_data)
@@ -128,6 +129,7 @@ class TrainingPipeline(object):
             total_progress = []
             correct = 0
             for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
+                # Send the entire batch to the GPU as one to increase efficiency.
                 input_data = input_data.to(self.device)
                 gt_output = gt_output.to(self.device)
                 output = self.model(input_data)
