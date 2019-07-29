@@ -256,4 +256,4 @@ class AutocalibrationPipeline(TrainingPipeline):
         method is appropriate for other kinds of scalar values indicating progress
         you'd like to use.
         """
-        # TODO: Figure this out.
+        return torch.mean(torch.mean(torch.abs(output - gt_output), dim=1), dim=0)
