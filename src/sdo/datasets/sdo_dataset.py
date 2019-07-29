@@ -44,7 +44,6 @@ class SDO_Dataset(Dataset):
         shuffle=False,
         normalization=0,
         scaling=True,
-        shuffle_seed=1234,
         holdout=False,
         inventory=INVENTORY
     ):
@@ -73,8 +72,6 @@ class SDO_Dataset(Dataset):
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
-            shuffle_seed (int): seed to be used when shuffling the rows of the dataset. 
-                                if shuffle=False this is ignored
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
             inventory (str): path to an pre-computed inventory file that contains a dataframe of existing
                 files. If False(or not valid) the file search is done by folder and it is much slower.
@@ -97,7 +94,6 @@ class SDO_Dataset(Dataset):
         self.test_ratio = test_ratio
         self.normalization = normalization
         self.scaling = scaling
-        self.shuffle_seed = shuffle_seed
         self.holdout = holdout
         if path.isfile(inventory):
             self.inventory = inventory
