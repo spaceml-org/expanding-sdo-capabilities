@@ -156,11 +156,11 @@ def parse_args(args):
     p.add_argument(
         '--saved-model-path',
         dest='saved_model_path',
-        help='Path to a saved model to continue training from')
+        help='Absolute path to a saved model to continue training from')
     p.add_argument(
         '--saved-optimizer-path',
         dest='saved_optimizer_path',
-        help='Path to a saved optimizer to continue training from')
+        help='Absolute path to a saved optimizer to continue training from')
     p.add_argument(
         '--start-epoch-at',
         dest='start_epoch_at',
