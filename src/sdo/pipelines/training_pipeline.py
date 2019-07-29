@@ -18,13 +18,15 @@ class TrainingPipeline(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, train_dataset, test_dataset, train_loader, test_loader,
-                 model, optimizer, log_interval, results_path, num_epochs, device,
-                 save_interval, continue_training, saved_model_path,
-                 saved_optimizer_path, start_epoch_at):
+                 batch_size_train, batch_size_test, model, optimizer, log_interval,
+                 results_path, num_epochs, device, save_interval, continue_training,
+                 saved_model_path, saved_optimizer_path, start_epoch_at):
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
         self.train_loader = train_loader
         self.test_loader = test_loader
+        self.batch_size_train = batch_size_train
+        self.batch_size_test = batch_size_test
         self.model = model
         self.optimizer = optimizer
         self.log_interval = log_interval
@@ -57,9 +59,28 @@ class TrainingPipeline(object):
         pass
 
     @abstractmethod
-    def get_correct_count(self, output, gt_output):
-        """ Given some output and ground truth output, tries to return a notion of how
-            'correct' the given predictions are so that we can compute an accuracy score. """
+    def calculate_progress(self, epoch, output, gt_output):
+        """
+        Given some predicted output from a network and some ground truth, this method
+        calculates a scalar on how "well" we are doing for a given problem to gauge
+        progress during different experiments and during training. Note that we
+        already calculate and print out the loss outside of this method, so this
+        method is appropriate for other kinds of scalar values indicating progress
+        you'd like to use. Also, note that the value returned should assume that
+        higher values are 'good' and lower values are 'bad' (i.e. a progress of 5
+        is 'better' than a progress of 0).
+        """
+        pass
+
+    def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch,
+                                    train):
+        """
+        Every log_interval pass during training or testing in an epoch, we might want to
+        calculate supporting metrics and graphs to know how we are doing.
+        """
+        # TODO: There are a fair number of standard metrics across different projects we
+        # can calculate here. Subclasses can also override this to add some extra metrics
+        # that are specific to sub-projects that they also want to generate.
         pass
 
     def train(self, epoch, final_epoch=False):
@@ -69,6 +90,7 @@ class TrainingPipeline(object):
         _logger.info("Training epoch {}\n".format(epoch))
         self.model.train()
         losses = []
+        total_progress = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
             self.optimizer.zero_grad()
             input_data = input_data.to(self.device)
@@ -80,22 +102,63 @@ class TrainingPipeline(object):
             losses.append(float(loss))
 
             if batch_idx % self.log_interval == 0:
-                _logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(orig_data), len(self.train_loader.dataset),
-                    100.0 * (batch_idx / len(self.train_loader)), float(loss)))
+                progress = self.calculate_progress(epoch, output, gt_output)
+                total_progress.append(progress)
+                self.print_epoch_details(self.batch_size_train, orig_data, loss, progress,
+                                         train=True)
 
-        # Print extra debug output on the final batch.
-        self.print_final_batch_details(orig_data, output, input_data, gt_output, epoch,
+        # Generate extra metrics useful for debugging and analysis.
+        self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                        train=True)
 
 
-        _logger.info('\nAt end of train epoch {}, loss min: {}, max: {}, mean: {}'.format(epoch,
-            min(losses), max(losses), np.mean(losses)))
+        self.print_epoch_details(self.batch_size_train, orig_data, np.mean(losses), 100.0,
+                                 train=True)
 
         if epoch % self.save_interval == 0 or final_epoch:
             self.save_training_results(epoch)
 
-        return np.mean(losses)
+        return np.mean(losses), np.mean(total_progress)
+
+    def test(self, epoch):
+        _logger.info("\n\nTesting epoch {}\n".format(epoch))
+        with torch.no_grad():
+            self.model.eval()
+            losses = []
+            total_progress = []
+            correct = 0
+            for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
+                input_data = input_data.to(self.device)
+                gt_output = gt_output.to(self.device)
+                output = self.model(input_data)
+                output = output.to(self.device)
+                loss = self.get_loss_func(output, gt_output)
+                losses.append(float(loss))
+
+                if batch_idx % self.log_interval == 0:
+                    progress = self.calculate_progress(epoch, output, gt_output)
+                    total_progress.append(progress)
+                    self.print_epoch_details(self.batch_size_test, orig_data, loss, progress,
+                                             train=False)
+
+            # Generate extra metrics useful for debugging and analysis.
+            self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
+                                           train=False)
+
+            self.print_epoch_details(self.batch_size_test, orig_data, np.mean(losses), 100.0,
+                                     train=False)
+
+            return np.mean(losses), np.mean(total_progress)
+
+    def print_epoch_details(self, batch_size, orig_data, loss, progress, train):
+        """
+        During epochs, this method prints some details every `log_interval` steps.
+        """
+        num_batches = len(orig_data) / batch_size
+        epoch_percentage_done = int(100.0 * float(batch_idx) / num_batches)
+        _logger.info('{} Epoch: {} [{}% ({:.2f})]\tLoss: {:.6f}'.format(
+            'Train' if train else 'Test', epoch, epoch_percentage_done, progress,
+            float(loss)))
 
     def load_saved_checkpoint(self, model, model_path, optimizer, optimizer_path, start_epoch_at):
         """ Given some saved model and optimizer, load and return them. """
@@ -119,53 +182,25 @@ class TrainingPipeline(object):
         _logger.info('Saving optimizer to {}...'.format(optimizer_filename))
         torch.save(self.optimizer.state_dict(), optimizer_filename)
 
-    def test(self, epoch):
-        _logger.info("\n\nTesting epoch {}\n".format(epoch))
-        with torch.no_grad():
-            self.model.eval()
-            losses = []
-            correct = 0
-            for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
-                input_data = input_data.to(self.device)
-                gt_output = gt_output.to(self.device)
-                output = self.model(input_data)
-                output = output.to(self.device)
-                loss = self.get_loss_func(output, gt_output)
-                losses.append(float(loss))
-
-                correct += self.get_correct_count(output, gt_output)
-
-                if batch_idx % self.log_interval == 0:
-                    _logger.info('Test Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                        epoch, batch_idx * len(orig_data), len(self.test_loader.dataset),
-                        100.0 * (batch_idx / len(self.test_loader)), float(loss)))
-
-            # Print extra debug output on the final batch.
-            self.print_final_batch_details(orig_data, output, input_data, gt_output, epoch,
-                                           train=False)
-
-            accuracy = 100.0 * (correct / len(self.test_loader.dataset))
-            _logger.info('\n\nEpoch {}, test set: avg. loss: {:.8f}, Accuracy: {} correct/{} total test size ({:.0f}%)'.format(
-                  epoch, np.mean(losses), correct, len(self.test_loader.dataset), accuracy))
-
-            return np.mean(losses), accuracy
-
     def run(self):
         """ Actually does the train/test cycle for num_epochs. """
         self.show_sample(self.train_loader)
 
         train_losses = []
         test_losses = []
-        test_accuracies = []
+
+        train_progress = []
+        test_progress = []
         for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
             final_epoch = True if epoch == (self.start_epoch_at + self.num_epochs - 1) else False
 
-            train_loss = self.train(epoch, final_epoch)
-            train_losses.append(train_loss)
+            loss, progress = self.train(epoch, final_epoch)
+            train_losses.append(loss)
+            train_progress.append(progress)
 
-            test_loss, test_accuracy = self.test(epoch)
-            test_losses.append(test_loss)
-            test_accuracies.append(test_accuracy)
+            loss, progress = self.test(epoch)
+            test_losses.append(loss)
+            test_progress.append(progress)
 
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
@@ -173,24 +208,34 @@ class TrainingPipeline(object):
             plt.title('Training/testing loss after {} epochs'.format(epoch))
             img_file = os.path.join(self.results_path, '{}_loss_graph.png'.format(
                 format_epoch(epoch)))
+            plt.legend()
             plt.savefig(img_file, bbox_inches='tight')
             plt.close()
             _logger.info('\nTraining/testing loss graph for epoch {} saved to {}'.format(
                 epoch, img_file))
 
             fig = plt.figure()
-            plt.plot(test_accuracies, label='Test Accuracies')
-            plt.title('Testing accuracy after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_training_accuracy_graph.png'.format(
+            plt.plot(train_progress, label='Training Progress')
+            plt.plot(test_progress, label='Testing Progress')
+            plt.title('Training/testing progress after {} epochs'.format(epoch))
+            img_file = os.path.join(self.results_path, '{}_progress_graph.png'.format(
                 format_epoch(epoch)))
+            plt.legend()
             plt.savefig(img_file, bbox_inches='tight')
             plt.close()
-            _logger.info('\nTesting accuracy graph for epoch {} saved to {}'.format(
+            _logger.info('Training/testing progress graph for epoch {} saved to {}'.format(
                 epoch, img_file))
           
-        _logger.info('\n\nFinal mean training loss after {} epochs: {}'.format(
-            self.num_epochs, np.mean(train_losses)))
-        _logger.info('Final mean testing loss after {} epochs: {}'.format(
-            self.num_epochs, np.mean(test_losses)))
-        _logger.info('Final best accuracy: {}%, encountered at epoch: {}'.format(
-            round(max(test_accuracies), 1), np.array(test_accuracies).argmax() + 1))
+        # Print some final aggregate details at the complete end all epochs of training/testing.
+        _logger.info('\n\nFinal training loss after {} epochs: {}'.format(self.num_epochs, train_losses[-1])
+        _logger.info('Final mean testing loss after {} epochs: {}'.format(self.num_epochs, test_losses[-1])
+
+        _logger.info('\nFinal best training loss: {}, encountered at epoch: {}'.format(
+            np.round(np.min(train_loss), decimals=4), np.array(train_loss).argmin() + 1))
+        _logger.info('Final best testing loss: {}, encountered at epoch: {}'.format(
+            np.round(np.min(test_loss), decimals=4), np.array(test_loss).argmin() + 1))
+
+        _logger.info('\nFinal best training progress: {}, encountered at epoch: {}'.format(
+            np.round(np.max(train_progress), decimals=1), np.array(train_progress).argmax() + 1))
+        _logger.info('Final best testing progress: {}, encountered at epoch: {}'.format(
+            np.round(np.max(test_progress), decimals=1), np.array(test_progress).argmax() + 1))

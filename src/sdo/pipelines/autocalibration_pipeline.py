@@ -104,6 +104,8 @@ class AutocalibrationPipeline(TrainingPipeline):
             test_dataset=test_dataset,
             train_loader=train_loader,
             test_loader=test_loader,
+            batch_size_train=batch_size_train,
+            batch_size_test=batch_size_test,
             model=model,
             optimizer=optimizer,
             log_interval=log_interval,
@@ -139,8 +141,12 @@ class AutocalibrationPipeline(TrainingPipeline):
         # brightness dimming factor.
         return nn.MSELoss()(output, gt_output)
 
-    def print_final_batch_details(self, orig_data, output, input_data, gt_output, epoch, train):
+    def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
         """ Print debugging details on the final batch per epoch during training or testing. """
+        super(AutocalibrationPipeline, self).generate_supporting_metrics(
+            orig_data, output, input_data, gt_output, epoch, train)
+
+        # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
         data_min, data_max = torch.min(orig_data), torch.max(orig_data)
         sample = orig_data[0].cpu().numpy()
@@ -240,3 +246,14 @@ class AutocalibrationPipeline(TrainingPipeline):
         # sample.
         correct = num_fully_correct_all_channels
         return correct
+
+    def calculate_progress(self, epoch, output, gt_output):
+        """
+        Given some predicted output from a network and some ground truth, this method
+        calculates a scalar on how "well" we are doing for a given problem to gauge
+        progress during different experiments and during training. Note that we
+        already calculate and print out the loss outside of this method, so this
+        method is appropriate for other kinds of scalar values indicating progress
+        you'd like to use.
+        """
+        # TODO: Figure this out.
