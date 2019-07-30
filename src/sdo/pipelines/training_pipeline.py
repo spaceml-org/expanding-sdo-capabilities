@@ -20,10 +20,11 @@ _logger = logging.getLogger(__name__)
 class TrainingPipeline(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, train_dataset, test_dataset, train_loader, test_loader,
+    def __init__(self, exp_name, train_dataset, test_dataset, train_loader, test_loader,
                  batch_size_train, batch_size_test, model, optimizer, log_interval,
                  results_path, num_epochs, device, save_interval, continue_training,
                  saved_model_path, saved_optimizer_path, start_epoch_at):
+        self.exp_name = exp_name
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
         self.train_loader = train_loader
@@ -250,15 +251,16 @@ class TrainingPipeline(object):
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 
-            # TODO: Here and elsewhere where using matplotlib, ensure we add axis
-            # labels.
             # TODO: Here and elsewhere where using matplotlib, ensure we add
             # experiment name to generated graph.
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')
+            plt.xlabel('Epoch')
+            plt.ylabel('Loss')
             plt.title('Training/testing loss after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_loss_graph.png'.format(
+            img_file = os.path.join(self.results_path, '{}_{}_loss_graph.png'.format(
+                self.exp_name,
                 format_epoch(epoch)))
             plt.legend()
             plt.savefig(img_file, bbox_inches='tight')
@@ -269,8 +271,11 @@ class TrainingPipeline(object):
             fig = plt.figure()
             plt.plot(train_primary_metrics, label='Training Primary Metric')
             plt.plot(test_primary_metrics, label='Testing Primary Metric')
+            plt.xlabel('Epoch')
+            plt.ylabel('Primary metric')
             plt.title('Training/testing primary metric after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_primary_metric_graph.png'.format(
+            img_file = os.path.join(self.results_path, '{}_{}_primary_metric_graph.png'.format(
+                self.exp_name,
                 format_epoch(epoch)))
             plt.legend()
             plt.savefig(img_file, bbox_inches='tight')
@@ -280,7 +285,7 @@ class TrainingPipeline(object):
           
         # Print some final aggregate details at the complete end all epochs of training/testing.
         _logger.info('\n\nFinal training loss after {} epochs: {:.6f}'.format(self.num_epochs, train_losses[-1]))
-        _logger.info('Final mean testing loss after {} epochs: {:.6f}'.format(self.num_epochs, test_losses[-1]))
+        _logger.info('Final testing loss after {} epochs: {:.6f}'.format(self.num_epochs, test_losses[-1]))
 
         _logger.info('\nFinal best training loss: {}, encountered at epoch: {}'.format(
             np.round(np.min(train_losses), decimals=4), np.array(train_losses).argmin() + 1))
