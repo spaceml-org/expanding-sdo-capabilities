@@ -2,13 +2,13 @@
 #BSUB -J "brad_001"
 #BSUB -o "brad_001.%J"
 #BSUB -gpu "num=1"
-#BSUB -q "s822lc_p100"
+#BSUB -q "ac922_v100"
 #BSUB -R "affinity[core]"
 #BSUB -W 48:00
 #BSUB -x
 
 CONDA_ENV=wmlce_py3_sdo_bradneuberg
-EXPERIMENT_NAME=01b_experiment_2
+EXPERIMENT_NAME=01b_experiment_6
 
 # Initialize Anaconda
 CONDA_ROOT=/gpfs/software/wmlce/anaconda3
@@ -28,7 +28,7 @@ cd ~/expanding-sdo-capabilities
 ./src/sdo/main.py \
     -c config/autocalibration_default.yaml \
     --experiment-name=$EXPERIMENT_NAME \
-    --num-epochs=5
+    --num-epochs=10
 
 # Reset the GPUs
 sudo ppc64_cpu --smt=on                          # SMT mode back to default
