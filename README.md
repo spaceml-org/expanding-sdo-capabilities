@@ -29,3 +29,93 @@ Documents to help you get up to speed on how we are working as a team:
 * SDO Git Workflow: https://paper.dropbox.com/doc/SDO-Git-Workflow--AgMf~CdQohUUTtrWKPfTOf1FAQ-fbjyVjGRf7ZHO7d8iHOin
 * IBM Cluster: Jupyter Notebooks & Local Editing: https://paper.dropbox.com/doc/IBM-Cluster-Jupyter-Notebooks-Local-Editing--AgOsVInIcJwFv9sNix~GRWNiAQ-rBUYR0tw0kE1l1NPPfsrm
 
+# Training/Testing Runs
+
+Before you can run the training/testing pipeline, you need to ensure you have your Anaconda and Python PIP environments correctly set up.
+
+SSH into the IBM p10login1 edge host and run the following:
+
+```
+ssh p10login1
+cd ~/expanding-sdo-capabilities
+
+# Install Anaconda requirements
+conda env update -f conda_environment.yml
+
+# Install PIP requirements
+pip install -r requirements.txt
+```
+
+Now you can run the pipeline. Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of available configuration options.
+
+To start a new training run:
+
+```
+cd ~/expanding-sdo-capabilities
+export CONFIG_FILE=config/autocalibration_default.yaml
+export EXPERIMENT_NAME=01b_experiment_1
+export NUM_EPOCHS=5
+./src/sdo/main.py \
+    -c $CONFIG_FILE \
+    --experiment-name=$EXPERIMENT_NAME \
+    --num-epochs=$NUM_EPOCHS
+```
+
+Where `CONFIG_FILE` is a path to a YAML file that might have common configuration options
+that you don't want to have to type every time on the command line (see the above
+`config/autocalibration_default.yaml` for an example); `EXPERIMENT_NAME` is a unique
+experiment name used to partition your training results to `./training_results/$EXPERIMENT_NAME`;
+and NUM_EPOCHS is the total number of training epochs you want.
+
+To resume a previously checkpointed training session:
+
+```
+cd ~/expanding-sdo-capabilities
+export CONFIG_FILE=config/autocalibration_default.yaml
+export EXPERIMENT_NAME=01b_experiment_1
+export START_EPOCH_AT=2
+export NUM_EPOCHS=5
+./src/sdo/main.py \
+    -c $CONFIG_FILE \
+    --experiment-name=$EXPERIMENT_NAME \
+    --num-epochs=$NUM_EPOCHS \
+    --continue-training=True \
+    --saved-model-path=./training_results/$EXPERIMENT_NAME/model_epoch_$START_EPOCH_AT.pth \
+    --saved-optimizer-path=./training_results/$EXPERIMENT_NAME/optimizer_epoch_$START_EPOCH_AT.pth \
+    --start-epoch-at=$START_EPOCH_AT
+```
+
+Where `START_EPOCH_AT` is the new training epoch to begin training from.
+
+Note that both in the YAML config file and on the command line, the major pipeline to run
+(whether the autocalibration architecture or the encoder/decoder architecture), is controlled
+by `--pipeline-name`, which can either be `AutocalibrationPipeline` or `EncoderDecoderPipeline`.
+`EncoderDecoderPipeline` is not yet implemented.
+
+To easily copy over training artifacts from a run to see how things went, first add the following
+to your laptop's `~/.bash_profile` or `~/.bashrc` file:
+
+```
+sync_results_func() {
+        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:~/expanding-sdo-capabilities/training_results/$1 training_results
+}
+alias sync_results=sync_results_func
+```
+
+Quit and save, then:
+
+```
+source ~/.bash_profile
+```
+
+Now you can use the following command to easily pull results back over to your laptop to view them:
+
+```
+export EXPERIMENT_NAME=01b_experiment_1
+cd ~/expanding-sdo-capabilities
+sync_results
+open ./training_results/$EXPERIMENT_NAME
+```
+
+Note that this skips syncing the very large `*.pth` files for saved checkpoint models and optimizer
+details to your laptop; those will remain on the IBM machine.

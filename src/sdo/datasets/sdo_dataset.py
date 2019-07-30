@@ -1,31 +1,34 @@
 """
 In this module we define a pytorch SDO dataset
 """
+import logging
 from os import path
-import numpy as np
-import pandas as pd
-import torch
 import random
+
+import numpy as np
+
+import pandas as pd
+
+import torch
 from torch.utils.data import Dataset
-from sdo.global_vars import BASEDIR, INVENTORY
+
+from sdo.global_vars import DATA_BASEDIR, INVENTORY
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
-import logging
 
 
 _logger = logging.getLogger(__name__)
 
 
 class SDO_Dataset(Dataset):
-    """ Custom Dataset class compatible with torch.utils.data.DataLoader. 
+    """ Custom Dataset class compatible with torch.utils.data.DataLoader.
     It can be used to flexibly load a train or test dataset from the SDO local folder,
     asking for a specific range of years and a specific frequency in months, days, hours,
     minutes. Scaling is applied by default, normalization can be optionally applied. """
 
     def __init__(
         self,
-        device,
         instr=["AIA", "AIA", "HMI"],
         channels=["0171", "0193", "bz"],
         yr_range=[2010, 2018],
@@ -35,28 +38,26 @@ class SDO_Dataset(Dataset):
         min_step=60,
         resolution=512,
         subsample=1,
-        base_dir=BASEDIR,
+        base_dir=DATA_BASEDIR,
         test=False,
         test_ratio=0.3,
         shuffle=False,
         normalization=0,
         scaling=True,
-        shuffle_seed=1234,
         holdout=False,
         inventory=INVENTORY
     ):
         """
 
         Args:
-            device (torch.device): device where to send the data
             channels (list string): channels to be selected
             instr (list string): instrument to which each channel corresponds to. 
                                  It has to be of the same size of channels.
             yr_range (list int): range of years to be selected
-            mnt_step (int): month frequence
-            day_step (int): day frequence
-            h_step (int): hour frequence
-            min_step (int): minute frequence
+            mnt_step (int): month frequency
+            day_step (int): day frequency
+            h_step (int): hour frequency
+            min_step (int): minute frequency
             resolution (int): original resolution
             base_dir (str): path to the main dataset folder
             test (bool): if True, a test dataset is returned. By default the training dataset is returned.
@@ -66,19 +67,18 @@ class SDO_Dataset(Dataset):
             subsample (int): if 1 resolution of the final images will be as the original. 
                              If > 1 the image is downsampled. i.e. if resolution=512 and 
                              subsample=4, the images will be 128*128
-            normalization (int): if 0 normalization is not applied, if >  0 a normalization
+            normalization (int): if 0 normalization is not applied, if > 0 a normalization
                                  by image is applied (only one type of normalization implemented 
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
-            shuffle_seed (int): seed to be used when shuffling the rows of the dataset. 
-                                if shuffle=False this is ignored
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
-            inventory (str): path to an pre-computed inventory file that contains a dataframe of exisiting
+            inventory (str): path to an pre-computed inventory file that contains a dataframe of existing
                 files. If False(or not valid) the file search is done by folder and it is much slower.
 
         """
-        self.device = device
+        assert day_step > 0 and h_step > 0 and min_step > 0
+
         self.dir = base_dir
         self.instr = instr
         self.channels = channels
@@ -94,7 +94,6 @@ class SDO_Dataset(Dataset):
         self.test_ratio = test_ratio
         self.normalization = normalization
         self.scaling = scaling
-        self.shuffle_seed = shuffle_seed
         self.holdout = holdout
         if path.isfile(inventory):
             self.inventory = inventory
@@ -186,6 +185,7 @@ class SDO_Dataset(Dataset):
                                 # if a single channel is missing for the combination
                                 # of parameters result is -1
                                 result = sdo_find(y, month, d, h, minu,
+                                                  initial_size=self.resolution,
                                                   instrs=self.instr,
                                                   channels=self.channels,
                                                   basedir=self.dir,
@@ -206,7 +206,6 @@ class SDO_Dataset(Dataset):
             if self.shuffle:
                 _logger.warning(
                     "Shuffling is being applied, this will alter the time sequence.")
-                random.seed(self.shuffle_seed)
                 random.shuffle(files)
         return files, timestamps
 
@@ -235,18 +234,19 @@ class SDO_Dataset(Dataset):
         n_channels = len(self.channels)
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
-        item = np.zeros(shape=(size, size, n_channels), dtype=np.float32)
-        for i in range(n_channels):
-            img = np.load(self.files[index][i])["x"][
-                ::self.subsample, ::self.subsample]
+        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
+        for c in range(n_channels):
+            img = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
+                            dtype=np.float32)
+
+            # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
+            item[c, :, :] = img[::self.subsample, ::self.subsample]
+
             if self.scaling:
-                img = sdo_scale(img, self.channels[i])
+                img = sdo_scale(img, self.channels[c])
                 if self.normalization > 0:
                     img = self.normalize_by_img(img, self.normalization)
-            item[:, :, i] = img
-        if n_channels == 1:
-            item = item[np.newaxis, :, :]  # HW => CHW
-        else:
-            item = item.transpose([2, 0, 1])  # HWC => CHW
-        tensor = to_tensor(item)
-        return tensor.to(device=self.device, dtype=torch.float)
+
+        # Note: For efficiency reasons, don't send each item to the GPU;
+        # rather, later, send the entire batch to the GPU.
+        return to_tensor(item, dtype=torch.float)

@@ -7,7 +7,7 @@ from numpy import zeros, load
 from numpy import sqrt
 from scipy.misc import bytescale
 import logging
-from sdo.global_vars import (BASEDIR, FILENAME_TEMPLATE, INITIAL_SIZE,
+from sdo.global_vars import (DATA_BASEDIR, DATA_FILENAME_TEMPLATE,
                              B_CHANNELS, UV_CHANNELS)
 
 BUNIT = 2000.0  # units of 2 kGauss
@@ -21,7 +21,7 @@ _logger = logging.getLogger(__name__)
 
 
 def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
-             subsample=1, basedir=BASEDIR):
+             subsample=1, basedir=DATA_BASEDIR):
     """
     Purpose: Find an SDOML file, and return image if it exists.
     Parameters:
@@ -40,16 +40,17 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
 
     Returns: np.array. Returns -1 if file is not found.
     """
-    file = FILENAME_TEMPLATE.format(basedir, year, month, day, instr, year,
-                                    month, day, hour, min, channel)
+    file = DATA_FILENAME_TEMPLATE.format(basedir, year, month, day, instr,
+                                         year, month, day, hour, min,
+                                         channel)
     if path.isfile(file):
         return ((load(file))['x'])[::subsample, ::subsample]
     print('{0:s} is missing'.format(file))
     return -1
 
 
-def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
-             channels=['0171', '0193', 'bx'], subsample=1, basedir=BASEDIR,
+def sdo_find(year, month, day, hour, minu, initial_size, instrs=['AIA', 'AIA', 'HMI'],
+             channels=['0171', '0193', 'bx'], subsample=1, basedir=DATA_BASEDIR,
              return_images=False):
     """
     Purpose: Find filenames of multiple channels of the SDOML dataset with the same 
@@ -59,6 +60,7 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
     year / month / day - a date between May 17 2010 to 12/31/2018
     hour - between 0 and 23
     minu - between 0 and 59 (note AIA data is at 6 min cadence, HMI at 12 min cadence)
+    initial_size - Unscaled resolution of images.
     instr - 'AIA' or 'HMI'
     channel - 
        if instr=='AIA', channel should be one of '0094', '0131', '0171', '0193', '0211',
@@ -77,16 +79,16 @@ def sdo_find(year, month, day, hour, minu, instrs=['AIA', 'AIA', 'HMI'],
     files_exist = True
     files = []
     for ind, ch in enumerate(channels):
-        files.append(FILENAME_TEMPLATE.format(basedir, year, month, day,
-                                              instrs[ind], year, month,
-                                              day, hour, minu, ch))
+        files.append(DATA_FILENAME_TEMPLATE.format(basedir, year, month, day,
+                                                   instrs[ind], year, month,
+                                                   day, hour, minu, ch))
         files_exist = files_exist*path.isfile(files[-1])
     if files_exist:
         if (not return_images):
             return files
         else:
-            img = zeros(shape=(int(INITIAL_SIZE/subsample),
-                               int(INITIAL_SIZE/subsample),
+            img = zeros(shape=(int(initial_size/subsample),
+                               int(initial_size/subsample),
                                len(channels)), dtype='float32')
             for c in range(len(channels)):
                 img[:, :, c] = sdo_scale((
@@ -159,3 +161,12 @@ def sdo_reverse_scale(img, ch, aunit_dict=AUNIT, bunit=BUNIT):
     aunit_dict.update((x, 1./y) for x, y in aunit_dict.items())
     bunit = 1./bunit
     return sdo_scale(img, ch, aunit=aunit_dict, bunit=bunit)
+
+
+def format_epoch(epoch):
+    """
+    Given some epoch, expands and formats it as a string with leading zeros
+    so that its suitable for prefixing to a filename, such as turning 3
+    into 00003.
+    """
+    return str(epoch).zfill(4)
