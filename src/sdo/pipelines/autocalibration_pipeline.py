@@ -190,9 +190,11 @@ class AutocalibrationPipeline(TrainingPipeline):
         dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
         plt.plot(dim_factors_numpy, label='Dimming factors (true)')
         output_numpy = output[0].detach().view(-1).cpu().numpy()
-        plt.plot(output_numpy, label='Dimming factors (predicted)')
+        plt.scatter(output_numpy, range(self.num_channels +1), label='Dimming factors (predicted)')
         title = 'training dimming factors' if train else 'testing dimming factors'
         plt.title(title)
+        plt.xlabel("Channel")
+        plt.ylabel("Dimming factor")
         plt.legend()
         img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
             format_epoch(epoch), 'train' if train else 'test'))

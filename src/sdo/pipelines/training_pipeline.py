@@ -251,8 +251,6 @@ class TrainingPipeline(object):
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 
-            # TODO: Here and elsewhere where using matplotlib, ensure we add
-            # experiment name to generated graph.
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')
