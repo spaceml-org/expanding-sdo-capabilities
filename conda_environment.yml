@@ -1,4 +1,4 @@
-name: wmlce_py3_sdo_bradneuberg
+name: wmlce_py3_sdo_pipeline
 channels:
   - conda-forge
   - https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda

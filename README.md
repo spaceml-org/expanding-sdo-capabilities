@@ -42,6 +42,9 @@ cd ~/expanding-sdo-capabilities
 # Install Anaconda requirements
 conda env update -f conda_environment.yml
 
+#Activate the environment
+conda activate wmlce_py3_sdo_pipeline
+
 # Install PIP requirements
 pip install -r requirements.txt
 ```
@@ -53,7 +56,7 @@ To start a new training run:
 ```
 cd ~/expanding-sdo-capabilities
 export CONFIG_FILE=config/autocalibration_default.yaml
-export EXPERIMENT_NAME=01b_experiment_1
+export EXPERIMENT_NAME=01b_experiment_test
 export NUM_EPOCHS=5
 ./src/sdo/main.py \
     -c $CONFIG_FILE \
