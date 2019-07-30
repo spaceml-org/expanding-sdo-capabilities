@@ -28,6 +28,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  saved_model_path, saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
                  day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
+        # TODO Change resluts_path to a path that is shared
         self.results_path = results_path
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
