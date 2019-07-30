@@ -20,6 +20,9 @@ __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
 
+# TODO: Detail how to run the pipeline to send the logs to a file in training_results while teeing them to
+# the screen as well.
+
 
 def setup_logging(loglevel, minimal):
     """Setup basic logging

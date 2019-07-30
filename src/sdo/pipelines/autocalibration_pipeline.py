@@ -14,6 +14,7 @@ import pandas
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
 from sdo.models.autocalibration1 import Autocalibration1
+from sdo.models.autocalibration2 import Autocalibration2
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 
@@ -22,11 +23,11 @@ _logger = logging.getLogger(__name__)
 
 
 class AutocalibrationPipeline(TrainingPipeline):
-    def __init__(self, model_version, actual_resolution, scaled_height, scaled_width, device,
-                 instruments, wavelengths, subsample, batch_size_train, batch_size_test,
-                 log_interval, results_path, num_epochs, save_interval, continue_training,
-                 saved_model_path, saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
-                 day_step, h_step, min_step, dataloader_workers):
+    def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
+                 scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
+                 batch_size_test, log_interval, results_path, num_epochs, save_interval,
+                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
+                 yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
         # TODO Change resluts_path to a path that is shared
         self.results_path = results_path
@@ -77,6 +78,10 @@ class AutocalibrationPipeline(TrainingPipeline):
         if model_version == 1:
             model = Autocalibration1(input_shape=[self.num_channels, scaled_height,
                                      scaled_width], output_dim=self.num_channels)
+        elif model_version == 2:
+            model = Autocalibration2(input_shape=[self.num_channels, scaled_height,
+                                     scaled_width], output_dim=self.num_channels,
+                                     increase_dim=2)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -88,6 +93,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         optimizer = torch.optim.Adam(model.parameters())
 
         super(AutocalibrationPipeline, self).__init__(
+            exp_name=exp_name,
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             train_loader=train_loader,
@@ -189,9 +195,11 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         fig = plt.figure()
         dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
-        plt.plot(dim_factors_numpy, label='Dimming factors (true)')
+        plt.scatter(range(1, self.num_channels + 1), dim_factors_numpy,
+                    label='Dimming factors (true)')
         output_numpy = output[0].detach().view(-1).cpu().numpy()
-        plt.scatter(output_numpy, range(self.num_channels +1), label='Dimming factors (predicted)')
+        plt.scatter(range(1, self.num_channels + 1), output_numpy,
+                    label='Dimming factors (predicted)')
         title = 'training dimming factors' if train else 'testing dimming factors'
         plt.title(title)
         plt.xlabel("Channel")
@@ -203,6 +211,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
 
+        # TODO: Either speed this up by doing it in torch or print it out less often.
+        # It's becomming a bottleneck now that things are faster elsewhere.
         num_subsample = 3 # For the final batch, the number of entries to subsample to print out for debugging.
         column_labels = ['Pred', 'GT', 'Mean Delta']
         pretty_results = np.zeros((min(num_subsample, len(output)), len(column_labels)),

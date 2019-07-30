@@ -128,6 +128,8 @@ class TrainingPipeline(object):
                                        train=True)
 
 
+        # TODO: Have a timer for the entire batch loop rather than a mean for the total
+        # epoch time.
         self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
                                  np.mean(losses), primary_metric, np.mean(times),
                                  final_batch=True, train=True)
@@ -168,6 +170,8 @@ class TrainingPipeline(object):
             self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                            train=False)
 
+            # TODO: Have a timer for the entire batch loop rather than a mean for the total
+            # epoch time.
             self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
                                      self.test_dataset, np.mean(losses), primary_metric,
                                      t.elapsed, final_batch=True, train=False)
@@ -251,6 +255,10 @@ class TrainingPipeline(object):
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 
+            # TODO: For all the graphs, make sure the epoch number comes before the
+            # experiment name in the filename.
+            # TODO: Put the experiment name into the title of the graph or as a
+            # small subtitle somewhere.
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')
@@ -280,7 +288,9 @@ class TrainingPipeline(object):
             plt.close()
             _logger.info('Training/testing primary metric graph for epoch {} saved to {}'.format(
                 epoch, img_file))
-          
+        
+        # TODO: Print the total aggregate training/testing time.
+
         # Print some final aggregate details at the complete end all epochs of training/testing.
         _logger.info('\n\nFinal training loss after {} epochs: {:.6f}'.format(self.num_epochs, train_losses[-1]))
         _logger.info('Final testing loss after {} epochs: {:.6f}'.format(self.num_epochs, test_losses[-1]))
@@ -297,6 +307,7 @@ class TrainingPipeline(object):
             best = np.min
             best_arg = np.argmin
 
+        # TODO: Show more decimals here.
         _logger.info('\nFinal best training primary metric: {}, encountered at epoch: {}'.format(
             np.round(best(train_primary_metrics), decimals=1), best_arg(train_primary_metrics) + 1))
         _logger.info('Final best testing primary metric: {}, encountered at epoch: {}'.format(
