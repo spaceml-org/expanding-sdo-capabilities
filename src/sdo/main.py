@@ -4,10 +4,10 @@
 import os
 import sys
 import logging
+import yaml
 
 import torch
 
-from sdo import __version__
 from sdo.io import format_epoch
 from sdo.parse_args import parse_args
 from sdo.pytorch_utilities import init_gpu, set_seed
@@ -50,6 +50,7 @@ def save_config_details(args, results_path, experiment_name):
         format_epoch(0), experiment_name))
     with open(filename, 'w') as outfile:
         yaml.dump(args_dict, outfile, default_flow_style=False)
+    _logger.info('Saved final YAML config details to {}'.format(filename))
 
 
 def main(args):
@@ -72,6 +73,7 @@ def main(args):
     _logger.info('Using {}'.format(args.pipeline_name))
     if args.pipeline_name == 'AutocalibrationPipeline':
         pipeline = AutocalibrationPipeline(model_version=args.model_version,
+                                           actual_resolution=args.actual_resolution,
                                            scaled_height=args.scaled_height,
                                            scaled_width=args.scaled_width,
                                            device=device,

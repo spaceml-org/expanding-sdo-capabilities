@@ -8,13 +8,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
 
 import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_epoch
-from sdo.models.autocalibration import Autocalibration1
+from sdo.models.autocalibration1 import Autocalibration1
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 
@@ -23,10 +22,10 @@ _logger = logging.getLogger(__name__)
 
 
 class AutocalibrationPipeline(TrainingPipeline):
-    def __init__(self, model_version, scaled_height, scaled_width, device, instruments, wavelengths,
-                 subsample, batch_size_train, batch_size_test, log_interval, results_path,
-                 num_epochs, save_interval, continue_training, saved_model_path,
-                 saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
+    def __init__(self, model_version, actual_resolution, scaled_height, scaled_width, device,
+                 instruments, wavelengths, subsample, batch_size_train, batch_size_test,
+                 log_interval, results_path, num_epochs, save_interval, continue_training,
+                 saved_model_path, saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
                  day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
@@ -41,18 +40,25 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Using following year range for both training and testing: {}'.format(
             yr_range))
 
-        train_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
+        # TODO: We are using 'scaling=True' below, and are currently also scaling by the max()
+        # pixel value inside of dimmed_sdo_dataset. This might cause issues. However, we know
+        # that training requires our values to be roughly between 0 and 1. Resolve where
+        # and how to do this scaling.
+        _logger.info('\nSetting up training dataset:')
+        train_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
                                           mnt_step=mnt_step, day_step=day_step,
                                           h_step=h_step, min_step=min_step,
-                                          resolution=args.actual_resolution,
+                                          resolution=actual_resolution,
                                           subsample=subsample,
                                           normalization=0, scaling=True)
-        test_dataset = DimmedSDO_Dataset(num_channels, instr=instruments,
+
+        _logger.info('\nSetting up testing dataset:')
+        test_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
                                          mnt_step=mnt_step, day_step=day_step,
                                          h_step=h_step, min_step=min_step,
-                                         resolution=args.actual_resolution,
+                                         resolution=actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=True,
                                          test=True)
@@ -63,13 +69,13 @@ class AutocalibrationPipeline(TrainingPipeline):
         # remove our brightness correlations.
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
-                                         dataloader_workers)
+                                         dataloader_workers, train=True)
         test_loader = create_dataloader(test_dataset, batch_size_test,
-                                        dataloader_workers)
+                                        dataloader_workers, train=False)
 
         if model_version == 1:
-            model = Autocalibration1(input_shape=[num_channels, args.scaled_height,
-                                     args.scaled_width], output_dim=num_channels)
+            model = Autocalibration1(input_shape=[self.num_channels, scaled_height,
+                                     scaled_width], output_dim=self.num_channels)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -121,6 +127,24 @@ class AutocalibrationPipeline(TrainingPipeline):
         # Both the output and gt_output should be a vector num_channels wide, where each vector entry is the
         # brightness dimming factor.
         return nn.MSELoss()(output, gt_output)
+
+    def calculate_primary_metric(self, epoch, output, gt_output):
+        """
+        Given some predicted output from a network and some ground truth, this method
+        calculates a scalar on how "well" we are doing for a given problem to gauge
+        progress during different experiments and during training. Note that we
+        already calculate and print out the loss outside of this method, so this
+        method is appropriate for other kinds of scalar values indicating progress
+        you'd like to use.
+        """
+        primary_metric = torch.mean(torch.mean(torch.abs(output - gt_output), dim=1), dim=0)
+        primary_metric = float(primary_metric.cpu())
+
+        # Note: lower values are better for our primary metric here.
+        return primary_metric
+
+    def is_higher_better_primary_metric(self):
+        return False
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
         """ Print debugging details on the final batch per epoch during training or testing. """
@@ -198,14 +222,4 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info("\n\nRandom sample of mean predictions across channels, "
                      "where each row is a sample in the training batch:\n")
         _logger.info(df.to_string(index=False))
-
-    def calculate_progress(self, epoch, output, gt_output):
-        """
-        Given some predicted output from a network and some ground truth, this method
-        calculates a scalar on how "well" we are doing for a given problem to gauge
-        progress during different experiments and during training. Note that we
-        already calculate and print out the loss outside of this method, so this
-        method is appropriate for other kinds of scalar values indicating progress
-        you'd like to use.
-        """
-        return torch.mean(torch.mean(torch.abs(output - gt_output), dim=1), dim=0)
+        _logger.info('\n')

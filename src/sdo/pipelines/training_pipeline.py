@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import math
 import logging
 import os
 
@@ -61,16 +62,23 @@ class TrainingPipeline(object):
         pass
 
     @abstractmethod
-    def calculate_progress(self, epoch, output, gt_output):
+    def calculate_primary_metric(self, epoch, output, gt_output):
         """
         Given some predicted output from a network and some ground truth, this method
         calculates a scalar on how "well" we are doing for a given problem to gauge
         progress during different experiments and during training. Note that we
         already calculate and print out the loss outside of this method, so this
         method is appropriate for other kinds of scalar values indicating progress
-        you'd like to use. Also, note that the value returned should assume that
-        higher values are 'good' and lower values are 'bad' (i.e. a progress of 5
-        is 'better' than a progress of 0).
+        you'd like to use.
+        """
+        pass
+
+    @abstractmethod
+    def is_higher_better_primary_metric(self):
+        """
+        For the value returned from calculate_primary_metric(), a True value from
+        this method indicates that higher values are better, while a False return
+        result indicates that lower values are better.
         """
         pass
 
@@ -91,7 +99,7 @@ class TrainingPipeline(object):
         _logger.info("Training epoch {}\n".format(epoch))
         self.model.train() # Indicate to PyTorch that we are in training mode.
         losses = []
-        total_progress = []
+        total_primary_metrics = []
         times = []
         for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
             with Timer() as t:
@@ -108,30 +116,32 @@ class TrainingPipeline(object):
             times.append(t.elapsed)
 
             if batch_idx % self.log_interval == 0:
-                progress = self.calculate_progress(epoch, output, gt_output)
-                total_progress.append(progress)
-                self.print_epoch_details(self.batch_size_train, orig_data, loss, progress,
-                                         t.elapsed, train=True)
+                primary_metric = self.calculate_primary_metric(epoch, output, gt_output)
+                total_primary_metrics.append(primary_metric)
+                self.print_epoch_details(epoch, batch_idx, self.batch_size_train,
+                                         self.train_dataset, loss, primary_metric,
+                                         t.elapsed, final_batch=False, train=True)
 
         # Generate extra metrics useful for debugging and analysis.
         self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                        train=True)
 
 
-        self.print_epoch_details(self.batch_size_train, orig_data, np.mean(losses), 100.0,
-                                 np.mean(times), train=True)
+        self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
+                                 np.mean(losses), primary_metric, np.mean(times),
+                                 final_batch=True, train=True)
 
         if epoch % self.save_interval == 0 or final_epoch:
             self.save_training_results(epoch)
 
-        return np.mean(losses), np.mean(total_progress)
+        return np.mean(losses), np.mean(total_primary_metrics)
 
     def test(self, epoch):
         _logger.info("\n\nTesting epoch {}\n".format(epoch))
         with torch.no_grad():
             self.model.eval() # Indicate to PyTorch that we are in testing mode.
             losses = []
-            total_progress = []
+            total_primary_metrics = []
             times = []
             correct = 0
             for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
@@ -147,29 +157,56 @@ class TrainingPipeline(object):
                 times.append(t.elapsed)
 
                 if batch_idx % self.log_interval == 0:
-                    progress = self.calculate_progress(epoch, output, gt_output)
-                    total_progress.append(progress)
-                    self.print_epoch_details(self.batch_size_test, orig_data, loss, progress,
-                                             t.elapsed, train=False)
+                    primary_metric = self.calculate_primary_metric(epoch, output, gt_output)
+                    total_primary_metrics.append(primary_metric)
+                    self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
+                                             self.test_dataset, loss, primary_metric,
+                                             t.elapsed, final_batch=False, train=False)
 
             # Generate extra metrics useful for debugging and analysis.
             self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                            train=False)
 
-            self.print_epoch_details(self.batch_size_test, orig_data, np.mean(losses), 100.0,
-                                     t.elapsed, train=False)
+            self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
+                                     self.test_dataset, np.mean(losses), primary_metric,
+                                     t.elapsed, final_batch=True, train=False)
 
-            return np.mean(losses), np.mean(total_progress)
+            return np.mean(losses), np.mean(total_primary_metrics)
 
-    def print_epoch_details(self, batch_size, orig_data, loss, progress, time, train):
+    def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss, primary_metric, time_s,
+                            final_batch, train):
         """
         During epochs, this method prints some details every `log_interval` steps.
         """
-        num_batches = len(orig_data) / batch_size
-        epoch_percentage_done = int(100.0 * float(batch_idx) / num_batches)
-        _logger.info('{} Epoch: {} [{}% ({:.2f})]\tLoss: {:.6f}, Time to run: {} s'.format(
-            'Train' if train else 'Test', epoch, epoch_percentage_done, progress,
-            float(loss)), time)
+        num_batches = math.ceil(len(dataset) / batch_size)
+        if final_batch:
+            epoch_percentage_done = 100.0
+            data_idx = len(dataset)
+        else:
+            epoch_percentage_done = int(100.0 * float(batch_idx + 1) / num_batches)
+            data_idx = (batch_idx + 1) * batch_size
+        batch_info = '{}/{} ({}%)'.format(
+            data_idx,
+            len(dataset),
+            epoch_percentage_done,
+            )
+
+        if final_batch:
+            _logger.info('Summary: {} Epoch: {} [{}]\tMean loss: {:.6f}, Mean primary metric: {:.2f}, Time to run: {:.1f} s'.format(
+                'Train' if train else 'Test',
+                epoch,
+                batch_info,
+                float(loss),
+                primary_metric,
+                time_s))
+        else:
+            _logger.info('{} Epoch: {} [{}]\tLoss: {:.6f}, Primary metric: {:.2f}, Time to run: {:.1f} s'.format(
+                'Train' if train else 'Test',
+                epoch,
+                batch_info,
+                float(loss),
+                primary_metric,
+                time_s))
 
     def load_saved_checkpoint(self, model, model_path, optimizer, optimizer_path, start_epoch_at):
         """ Given some saved model and optimizer, load and return them. """
@@ -200,19 +237,23 @@ class TrainingPipeline(object):
         train_losses = []
         test_losses = []
 
-        train_progress = []
-        test_progress = []
+        train_primary_metrics = []
+        test_primary_metrics = []
         for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
             final_epoch = True if epoch == (self.start_epoch_at + self.num_epochs - 1) else False
 
-            loss, progress = self.train(epoch, final_epoch)
+            loss, primary_metric = self.train(epoch, final_epoch)
             train_losses.append(loss)
-            train_progress.append(progress)
+            train_primary_metrics.append(primary_metric)
 
-            loss, progress = self.test(epoch)
+            loss, primary_metric = self.test(epoch)
             test_losses.append(loss)
-            test_progress.append(progress)
+            test_primary_metrics.append(primary_metric)
 
+            # TODO: Here and elsewhere where using matplotlib, ensure we add axis
+            # labels.
+            # TODO: Here and elsewhere where using matplotlib, ensure we add
+            # experiment name to generated graph.
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')
@@ -226,27 +267,34 @@ class TrainingPipeline(object):
                 epoch, img_file))
 
             fig = plt.figure()
-            plt.plot(train_progress, label='Training Progress')
-            plt.plot(test_progress, label='Testing Progress')
-            plt.title('Training/testing progress after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_progress_graph.png'.format(
+            plt.plot(train_primary_metrics, label='Training Primary Metric')
+            plt.plot(test_primary_metrics, label='Testing Primary Metric')
+            plt.title('Training/testing primary metric after {} epochs'.format(epoch))
+            img_file = os.path.join(self.results_path, '{}_primary_metric_graph.png'.format(
                 format_epoch(epoch)))
             plt.legend()
             plt.savefig(img_file, bbox_inches='tight')
             plt.close()
-            _logger.info('Training/testing progress graph for epoch {} saved to {}'.format(
+            _logger.info('Training/testing primary metric graph for epoch {} saved to {}'.format(
                 epoch, img_file))
           
         # Print some final aggregate details at the complete end all epochs of training/testing.
-        _logger.info('\n\nFinal training loss after {} epochs: {}'.format(self.num_epochs, train_losses[-1])
-        _logger.info('Final mean testing loss after {} epochs: {}'.format(self.num_epochs, test_losses[-1])
+        _logger.info('\n\nFinal training loss after {} epochs: {:.6f}'.format(self.num_epochs, train_losses[-1]))
+        _logger.info('Final mean testing loss after {} epochs: {:.6f}'.format(self.num_epochs, test_losses[-1]))
 
         _logger.info('\nFinal best training loss: {}, encountered at epoch: {}'.format(
-            np.round(np.min(train_loss), decimals=4), np.array(train_loss).argmin() + 1))
+            np.round(np.min(train_losses), decimals=4), np.array(train_losses).argmin() + 1))
         _logger.info('Final best testing loss: {}, encountered at epoch: {}'.format(
-            np.round(np.min(test_loss), decimals=4), np.array(test_loss).argmin() + 1))
+            np.round(np.min(test_losses), decimals=4), np.array(test_losses).argmin() + 1))
 
-        _logger.info('\nFinal best training progress: {}, encountered at epoch: {}'.format(
-            np.round(np.max(train_progress), decimals=1), np.array(train_progress).argmax() + 1))
-        _logger.info('Final best testing progress: {}, encountered at epoch: {}'.format(
-            np.round(np.max(test_progress), decimals=1), np.array(test_progress).argmax() + 1))
+        if self.is_higher_better_primary_metric():
+            best = np.max
+            best_arg = np.argmax
+        else:
+            best = np.min
+            best_arg = np.argmin
+
+        _logger.info('\nFinal best training primary metric: {}, encountered at epoch: {}'.format(
+            np.round(best(train_primary_metrics), decimals=1), best_arg(train_primary_metrics) + 1))
+        _logger.info('Final best testing primary metric: {}, encountered at epoch: {}'.format(
+            np.round(best(test_primary_metrics), decimals=1), best_arg(test_primary_metrics) + 1))

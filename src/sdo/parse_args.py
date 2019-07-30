@@ -5,6 +5,8 @@ import os
 import configargparse
 from configargparse import YAMLConfigFileParser
 
+from sdo import __version__
+
 
 _logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ import os
 import random
 
 import torch
+from torch.utils.data import DataLoader
 
 import numpy as np
 
@@ -92,12 +93,13 @@ def pass_seed_to_worker(worker_id):
     set_seed(np.random.get_state()[1][0] + worker_id)
 
 
-def create_dataloader(dataset, batch_size, num_dataloader_workers):
+def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
     assert num_dataloader_workers <= (multiprocessing.cpu_count() - 1), \
-        'There are not enough CPU cores ({}) for requested dataloader '
+        'There are not enough CPU cores ({}) for requested dataloader ' \
         'workers ({})'.format(num_dataloader_workers, (multiprocessing.cpu_count() - 1))
 
-    _logger.info('Using {} workers for the pytorch DataLoader'.format(num_dataloader_workers))
+    _logger.info('Using {} workers for the {} pytorch DataLoader'.format(
+        num_dataloader_workers, 'training' if train else 'testing'))
     loader = DataLoader(dataset, batch_size=batch_size,
                         shuffle=True, num_workers=num_dataloader_workers,
                         # Ensure workers spawn with the right newly

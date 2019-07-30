@@ -16,19 +16,21 @@ class DimmedSDO_Dataset(SDO_Dataset):
     # TODO: Compute mean and std across dataset, and normalize them.
     
   def __getitem__(self, idx):
-    imgs = super(DimmedSDO_Dataset, self).__getitem__(idx)    
-    # Scale the image to between [0.0, 1.0]
-    # Note: if we don't do this scaling, training and testing don't work!
+    orig_imgs = super(DimmedSDO_Dataset, self).__getitem__(idx)    
+    dimmed_imgs = orig_imgs.clone()
 
-    # TODO: Use the max() that sdo_dataset has calculated across the full
-    # data instead of our own, because this is currently by image below.
-    imgs = imgs / imgs.max()
-    dimmed_imgs = imgs.clone()
-    # TODO: Degrade the brightness _before_ scaling the values.
     dim_factor = torch.rand(self.num_channels)
     for c in range(self.num_channels):
       dimmed_imgs[c] *= dim_factor[c]
+
+    # Scale the image to between [0.0, 1.0]
+    # Note: if we don't do this scaling, training and testing don't work!
     
+    # TODO: Use the max() that sdo_dataset has calculated across the full
+    # data instead of our own, because this is currently by image below.
+    dimmed_imgs = dimmed_imgs / dimmed_imgs.max()
+    orig_imgs = orig_imgs / orig_imgs.max()
+
     # Note: For efficiency reasons, don't send each item to the GPU;
     # rather, later, send the entire batch to the GPU.
-    return dimmed_imgs, dim_factor, imgs
+    return dimmed_imgs, dim_factor, orig_imgs
