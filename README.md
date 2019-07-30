@@ -50,6 +50,9 @@ pip install -r requirements.txt
 
 Now you can run the pipeline. Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of available configuration options.
 
+Results will be by default saved in a subfolder on a common path: `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw//experiments_results/`. You should ensure the experiment name is something unique and in order to not risk to overwrite each other it should follow the following convention:
+`{number}{your_initials}_experiment_{topic}`. Looks also at the experiment notebook *here*.
+
 To start a new training run:
 
 ```
