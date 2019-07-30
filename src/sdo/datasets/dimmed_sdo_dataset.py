@@ -26,8 +26,9 @@ class DimmedSDO_Dataset(SDO_Dataset):
     # Scale the image to between [0.0, 1.0]
     # Note: if we don't do this scaling, training and testing don't work!
     
-    # TODO: Use the max() that sdo_dataset has calculated across the full
-    # data instead of our own, because this is currently by image below.
+    # TODO: Do an experiment using the max() that sdo_dataset has calculated
+    # across the full data instead of our own, because this is currently by
+    # image below.
     dimmed_imgs = dimmed_imgs / dimmed_imgs.max()
     orig_imgs = orig_imgs / orig_imgs.max()
 

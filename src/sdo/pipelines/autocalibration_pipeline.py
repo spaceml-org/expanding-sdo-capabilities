@@ -52,7 +52,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           h_step=h_step, min_step=min_step,
                                           resolution=actual_resolution,
                                           subsample=subsample,
-                                          normalization=0, scaling=True)
+                                          normalization=0, scaling=False)
 
         _logger.info('\nSetting up testing dataset:')
         test_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
@@ -61,7 +61,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          h_step=h_step, min_step=min_step,
                                          resolution=actual_resolution,
                                          subsample=subsample,
-                                         normalization=0, scaling=True,
+                                         normalization=0, scaling=False,
                                          test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
