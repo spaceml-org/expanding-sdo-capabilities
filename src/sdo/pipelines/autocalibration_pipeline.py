@@ -28,6 +28,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  saved_model_path, saved_optimizer_path, start_epoch_at, yr_range, mnt_step,
                  day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
+        # TODO Change resluts_path to a path that is shared
         self.results_path = results_path
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
@@ -190,9 +191,11 @@ class AutocalibrationPipeline(TrainingPipeline):
         dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
         plt.plot(dim_factors_numpy, label='Dimming factors (true)')
         output_numpy = output[0].detach().view(-1).cpu().numpy()
-        plt.plot(output_numpy, label='Dimming factors (predicted)')
+        plt.scatter(output_numpy, range(self.num_channels +1), label='Dimming factors (predicted)')
         title = 'training dimming factors' if train else 'testing dimming factors'
         plt.title(title)
+        plt.xlabel("Channel")
+        plt.ylabel("Dimming factor")
         plt.legend()
         img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
             format_epoch(epoch), 'train' if train else 'test'))

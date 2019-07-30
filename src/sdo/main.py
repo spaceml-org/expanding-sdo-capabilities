@@ -72,7 +72,8 @@ def main(args):
     pipeline = None
     _logger.info('Using {}'.format(args.pipeline_name))
     if args.pipeline_name == 'AutocalibrationPipeline':
-        pipeline = AutocalibrationPipeline(model_version=args.model_version,
+        pipeline = AutocalibrationPipeline(exp_name=args.experiment_name,
+                                           model_version=args.model_version,
                                            actual_resolution=args.actual_resolution,
                                            scaled_height=args.scaled_height,
                                            scaled_width=args.scaled_width,
