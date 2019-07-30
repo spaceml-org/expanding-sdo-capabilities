@@ -6,6 +6,7 @@ import configargparse
 from configargparse import YAMLConfigFileParser
 
 from sdo import __version__
+from sdo.global_vars import EXP_RESULTS_BASEDIR
 
 
 _logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ def parse_args(args):
     p.add_argument(
         '--results-path',
         dest='results_path',
-        default='./training_results',
+        default=EXP_RESULTS_BASEDIR,
         help='Where to store generated logs, models, etc., relative to --artifacts-root-path',
         )
     p.add_argument(

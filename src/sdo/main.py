@@ -40,7 +40,7 @@ def create_dirs(args):
     path = os.path.abspath(args.results_path)
     if not os.path.exists(path):
         _logger.info('{} does not exist; creating directory...'.format(path))
-        os.makedirs(path)
+        os.makedirs(path, mode=0o755)
 
 
 def save_config_details(args, results_path, experiment_name):
