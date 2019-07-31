@@ -70,7 +70,7 @@ Where `CONFIG_FILE` is a path to a YAML file that might have common configuratio
 that you don't want to have to type every time on the command line (see the above
 `config/autocalibration_default.yaml` for an example); `EXPERIMENT_NAME` is a unique
 experiment name used to partition your training results to 
-`/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw//experiments_results/$EXPERIMENT_NAME`;
+`/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$EXPERIMENT_NAME`;
 and NUM_EPOCHS is the total number of training epochs you want.
 
 To resume a previously checkpointed training session:
@@ -134,7 +134,9 @@ file you created:
 
 ```
 ssh p10login1
-export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
+export EXP=some_experiment && bsub -o $RESULTS_PATH/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
 ```
 
-The results of your run will go into ./training_results/$EXP/training_log.txt. You can also 'peek' at a job while its running to stream the results back via `bpeek -f job_id`, where you change job_id to what the job_id of the LFS queue is, which will be given to you when bsub runs.
+The results of your run will go into $RESULTS_PATH/$EXP/training_log.txt. You can also 'peek' at a job while its running to stream the results back via `bpeek -f job_id`, where you change job_id to what the job_id of the LFS queue is, which will be given to you when bsub runs.
+

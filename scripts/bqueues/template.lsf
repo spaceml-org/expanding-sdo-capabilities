@@ -1,5 +1,5 @@
 # Run this via bsub as follows, making sure to change EXP= to your experiment name.
-# export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+# export EXP=some_experiment && export RES_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results &&bsub -o $RES_PATH/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
 
 #BSUB -L /bin/bash
 #BSUB -gpu "num=1"
@@ -12,7 +12,7 @@
 EXPERIMENT_NAME=some_experiment
 
 # Change to your conda environment name.
-CONDA_ENV=wmlce_py3_sdo_bradneuberg
+CONDA_ENV=wmlce_py3_sdo_pipeline
 
 # Point at your pipeline YAML file.
 CONFIG_FILE=config/autocalibration_default.yaml
