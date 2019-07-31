@@ -3,7 +3,7 @@ model-version: 1
 log-minimal: True
 batch-size-train: 64
 batch-size-test: 256
-save-interval: 3
+save-interval: 100
 log-interval: 10
 wavelengths:
   - "0094"
