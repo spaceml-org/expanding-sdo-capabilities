@@ -27,9 +27,11 @@ class AutocalibrationPipeline(TrainingPipeline):
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
-                 yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers):
+                 yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
+                 normalization):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
+        self.normalization_by_max= normalization
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -41,27 +43,25 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Using following year range for both training and testing: {}'.format(
             yr_range))
 
-        # TODO: We are using 'scaling=True' below, and are currently also scaling by the max()
-        # pixel value inside of dimmed_sdo_dataset. This might cause issues. However, we know
-        # that training requires our values to be roughly between 0 and 1. Resolve where
-        # and how to do this scaling.
         _logger.info('\nSetting up training dataset:')
-        train_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
+        train_dataset = DimmedSDO_Dataset(self.num_channels, self.normalization_by_max,
+                                          instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
                                           mnt_step=mnt_step, day_step=day_step,
                                           h_step=h_step, min_step=min_step,
                                           resolution=actual_resolution,
                                           subsample=subsample,
-                                          normalization=0, scaling=False)
+                                          normalization=0, scaling=scaling)
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
+        test_dataset = DimmedSDO_Dataset(self.num_channels, self.normalization_by_max,
+                                         instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
                                          mnt_step=mnt_step, day_step=day_step,
                                          h_step=h_step, min_step=min_step,
                                          resolution=actual_resolution,
                                          subsample=subsample,
-                                         normalization=0, scaling=False,
+                                         normalization=0, scaling=scaling,
                                          test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
@@ -109,7 +109,8 @@ class AutocalibrationPipeline(TrainingPipeline):
             continue_training=continue_training,
             saved_model_path=saved_model_path,
             saved_optimizer_path=saved_optimizer_path,
-            start_epoch_at=start_epoch_at)
+            start_epoch_at=start_epoch_at,
+            scaling=scaling)
 
     def show_sample(self, loader):
         """ Show some samples for debugging purposes before training/testing. """
