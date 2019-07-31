@@ -8,7 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+import seaborn as sns
+import scipy.stats as stats
 import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
@@ -150,9 +151,12 @@ class AutocalibrationPipeline(TrainingPipeline):
         primary_metric = float(primary_metric.cpu())
 
         # Note: lower values are better for our primary metric here.
+        
+        
         return primary_metric
 
     def is_higher_better_primary_metric(self):
+        
         return False
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
@@ -212,6 +216,22 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
+        
+        # This is a regression plot between Ground Truth Dimm factor vs.  Predicted Dimm Factors
+        
+        output_numpy = output.detach().cpu().numpy()
+        gt_output_numpy = gt_output.detach().cpu().numpy()
+
+        ax = sns.jointplot(x=output_numpy, y=gt_output_numpy,kind='reg')
+        title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training' if train else 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
+        ax.set_axis_labels("Predicted Dimmed Factor","Ground Truth Dimmed Factor")
+        plt.title(title)
+        plt.tight_layout()
+        ax.annotate(stats.pearsonr)
+        img_file = os.path.join(self.results_path, '{}_GTvsPR_plot_metric_{}.png'.format(
+            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
+        plt.savefig(img_file, bbox_inches='tight')
+        plt.close()
 
         # TODO: Either speed this up by doing it in torch or print it out less often.
         # It's becomming a bottleneck now that things are faster elsewhere.
