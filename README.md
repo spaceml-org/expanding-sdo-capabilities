@@ -19,7 +19,6 @@ https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
         1) from sdo.name_of_the_module import name_of_the_function
         2) Look at notebooks/01v_explore.ipynb for an example
 
-3) There are two directories set up that you can put data and training results into; these directories have been added to `.gitignore` so that they _won't_ be checked into the repo, so that you can safely have training artifacts present without getting git messages on them: `data/` and `training_results/`
 
 # Tutorials/Documents
 
@@ -51,6 +50,9 @@ pip install -r requirements.txt
 
 Now you can run the pipeline. Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of available configuration options.
 
+Results will be by default saved in a subfolder on a common path: `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/`. You should ensure the experiment name is something unique and in order to not risk to overwrite each other it should follow the following convention:
+`{number}{your_initials}_experiment_{topic}`. Looks also at the experiment notebook *here*.
+
 To start a new training run:
 
 ```
@@ -67,7 +69,8 @@ export NUM_EPOCHS=5
 Where `CONFIG_FILE` is a path to a YAML file that might have common configuration options
 that you don't want to have to type every time on the command line (see the above
 `config/autocalibration_default.yaml` for an example); `EXPERIMENT_NAME` is a unique
-experiment name used to partition your training results to `./training_results/$EXPERIMENT_NAME`;
+experiment name used to partition your training results to 
+`/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$EXPERIMENT_NAME`;
 and NUM_EPOCHS is the total number of training epochs you want.
 
 To resume a previously checkpointed training session:
@@ -78,13 +81,14 @@ export CONFIG_FILE=config/autocalibration_default.yaml
 export EXPERIMENT_NAME=01b_experiment_1
 export START_EPOCH_AT=2
 export NUM_EPOCHS=5
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw//experiments_results
 ./src/sdo/main.py \
     -c $CONFIG_FILE \
     --experiment-name=$EXPERIMENT_NAME \
     --num-epochs=$NUM_EPOCHS \
     --continue-training=True \
-    --saved-model-path=./training_results/$EXPERIMENT_NAME/model_epoch_$START_EPOCH_AT.pth \
-    --saved-optimizer-path=./training_results/$EXPERIMENT_NAME/optimizer_epoch_$START_EPOCH_AT.pth \
+    --saved-model-path=$RESULTS_PATH/$EXPERIMENT_NAME/model_epoch_$START_EPOCH_AT.pth \
+    --saved-optimizer-path=$RESULTS_PATH/$EXPERIMENT_NAME/optimizer_epoch_$START_EPOCH_AT.pth \
     --start-epoch-at=$START_EPOCH_AT
 ```
 
@@ -100,7 +104,7 @@ to your laptop's `~/.bash_profile` or `~/.bashrc` file:
 
 ```
 sync_results_func() {
-        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:~/expanding-sdo-capabilities/training_results/$1 training_results
+        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results$1 experiments_results
 }
 alias sync_results=sync_results_func
 ```
@@ -117,7 +121,7 @@ Now you can use the following command to easily pull results back over to your l
 export EXPERIMENT_NAME=01b_experiment_1
 cd ~/expanding-sdo-capabilities
 sync_results
-open ./training_results/$EXPERIMENT_NAME
+open ./experiments_results/$EXPERIMENT_NAME
 ```
 
 Note that this skips syncing the very large `*.pth` files for saved checkpoint models and optimizer
@@ -130,7 +134,9 @@ file you created:
 
 ```
 ssh p10login1
-export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
+export EXP=some_experiment && bsub -o $RESULTS_PATH/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
 ```
 
-The results of your run will go into ./training_results/$EXP/training_log.txt. You can also 'peek' at a job while its running to stream the results back via `bpeek -f job_id`, where you change job_id to what the job_id of the LFS queue is, which will be given to you when bsub runs.
+The results of your run will go into $RESULTS_PATH/$EXP/training_log.txt. You can also 'peek' at a job while its running to stream the results back via `bpeek -f job_id`, where you change job_id to what the job_id of the LFS queue is, which will be given to you when bsub runs.
+

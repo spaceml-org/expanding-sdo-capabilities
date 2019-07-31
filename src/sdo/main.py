@@ -37,7 +37,7 @@ def create_dirs(args):
     path = os.path.abspath(args.results_path)
     if not os.path.exists(path):
         _logger.info('{} does not exist; creating directory...'.format(path))
-        os.makedirs(path)
+        os.makedirs(path, mode=0o755)
 
 
 def save_config_details(args, results_path, experiment_name):
@@ -96,7 +96,9 @@ def main(args):
                                            day_step=args.day_step,
                                            h_step=args.h_step,
                                            min_step=args.min_step,
-                                           dataloader_workers=args.dataloader_workers)
+                                           dataloader_workers=args.dataloader_workers,
+                                           scaling=args.scaling,
+                                           normalization=args.normalization_by_max)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')
         # TODO: Implement

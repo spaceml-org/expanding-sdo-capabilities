@@ -1,4 +1,5 @@
 DATA_BASEDIR = '/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm'
+EXP_RESULTS_BASEDIR = '/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results'
 INVENTORY= '/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm/inventory.pkl'
 DATA_FILENAME_TEMPLATE = \
 '{0:s}/{1:04d}/{2:02d}/{3:02d}/{4:s}{5:04d}{6:02d}{7:02d}_{8:02d}{9:02d}_{10:s}.mm'

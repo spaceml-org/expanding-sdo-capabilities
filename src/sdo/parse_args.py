@@ -6,6 +6,7 @@ import configargparse
 from configargparse import YAMLConfigFileParser
 
 from sdo import __version__
+from sdo.global_vars import EXP_RESULTS_BASEDIR
 
 
 _logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ def parse_args(args):
     p.add_argument(
         '--results-path',
         dest='results_path',
-        default='./training_results',
+        default=EXP_RESULTS_BASEDIR,
         help='Where to store generated logs, models, etc., relative to --artifacts-root-path',
         )
     p.add_argument(
@@ -211,6 +212,19 @@ def parse_args(args):
         type=int,
         default=6,
         help='The number of workers to use when preparing data for feeding into the deep net')
+    p.add_argument(
+        '--scaling',
+        dest='scaling',
+        type=bool,
+        default=True,
+        help='If True scaling of the images by mean of the channel is applied. Look at the values'
+             'inside sdo_dataset.py for more detail.')
+    p.add_argument(
+        '--normalization_by_max',
+        dest='normalization_by_max',
+        type=bool,
+        default=True,
+        help='If True, in the autocalibration pipeline each image is divided by its max.')
 
     args = vars(p.parse_args(args))
 
