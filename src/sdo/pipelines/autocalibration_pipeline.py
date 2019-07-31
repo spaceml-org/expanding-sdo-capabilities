@@ -146,19 +146,6 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('\tShape: {}'.format(item.shape))
         _logger.info('\tDtype: {}'.format(item.dtype))
 
-        # TODO: Actually print the dimmed and original images, in such a way that the
-        # brightness is retained when passed to imshow.
-        fig, ax = plt.subplots(1, self.num_channels, figsize=(10,10), sharey=True)
-        *.title('Dimmed image')
-        for c in range(self.num_channels):
-            ax[c].title.set_text('Channel {}'.format(c + 1))
-            ax[c].imshow(dimmed_img[c].cpu().numpy(), cmap='gray')
-        img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
-            format_graph_prefix(0, self.exp_name)))
-        plt.savefig(img_file, bbox_inches='tight')
-        plt.close()
-        _logger.info('Debug sample saved to {}'.format(img_file))
-
     def get_loss_func(self, output, gt_output):
         """ Return the loss function this pipeline is using. """
         # Both the output and gt_output should be a vector num_channels wide, where each vector entry is the
