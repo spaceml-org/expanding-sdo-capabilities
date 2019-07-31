@@ -29,10 +29,10 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 normalization, return_random_dim):
+                 return_random_dim, norm_by_orig_img_max,
+                 norm_by_dimmed_img_max):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
-        self.normalization_by_max = normalization
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -45,7 +45,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             yr_range))
 
         _logger.info('\nSetting up training dataset:')
-        train_dataset = DimmedSDO_Dataset(self.num_channels, self.normalization_by_max,
+        train_dataset = DimmedSDO_Dataset(self.num_channels,
                                           instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
                                           mnt_step=mnt_step, day_step=day_step,
@@ -53,10 +53,12 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           resolution=actual_resolution,
                                           subsample=subsample,
                                           normalization=0, scaling=scaling,
-                                          return_random_dim=return_random_dim)
+                                          return_random_dim=return_random_dim,
+                                          norm_by_orig_img_max=norm_by_orig_img_max,
+                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max)
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = DimmedSDO_Dataset(self.num_channels, self.normalization_by_max,
+        test_dataset = DimmedSDO_Dataset(self.num_channels,
                                          instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
                                          mnt_step=mnt_step, day_step=day_step,
@@ -65,6 +67,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          subsample=subsample,
                                          normalization=0, scaling=scaling,
                                          return_random_dim=return_random_dim,
+                                         norm_by_orig_img_max=norm_by_orig_img_max,
+                                         norm_by_dimmed_img_max=norm_by_dimmed_img_max,
                                          test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
@@ -117,15 +121,38 @@ class AutocalibrationPipeline(TrainingPipeline):
 
     def show_sample(self, loader):
         """ Show some samples for debugging purposes before training/testing. """
-        _logger.info('\nUndimmed channels for single time slice:\n')
-        _, _, item = loader.dataset[0]
-        _logger.info('Max value: {}, min value: {}'.format(torch.max(item), torch.min(item)))
-        _logger.info('Shape: {}'.format(item.shape))
-        _logger.info('Dtype: {}'.format(item.dtype))
+        _logger.info('Showing a single sample across all channels at start for debugging purposes:')
+        # Get a single sample from the dataset, with all of its channels.
+        dimmed_img, dim_factors, orig_img = loader.dataset[0]
+
+        _logger.info('\nNormalization flags:')
+        _logger.info('norm_by_orig_img_max: {}'.format(
+            self.norm_by_orig_img_max))
+        _logger.info('norm_by_dimmed_img_max: {}'.format(
+            self.norm_by_dimmed_img_max))
+
+        _logger.info('\nDimmed image:')
+        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(dimmed_img, dim=1),
+                                                             torch.min(dimmed_img, dim=1)))
+        _logger.info('\tShape: {}'.format(item.shape))
+        _logger.info('\tDtype: {}'.format(item.dtype))
+
+        _logger.info('\nDimming factors:')
+        _logger.info(dim_factors)
+
+        _logger.info('\nOriginal undimmed image:')
+        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(orig_img, dim=1),
+                                                             torch.min(orig_img, dim=1)))
+        _logger.info('\tShape: {}'.format(item.shape))
+        _logger.info('\tDtype: {}'.format(item.dtype))
+
+        # TODO: Actually print the dimmed and original images, in such a way that the
+        # brightness is retained when passed to imshow.
         fig, ax = plt.subplots(1, self.num_channels, figsize=(10,10), sharey=True)
+        *.title('Dimmed image')
         for c in range(self.num_channels):
             ax[c].title.set_text('Channel {}'.format(c + 1))
-            ax[c].imshow(item[c].cpu().numpy(), cmap='gray')
+            ax[c].imshow(dimmed_img[c].cpu().numpy(), cmap='gray')
         img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
             format_graph_prefix(0, self.exp_name)))
         plt.savefig(img_file, bbox_inches='tight')
@@ -163,6 +190,7 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
+        orig_data = orig_data / orig_data.max()
         data_min, data_max = torch.min(orig_data), torch.max(orig_data)
         sample = orig_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
@@ -171,25 +199,37 @@ class AutocalibrationPipeline(TrainingPipeline):
         pos = 0
         for i, (channel, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
             pos += 1
-            ax1 = fig.add_subplot(self.num_channels, 3, pos)
+
+            scale_min = 0
+            scale_max = channel.max()
+            pred_channel_dim_factor = float(output[0, i])
+
+            ax1 = fig.add_subplot(self.num_channels, 4, pos)
             fig.subplots_adjust(top=3.0)
             ax1.set_title(
-                'Channel: {} (left: original, middle: dimmed, right: undimmed)\n'
+                'Channel: {} (col 1: original, col 2: dimmed, col 3: reconstructed, col 4: difference)\n'
                 'Dimming (true): {}, dimming (predicted): {}'.format(i+1, gt_output[0, i],
-                                                                     output[0, i]))
+                                                                     pred_channel_dim_factor))
             ax1.axis('off')
-            ax1.imshow(channel, norm=None, cmap='hot', vmin=data_min, vmax=data_max)
+            ax1.imshow(channel, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
 
             pos += 1
-            ax2 = fig.add_subplot(self.num_channels, 3, pos)
+            ax2 = fig.add_subplot(self.num_channels, 4, pos)
             ax2.axis('off')
-            ax2.imshow(channel_dimmed, norm=None, cmap='hot', vmin=data_min, vmax=data_max)
+            ax2.imshow(channel_dimmed, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
 
             pos += 1
-            ax3 = fig.add_subplot(self.num_channels, 3, pos)
+            ax3 = fig.add_subplot(self.num_channels, 4, pos)
             ax3.axis('off')
-            ax3.imshow(channel_dimmed / float(output[0, i]), norm=None, cmap='hot', vmin=data_min,
-                       vmax=data_max)
+            ax3.imshow(pred_channel_dim_factor * channel_dimmed, norm=None, cmap='hot',
+                       vmin=scale_min, vmax=scale_max)
+
+            pos += 1
+            ax4 = fig.add_subplot(self.num_channels, 4, pos)
+            ax4.axis('off')
+            channel_diff = sample - sample_dimmed
+            ax4.imshow(channel_diff, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
+
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')

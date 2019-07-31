@@ -220,11 +220,17 @@ def parse_args(args):
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
-        '--normalization_by_max',
-        dest='normalization_by_max',
+        '--norm-by-orig-img-max',
+        dest='norm_by_orig_img_max',
+        type=bool,
+        default=False,
+        help='If True, dimmed images are normalized by the _original_ image max value.')
+    p.add_argument(
+        '--norm-by-dimmed-img-max',
+        dest='norm_by_dimmed_img_max',
         type=bool,
         default=True,
-        help='If True, in the autocalibration pipeline each image is divided by its max.')
+        help='If True, dimmed images are normalized by their _own_ max value.')
     p.add_argument(
         '--return-random-dim',
         dest='return_random_dim',
