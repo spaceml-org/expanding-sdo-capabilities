@@ -106,7 +106,7 @@ def parse_args(args):
         '--save-interval',
         dest='save_interval',
         type=int,
-        default=5,
+        default=50,
         help='Every save-interval epochs we will save the trained model and optimizer state')
     p.add_argument(
         '--log-interval',
