@@ -238,15 +238,17 @@ class SDO_Dataset(Dataset):
         for c in range(n_channels):
             img = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
                             dtype=np.float32)
-
-            # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
-            item[c, :, :] = img[::self.subsample, ::self.subsample]
-
+            if self.subsample > 1:
+                # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
+                img = img[::self.subsample, ::self.subsample]
             if self.scaling:
+                # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
-                if self.normalization > 0:
-                    img = self.normalize_by_img(img, self.normalization)
-
+            if self.normalization > 0:
+                img = self.normalize_by_img(img, self.normalization)
+        
+            item[c, :, :] = img
+   
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
         return to_tensor(item, dtype=torch.float)
