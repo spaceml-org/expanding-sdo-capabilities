@@ -1,14 +1,21 @@
+# Run this via bsub as follows, making sure to change EXP= to your experiment name.
+# export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+
 #BSUB -L /bin/bash
-#BSUB -J "brad_001"
-#BSUB -o "brad_001.%J"
 #BSUB -gpu "num=1"
 #BSUB -q "ac922_v100"
 #BSUB -R "affinity[core]"
 #BSUB -W 48:00
 #BSUB -x
 
+# Change to your experiment name
+EXPERIMENT_NAME=some_experiment
+
+# Change to your conda environment name.
 CONDA_ENV=wmlce_py3_sdo_bradneuberg
-EXPERIMENT_NAME=01b_experiment_6
+
+# Point at your pipeline YAML file.
+CONFIG_FILE=config/autocalibration_default.yaml
 
 # Initialize Anaconda
 CONDA_ROOT=/gpfs/software/wmlce/anaconda3
@@ -23,12 +30,11 @@ ppc64_cpu --smt                        # Verify the SMT mode
 sudo nvidia-smi -rac                   # For POWER9+V100
 sudo nvidia-smi --compute-mode=DEFAULT # Set the compute mode to DEFAULT
 
-# Run the program
-cd ~/expanding-sdo-capabilities
+# Change to add any different arguments you'd like to pass in.
 ./src/sdo/main.py \
-    -c config/autocalibration_default.yaml \
+    -c $CONFIG_FILE \
     --experiment-name=$EXPERIMENT_NAME \
-    --num-epochs=10
+    --num-epochs=1 \
 
 # Reset the GPUs
 sudo ppc64_cpu --smt=on                          # SMT mode back to default
