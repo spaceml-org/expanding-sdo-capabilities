@@ -151,12 +151,9 @@ class AutocalibrationPipeline(TrainingPipeline):
         primary_metric = float(primary_metric.cpu())
 
         # Note: lower values are better for our primary metric here.
-        
-        
         return primary_metric
 
     def is_higher_better_primary_metric(self):
-        
         return False
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
@@ -223,7 +220,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         gt_output_numpy = gt_output.detach().cpu().numpy()
 
         ax = sns.jointplot(x=output_numpy, y=gt_output_numpy,kind='reg')
-        title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training' if train else 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
+        title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training' \
+            if train else 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
         ax.set_axis_labels("Predicted Dimmed Factor","Ground Truth Dimmed Factor")
         plt.title(title)
         plt.tight_layout()
