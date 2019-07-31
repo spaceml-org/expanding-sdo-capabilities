@@ -2,8 +2,9 @@
 .eggs/
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
-src/sdo/__pycache__/
 data/
 training_results/
 src/sdo.egg-info
-src/sdo/models/__pycache__/
+*.pyc
+*.pyo
+__pycache__/
