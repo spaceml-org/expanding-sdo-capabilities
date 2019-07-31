@@ -12,7 +12,7 @@ import torch.optim as optim
 import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
-from sdo.io import format_graph_prefix
+from sdo.io import format_epoch
 from sdo.models.autocalibration1 import Autocalibration1
 from sdo.models.autocalibration2 import Autocalibration2
 from sdo.pipelines.training_pipeline import TrainingPipeline
@@ -29,8 +29,6 @@ class AutocalibrationPipeline(TrainingPipeline):
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers):
         self.num_channels = len(wavelengths)
-        # TODO Change results to a path that is shared, and ensure we automatically CHMOD the results
-        # when we generate them so that others can see them.
         self.results_path = results_path
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
@@ -43,6 +41,10 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Using following year range for both training and testing: {}'.format(
             yr_range))
 
+        # TODO: We are using 'scaling=True' below, and are currently also scaling by the max()
+        # pixel value inside of dimmed_sdo_dataset. This might cause issues. However, we know
+        # that training requires our values to be roughly between 0 and 1. Resolve where
+        # and how to do this scaling.
         _logger.info('\nSetting up training dataset:')
         train_dataset = DimmedSDO_Dataset(self.num_channels, instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
@@ -121,7 +123,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax[c].title.set_text('Channel {}'.format(c + 1))
             ax[c].imshow(item[c].cpu().numpy(), cmap='gray')
         img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
-            format_graph_prefix(0, self.exp_name)))
+            format_epoch(0)))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
@@ -185,7 +187,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax3.imshow(channel_dimmed / float(output[0, i]), norm=None, cmap='hot', vmin=data_min,
                        vmax=data_max)
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
-            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
+            format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
@@ -203,7 +205,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.ylabel("Dimming factor")
         plt.legend()
         img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
-            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
+            format_epoch(epoch), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
