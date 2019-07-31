@@ -98,7 +98,8 @@ def main(args):
                                            min_step=args.min_step,
                                            dataloader_workers=args.dataloader_workers,
                                            scaling=args.scaling,
-                                           normalization=args.normalization_by_max)
+                                           normalization=args.normalization_by_max,
+                                           return_random_dim=args.return_random_dim)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')
         # TODO: Implement
