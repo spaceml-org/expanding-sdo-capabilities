@@ -104,7 +104,7 @@ to your laptop's `~/.bash_profile` or `~/.bashrc` file:
 
 ```
 sync_results_func() {
-        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results$1 experiments_results
+        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$1 experiments_results
 }
 alias sync_results=sync_results_func
 ```
