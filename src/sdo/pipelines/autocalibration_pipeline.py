@@ -31,7 +31,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  normalization):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
-        self.normalization_by_max= normalization
+        self.normalization_by_max = normalization
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -124,7 +124,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax[c].title.set_text('Channel {}'.format(c + 1))
             ax[c].imshow(item[c].cpu().numpy(), cmap='gray')
         img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
-            format_epoch(0)))
+            format_graph_prefix(0, self.exp_name)))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
@@ -188,7 +188,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax3.imshow(channel_dimmed / float(output[0, i]), norm=None, cmap='hot', vmin=data_min,
                        vmax=data_max)
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
-            format_epoch(epoch), 'train' if train else 'test'))
+            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
@@ -206,7 +206,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.ylabel("Dimming factor")
         plt.legend()
         img_file = os.path.join(self.results_path, '{}_dimming_factors_graph_{}.png'.format(
-            format_epoch(epoch), 'train' if train else 'test'))
+            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))

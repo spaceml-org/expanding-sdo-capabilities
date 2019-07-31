@@ -216,7 +216,7 @@ def parse_args(args):
         '--scaling',
         dest='scaling',
         type=bool,
-        default=True,
+        default=False,
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
