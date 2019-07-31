@@ -12,7 +12,7 @@ import torch.optim as optim
 import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
-from sdo.io import format_epoch
+from sdo.io import format_graph_prefix
 from sdo.models.autocalibration1 import Autocalibration1
 from sdo.models.autocalibration2 import Autocalibration2
 from sdo.pipelines.training_pipeline import TrainingPipeline
