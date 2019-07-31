@@ -1,0 +1,42 @@
+# Run this via bsub as follows, making sure to change EXP= to your experiment name.
+# export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+
+#BSUB -L /bin/bash
+#BSUB -gpu "num=1"
+#BSUB -q "ac922_v100"
+#BSUB -R "affinity[core]"
+#BSUB -W 48:00
+#BSUB -x
+
+# Change to your experiment name
+EXPERIMENT_NAME=some_experiment
+
+# Change to your conda environment name.
+CONDA_ENV=wmlce_py3_sdo_bradneuberg
+
+# Point at your pipeline YAML file.
+CONFIG_FILE=config/autocalibration_default.yaml
+
+# Initialize Anaconda
+CONDA_ROOT=/gpfs/software/wmlce/anaconda3
+. ${CONDA_ROOT}/etc/profile.d/conda.sh
+conda activate $CONDA_ENV
+source activate $CONDA_ENV
+
+# Set up the GPUs and delete any existing scratch directory
+sudo ppc64_cpu --smt=2                 # Set the SMT mode to 2
+ppc64_cpu --smt                        # Verify the SMT mode
+#sudo nvidia-smi -ac 715,1480          # For POWER8+P100
+sudo nvidia-smi -rac                   # For POWER9+V100
+sudo nvidia-smi --compute-mode=DEFAULT # Set the compute mode to DEFAULT
+
+# Change to add any different arguments you'd like to pass in.
+./src/sdo/main.py \
+    -c $CONFIG_FILE \
+    --experiment-name=$EXPERIMENT_NAME \
+    --num-epochs=100 \
+
+# Reset the GPUs
+sudo ppc64_cpu --smt=on                          # SMT mode back to default
+sudo nvidia-smi -rac                             # Clocks back to defaults
+sudo nvidia-smi --compute-mode=EXCLUSIVE_PROCESS # Compute mode back to p10 default

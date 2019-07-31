@@ -170,3 +170,11 @@ def format_epoch(epoch):
     into 00003.
     """
     return str(epoch).zfill(4)
+
+
+def format_graph_prefix(epoch, exp_name):
+    """
+    Given some epoch and experiment name, provides a prefix suitable for
+    appending to saved graphs, such as 0013_some_experiment.
+    """
+    return "{}_{}".format(format_epoch(epoch), exp_name)

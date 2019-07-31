@@ -122,3 +122,15 @@ open ./training_results/$EXPERIMENT_NAME
 
 Note that this skips syncing the very large `*.pth` files for saved checkpoint models and optimizer
 details to your laptop; those will remain on the IBM machine.
+
+# IBM Queue
+
+To run the pipeline as a job on the IBM queue, first copy the scripts/bqueues/template.lsf file and customize it. Run it as follows, changing 'some_experiment' to your experiment name and 'template.lsf' to the customized lsf
+file you created:
+
+```
+ssh p10login1
+export EXP=some_experiment && bsub -o ./training_results/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+```
+
+The results of your run will go into ./training_results/$EXP/training_log.txt. You can also 'peek' at a job while its running to stream the results back via `bpeek -f job_id`, where you change job_id to what the job_id of the LFS queue is, which will be given to you when bsub runs.
