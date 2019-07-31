@@ -9,10 +9,12 @@ from sdo.datasets.sdo_dataset import SDO_Dataset
 
 
 class DimmedSDO_Dataset(SDO_Dataset):
-    def __init__(self, num_channels, normalization_by_max, *args, **kwargs):
+    def __init__(self, num_channels, normalization_by_max,
+                       return_random_dim, *args, **kwargs):
         super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
         self.normalization_by_max = normalization_by_max
+        self.return_random_dim = return_random_dim
     
         # TODO: Compute mean and std across dataset, and normalize them.
     
@@ -33,6 +35,10 @@ class DimmedSDO_Dataset(SDO_Dataset):
             # Scale the images between [0.0, 1.0]
             dimmed_imgs = dimmed_imgs / dimmed_imgs.max()
             orig_imgs = orig_imgs / orig_imgs.max()
+
+        if self.return_random_dim:
+            orig_dim_factor = dim_factor
+            dim_factor = torch.rand(self.num_channels)
 
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.

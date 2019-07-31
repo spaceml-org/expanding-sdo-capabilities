@@ -28,7 +28,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 normalization):
+                 normalization, return_random_dim):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.normalization_by_max = normalization
@@ -51,7 +51,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           h_step=h_step, min_step=min_step,
                                           resolution=actual_resolution,
                                           subsample=subsample,
-                                          normalization=0, scaling=scaling)
+                                          normalization=0, scaling=scaling,
+                                          return_random_dim=return_random_dim)
 
         _logger.info('\nSetting up testing dataset:')
         test_dataset = DimmedSDO_Dataset(self.num_channels, self.normalization_by_max,
@@ -62,6 +63,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          resolution=actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=scaling,
+                                         return_random_dim=return_random_dim,
                                          test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.

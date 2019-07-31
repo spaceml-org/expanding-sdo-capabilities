@@ -225,6 +225,12 @@ def parse_args(args):
         type=bool,
         default=True,
         help='If True, in the autocalibration pipeline each image is divided by its max.')
+    p.add_argument(
+        '--return-random-dim',
+        dest='return_random_dim',
+        type=bool,
+        default=False,
+        help='If True, return fake random numbers for the brightness dimming factors during training')
 
     args = vars(p.parse_args(args))
 
