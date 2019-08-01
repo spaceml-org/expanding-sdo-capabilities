@@ -106,6 +106,12 @@ def parse_args(args):
         default=100,
         help='Batch size for testing')
     p.add_argument(
+        '--test-ratio',
+        dest='test_ratio',
+        type=float,
+        default=0.3,
+        help='What percentage of the data to retain for testing')
+    p.add_argument(
         '--save-interval',
         dest='save_interval',
         type=int,

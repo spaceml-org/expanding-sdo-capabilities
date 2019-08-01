@@ -26,7 +26,7 @@ _logger = logging.getLogger(__name__)
 class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
-                 batch_size_test, log_interval, results_path, num_epochs, save_interval,
+                 batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
                  return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max):
@@ -56,7 +56,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           normalization=0, scaling=scaling,
                                           return_random_dim=return_random_dim,
                                           norm_by_orig_img_max=norm_by_orig_img_max,
-                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max)
+                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max,
+                                          test_ratio=test_ratio)
 
         _logger.info('\nSetting up testing dataset:')
         test_dataset = DimmedSDO_Dataset(self.num_channels,
@@ -70,7 +71,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          return_random_dim=return_random_dim,
                                          norm_by_orig_img_max=norm_by_orig_img_max,
                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max,
-                                         test=True)
+                                         test_ratio=test_ratio, test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
         # Apply this global mean/std across the data to normalize it in the

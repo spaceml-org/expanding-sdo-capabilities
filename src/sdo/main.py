@@ -82,6 +82,7 @@ def main(args):
                                            subsample=args.subsample,
                                            batch_size_train=args.batch_size_train,
                                            batch_size_test=args.batch_size_test,
+                                           test_ratio=args.test_ratio,
                                            log_interval=args.log_interval,
                                            results_path=args.results_path,
                                            num_epochs=args.num_epochs,
