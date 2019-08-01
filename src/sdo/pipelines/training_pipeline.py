@@ -124,6 +124,8 @@ class TrainingPipeline(object):
                                              train=True)
 
         # Generate extra metrics useful for debugging and analysis.
+        # TODO the last batch is less populated, it would be better to produce these
+        # results on the second to last batch.
         self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
                                          train=True)
 

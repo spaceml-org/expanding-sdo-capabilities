@@ -4,13 +4,12 @@ import os
 import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import seaborn as sns
 import scipy.stats as stats
-import pandas
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_graph_prefix
@@ -18,6 +17,7 @@ from sdo.models.autocalibration1 import Autocalibration1
 from sdo.models.autocalibration2 import Autocalibration2
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
+from sdo.metrics.plotting import plot_regression
 
 
 _logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.normalization_by_max = normalization
+        self.wavelengths = wavelengths
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -40,7 +41,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Instruments: {}'.format(instruments))
 
         assert yr_range is not None and len(yr_range) > 0, \
-            'The AutocalibrationPipeline requires a yr_range: {}'.format(yr_range)
+            'The AutocalibrationPipeline requires a yr_range: {}'.format(
+                yr_range)
         _logger.info('Using following year range for both training and testing: {}'.format(
             yr_range))
 
@@ -79,10 +81,10 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         if model_version == 1:
             model = Autocalibration1(input_shape=[self.num_channels, scaled_height,
-                                     scaled_width], output_dim=self.num_channels)
+                                                  scaled_width], output_dim=self.num_channels)
         elif model_version == 2:
             model = Autocalibration2(input_shape=[self.num_channels, scaled_height,
-                                     scaled_width], output_dim=self.num_channels,
+                                                  scaled_width], output_dim=self.num_channels,
                                      increase_dim=2)
         else:
             # Note: For other model_versions, simply instantiate whatever class
@@ -119,10 +121,12 @@ class AutocalibrationPipeline(TrainingPipeline):
         """ Show some samples for debugging purposes before training/testing. """
         _logger.info('\nUndimmed channels for single time slice:\n')
         _, _, item = loader.dataset[0]
-        _logger.info('Max value: {}, min value: {}'.format(torch.max(item), torch.min(item)))
+        _logger.info('Max value: {}, min value: {}'.format(
+            torch.max(item), torch.min(item)))
         _logger.info('Shape: {}'.format(item.shape))
         _logger.info('Dtype: {}'.format(item.dtype))
-        fig, ax = plt.subplots(1, self.num_channels, figsize=(10,10), sharey=True)
+        fig, ax = plt.subplots(1, self.num_channels,
+                               figsize=(10, 10), sharey=True)
         for c in range(self.num_channels):
             ax[c].title.set_text('Channel {}'.format(c + 1))
             ax[c].imshow(item[c].cpu().numpy(), cmap='gray')
@@ -147,16 +151,16 @@ class AutocalibrationPipeline(TrainingPipeline):
         method is appropriate for other kinds of scalar values indicating progress
         you'd like to use.
         """
-        primary_metric = torch.mean(torch.mean(torch.abs(output - gt_output), dim=1), dim=0)
+        primary_metric = torch.mean(torch.mean(
+            torch.abs(output - gt_output), dim=1), dim=0)
         primary_metric = float(primary_metric.cpu())
 
         # Note: lower values are better for our primary metric here.
-        
-        
+
         return primary_metric
 
     def is_higher_better_primary_metric(self):
-        
+
         return False
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
@@ -169,7 +173,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         data_min, data_max = torch.min(orig_data), torch.max(orig_data)
         sample = orig_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
-
+        
+        #TODO move the figure below into a plotting function
         fig = plt.figure()
         pos = 0
         for i, (channel, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
@@ -181,12 +186,14 @@ class AutocalibrationPipeline(TrainingPipeline):
                 'Dimming (true): {}, dimming (predicted): {}'.format(i+1, gt_output[0, i],
                                                                      output[0, i]))
             ax1.axis('off')
-            ax1.imshow(channel, norm=None, cmap='hot', vmin=data_min, vmax=data_max)
+            ax1.imshow(channel, norm=None, cmap='hot',
+                       vmin=data_min, vmax=data_max)
 
             pos += 1
             ax2 = fig.add_subplot(self.num_channels, 3, pos)
             ax2.axis('off')
-            ax2.imshow(channel_dimmed, norm=None, cmap='hot', vmin=data_min, vmax=data_max)
+            ax2.imshow(channel_dimmed, norm=None, cmap='hot',
+                       vmin=data_min, vmax=data_max)
 
             pos += 1
             ax3 = fig.add_subplot(self.num_channels, 3, pos)
@@ -199,6 +206,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
 
+        #TODO move dimming values figure below into a plotting function if we still need it
+        # or decide to remove it
         fig = plt.figure()
         dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
         plt.scatter(range(1, self.num_channels + 1), dim_factors_numpy,
@@ -216,26 +225,37 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.savefig(img_file, bbox_inches='tight')
         plt.close()
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
-        
-        # This is a regression plot between Ground Truth Dimm factor vs.  Predicted Dimm Factors
-        
+
+        # Plotting regression plot between Ground Truth Dimm factor vs. Predicted Dimm Factors
+        # this plot includes histrograms of the variables
         output_numpy = output.detach().cpu().numpy()
         gt_output_numpy = gt_output.detach().cpu().numpy()
-
-        ax = sns.jointplot(x=output_numpy, y=gt_output_numpy,kind='reg')
-        title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training' if train else 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
-        ax.set_axis_labels("Predicted Dimmed Factor","Ground Truth Dimmed Factor")
-        plt.title(title)
-        plt.tight_layout()
-        ax.annotate(stats.pearsonr)
+        if train:
+            title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training'
+        else:
+            title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
+        x_label = "Predicted Dimmed Factor"
+        y_label =  "Ground Truth Dimmed Factor"
         img_file = os.path.join(self.results_path, '{}_GTvsPR_plot_metric_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
-        plt.savefig(img_file, bbox_inches='tight')
-        plt.close()
+        # all channels are plotted together
+        plot_regression(output_numpy.flatten(), gt_output_numpy.flatten(), 
+                        title, x_label, y_label, img_file)
+        _logger.info('Regression plot saved to {}'.format(img_file))
+            
+        # Pearson correlation values last batch
+        pr_coeff = []
+        for i, channel in enumerate(self.wavelengths):
+            pr_coeff.append(stats.pearsonr(output_numpy[i], gt_output_numpy[i])[0])
+        df_pr_coeff = pd.DataFrame(dict(zip(self.wavelengths, pr_coeff)), index=[0])
+        _logger.info('Pearson coefficient values by channel \n {}'
+                     .format(df_pr_coeff))
+        _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))  
 
         # TODO: Either speed this up by doing it in torch or print it out less often.
         # It's becomming a bottleneck now that things are faster elsewhere.
-        num_subsample = 3 # For the final batch, the number of entries to subsample to print out for debugging.
+        # For the final batch, the number of entries to subsample to print out for debugging.
+        num_subsample = 3
         column_labels = ['Pred', 'GT', 'Mean Delta']
         pretty_results = np.zeros((min(num_subsample, len(output)), len(column_labels)),
                                   dtype=np.float32)
@@ -244,16 +264,18 @@ class AutocalibrationPipeline(TrainingPipeline):
         gt_output = gt_output.detach().cpu().numpy()
 
         # The mean channel prediction across each row of the batch results.
-        pretty_results[:, 0] = np.round(output.mean(axis=1)[:num_subsample], decimals=2)
+        pretty_results[:, 0] = np.round(
+            output.mean(axis=1)[:num_subsample], decimals=2)
 
         # The mean channel ground truth across each row of the batch results.
-        pretty_results[:, 1] = np.round(gt_output.mean(axis=1)[:num_subsample], decimals=2)
+        pretty_results[:, 1] = np.round(
+            gt_output.mean(axis=1)[:num_subsample], decimals=2)
 
         # The mean difference btw prediction and grouth truth across each row of the batch results.
         pretty_results[:, 2] = np.round(np.abs(gt_output - output).mean(axis=1)[:num_subsample],
                                         decimals=2)
 
-        df = pandas.DataFrame(pretty_results, columns=column_labels)
+        df = pd.DataFrame(pretty_results, columns=column_labels)
         _logger.info("\n\nRandom sample of mean predictions across channels, "
                      "where each row is a sample in the training batch:\n")
         _logger.info(df.to_string(index=False))
