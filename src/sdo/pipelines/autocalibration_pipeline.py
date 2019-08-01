@@ -186,8 +186,6 @@ class AutocalibrationPipeline(TrainingPipeline):
         sample = normed_orig_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
 
-        # TODO: These images don't look correct; our channel 1 original image is dim, which is wrong.
-        # our channel. Col 2 dimming image looks completely black. Things don't look great.
         fig = plt.figure()
         pos = 0
         for i, (channel_orig, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
