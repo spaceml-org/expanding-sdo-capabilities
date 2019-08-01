@@ -58,7 +58,8 @@ class TrainingPipeline(object):
         pass
 
     @abstractmethod
-    def print_final_batch_details(self, orig_data, output, input_data, gt_output, epoch, train):
+    def print_final_batch_details(self, normed_orig_data, output, input_data, gt_output, epoch,
+                                  train):
         """ Override to print some debugging details on the final batch for a given epoch
             of either the training or testing loop. """
         pass
@@ -84,7 +85,7 @@ class TrainingPipeline(object):
         """
         pass
 
-    def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch,
+    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output, epoch,
                                     train):
         """
         Every log_interval pass during training or testing in an epoch, we might want to
@@ -103,7 +104,7 @@ class TrainingPipeline(object):
             self.model.train() # Indicate to PyTorch that we are in training mode.
             losses = []
             total_primary_metrics = []
-            for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
+            for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.train_loader):
                 with Timer() as iteration_perf:
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
@@ -124,7 +125,7 @@ class TrainingPipeline(object):
                                              train=True)
 
         # Generate extra metrics useful for debugging and analysis.
-        self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
+        self.generate_supporting_metrics(normed_orig_data, output, input_data, gt_output, epoch,
                                          train=True)
 
         self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
@@ -145,7 +146,7 @@ class TrainingPipeline(object):
                 total_primary_metrics = []
                 times = []
                 correct = 0
-                for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
+                for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.test_loader):
                     with Timer() as iteration_perf:
                         # Send the entire batch to the GPU as one to increase efficiency.
                         input_data = input_data.to(self.device)
@@ -164,7 +165,7 @@ class TrainingPipeline(object):
                                                  train=False)
 
             # Generate extra metrics useful for debugging and analysis.
-            self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
+            self.generate_supporting_metrics(normed_orig_data, output, input_data, gt_output, epoch,
                                              train=False)
 
             self.print_epoch_details(epoch, batch_idx, self.batch_size_test,

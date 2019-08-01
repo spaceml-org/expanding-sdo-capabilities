@@ -36,7 +36,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
             assert not self.norm_by_dimmed_img_max, \
                 'You can not have both norm_by_orig_img_max and norm_by_dimmed_img_max True'
             max_value = orig_img.max()
-        elif if self.norm_by_dimmed_img_max:
+        elif self.norm_by_dimmed_img_max:
             assert not self.norm_by_orig_img_max, \
                 'You can not have both norm_by_orig_img_max and norm_by_dimmed_img_max True'
             max_value = dimmed_img.max()
@@ -44,12 +44,12 @@ class DimmedSDO_Dataset(SDO_Dataset):
         if max_value is not None:
             # Scale the images roughly between [0.0, 1.0]
             normed_dimmed_img = dimmed_img / max_value
+            normed_orig_img = orig_img / max_value
 
         # TODO: Remove this flag as the experiment is done.
         if self.return_random_dim:
-            orig_dim_factor = dim_factor
             dim_factor = torch.rand(self.num_channels)
 
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return normed_dimmed_img, dim_factor, orig_img
+        return normed_dimmed_img, dim_factor, normed_orig_img

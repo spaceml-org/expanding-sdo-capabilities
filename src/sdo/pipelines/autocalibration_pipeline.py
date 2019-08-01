@@ -29,10 +29,11 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 return_random_dim, norm_by_orig_img_max,
-                 norm_by_dimmed_img_max):
+                 return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
+        self.norm_by_orig_img_max = norm_by_orig_img_max
+        self.norm_by_dimmed_img_max = norm_by_dimmed_img_max
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -132,19 +133,19 @@ class AutocalibrationPipeline(TrainingPipeline):
             self.norm_by_dimmed_img_max))
 
         _logger.info('\nDimmed image:')
-        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(dimmed_img, dim=1),
-                                                             torch.min(dimmed_img, dim=1)))
-        _logger.info('\tShape: {}'.format(item.shape))
-        _logger.info('\tDtype: {}'.format(item.dtype))
+        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(dimmed_img),
+                                                             torch.min(dimmed_img)))
+        _logger.info('\tShape: {}'.format(dimmed_img.shape))
+        _logger.info('\tDtype: {}'.format(dimmed_img.dtype))
 
         _logger.info('\nDimming factors:')
-        _logger.info(dim_factors)
+        _logger.info('\t{}'.format(dim_factors))
 
         _logger.info('\nOriginal undimmed image:')
-        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(orig_img, dim=1),
-                                                             torch.min(orig_img, dim=1)))
-        _logger.info('\tShape: {}'.format(item.shape))
-        _logger.info('\tDtype: {}'.format(item.dtype))
+        _logger.info('\tMax value: {}, min value: {}'.format(torch.max(orig_img),
+                                                             torch.min(orig_img)))
+        _logger.info('\tShape: {}'.format(orig_img.shape))
+        _logger.info('\tDtype: {}'.format(orig_img.dtype))
 
     def get_loss_func(self, output, gt_output):
         """ Return the loss function this pipeline is using. """
@@ -170,26 +171,31 @@ class AutocalibrationPipeline(TrainingPipeline):
     def is_higher_better_primary_metric(self):
         return False
 
-    def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
+    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output, epoch,
+                                    train):
         """ Print debugging details on the final batch per epoch during training or testing. """
         super(AutocalibrationPipeline, self).generate_supporting_metrics(
-            orig_data, output, input_data, gt_output, epoch, train)
+            normed_orig_data, output, input_data, gt_output, epoch, train)
 
         # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
-        orig_data = orig_data / orig_data.max()
-        data_min, data_max = torch.min(orig_data), torch.max(orig_data)
-        sample = orig_data[0].cpu().numpy()
+
+        scale_min = 0
+        scale_max = normed_orig_data.max()
+
+        sample = normed_orig_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
 
+        # TODO: These images don't look correct; our channel 1 original image is dim, which is wrong.
+        # our channel. Col 2 dimming image looks completely black. Things don't look great.
         fig = plt.figure()
         pos = 0
-        for i, (channel, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
+        for i, (channel_orig, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
             pos += 1
-
-            scale_min = 0
-            scale_max = channel.max()
             pred_channel_dim_factor = float(output[0, i])
+            # Reconstructed means we want to apply some transformation to the dimmed image
+            # to get back the original undimmed image.
+            reconstructed_channel = channel_dimmed / pred_channel_dim_factor
 
             ax1 = fig.add_subplot(self.num_channels, 4, pos)
             fig.subplots_adjust(top=3.0)
@@ -198,7 +204,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                 'Dimming (true): {}, dimming (predicted): {}'.format(i+1, gt_output[0, i],
                                                                      pred_channel_dim_factor))
             ax1.axis('off')
-            ax1.imshow(channel, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
+            ax1.imshow(channel_orig, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
 
             pos += 1
             ax2 = fig.add_subplot(self.num_channels, 4, pos)
@@ -208,13 +214,15 @@ class AutocalibrationPipeline(TrainingPipeline):
             pos += 1
             ax3 = fig.add_subplot(self.num_channels, 4, pos)
             ax3.axis('off')
-            ax3.imshow(pred_channel_dim_factor * channel_dimmed, norm=None, cmap='hot',
-                       vmin=scale_min, vmax=scale_max)
+            ax3.imshow(reconstructed_channel, norm=None, cmap='hot', vmin=scale_min,
+                       vmax=scale_max)
 
+            # See the difference of how well we reconstructed a dimmed image vs. the actual original
+            # non-degraded image.
             pos += 1
             ax4 = fig.add_subplot(self.num_channels, 4, pos)
             ax4.axis('off')
-            channel_diff = sample - sample_dimmed
+            channel_diff = channel_orig - reconstructed_channel
             ax4.imshow(channel_diff, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
 
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
