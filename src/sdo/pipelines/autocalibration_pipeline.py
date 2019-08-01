@@ -142,26 +142,24 @@ class AutocalibrationPipeline(TrainingPipeline):
         # brightness dimming factor.
         return nn.MSELoss()(output, gt_output)
 
-    def calculate_primary_metric(self, epoch, output, gt_output):
+    def calculate_primary_metric(self, epoch, output, gt_output, tol=0.1):
         """
         Given some predicted output from a network and some ground truth, this method
         calculates a scalar on how "well" we are doing for a given problem to gauge
         progress during different experiments and during training. Note that we
         already calculate and print out the loss outside of this method, so this
         method is appropriate for other kinds of scalar values indicating progress
-        you'd like to use.
+        you'd like to use. The primary metric currently chosen is the binary frequency
+        of correct cases, where a case is considerated correct if the real and predicted
+        value differ equal less than the tol.
         """
-        primary_metric = torch.mean(torch.mean(
-            torch.abs(output - gt_output), dim=1), dim=0)
-        primary_metric = float(primary_metric.cpu())
-
-        # Note: lower values are better for our primary metric here.
-
+        diff = torch.abs(output - gt_output)
+        diff_np = diff.cpu().detach().numpy()
+        primary_metric = (diff_np <= tol).sum() / (diff_np.shape[0]*diff_np.shape[1])
         return primary_metric
 
     def is_higher_better_primary_metric(self):
-
-        return False
+        return True
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
         """ Print debugging details on the final batch per epoch during training or testing. """
@@ -248,7 +246,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         for i, channel in enumerate(self.wavelengths):
             pr_coeff.append(stats.pearsonr(output_numpy[i], gt_output_numpy[i])[0])
         df_pr_coeff = pd.DataFrame(dict(zip(self.wavelengths, pr_coeff)), index=[0])
-        _logger.info('Pearson coefficient values by channel \n {}'
+        _logger.info('\n\nPearson coefficient values by channel \n {}'
                      .format(df_pr_coeff))
         _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))  
 
