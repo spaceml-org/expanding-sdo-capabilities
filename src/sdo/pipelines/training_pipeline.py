@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from contexttimer import Timer
 
 import numpy as np
+import pandas as pd
 
 import torch
 
@@ -83,7 +84,14 @@ class TrainingPipeline(object):
         result indicates that lower values are better.
         """
         pass
-
+    
+    @abstractmethod
+    def get_primary_metric_name(self):
+        """
+        This method returns a string that contains the name of the metric
+        """
+        return 'Primary metric'
+        
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch,
                                     train):
         """
@@ -103,18 +111,23 @@ class TrainingPipeline(object):
             self.model.train() # Indicate to PyTorch that we are in training mode.
             losses = []
             total_primary_metrics = []
+            gt_outputs = []
+            outputs = []
             for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
                 with Timer() as iteration_perf:
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
                     input_data = input_data.to(self.device)
+                    gt_outputs.append(gt_output)
                     gt_output = gt_output.to(self.device)
                     output = self.model(input_data)
+                    outputs.append(output)
+                    output = output.to(self.device)
                     loss = self.get_loss_func(output, gt_output)
                     loss.backward()
                     self.optimizer.step()
                     losses.append(float(loss))
-
+                    
                 if batch_idx % self.log_interval == 0:
                     primary_metric = self.calculate_primary_metric(epoch, output, gt_output)
                     total_primary_metrics.append(primary_metric)
@@ -132,27 +145,32 @@ class TrainingPipeline(object):
         self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
                                  np.mean(losses), primary_metric, epoch_perf.elapsed,
                                  final_batch=True, train=True)
-
+        
         if epoch % self.save_interval == 0 or final_epoch:
             self.save_training_results(epoch)
+            self.save_dimming_factors(epoch, gt_outputs, outputs, mode='train')
 
         return np.mean(losses), np.mean(total_primary_metrics)
 
-    def test(self, epoch):
+    def test(self, epoch, final_epoch=False):
         with Timer() as epoch_perf:
             _logger.info("\n\nTesting epoch {}\n".format(epoch))
             with torch.no_grad():
                 self.model.eval() # Indicate to PyTorch that we are in testing mode.
                 losses = []
-                total_primary_metrics = []
+                total_primary_metrics = [] 
                 times = []
+                gt_outputs = []
+                outputs = []
                 correct = 0
                 for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
                     with Timer() as iteration_perf:
                         # Send the entire batch to the GPU as one to increase efficiency.
                         input_data = input_data.to(self.device)
                         gt_output = gt_output.to(self.device)
+                        gt_outputs.append(gt_output)
                         output = self.model(input_data)
+                        outputs.append(output)
                         output = output.to(self.device)
                         loss = self.get_loss_func(output, gt_output)
                         losses.append(float(loss))
@@ -173,7 +191,10 @@ class TrainingPipeline(object):
                                      self.test_dataset, np.mean(losses), primary_metric,
                                      epoch_perf.elapsed, final_batch=True,
                                      train=False)
-
+            
+            if epoch % self.save_interval == 0 or final_epoch:
+                self.save_training_results(epoch)
+                self.save_dimming_factors(epoch, gt_outputs, outputs, mode='test')
             return np.mean(losses), np.mean(total_primary_metrics)
 
     def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss, primary_metric, time_s,
@@ -195,19 +216,21 @@ class TrainingPipeline(object):
             )
 
         if final_batch:
-            _logger.info('Summary: {} Epoch: {} [{}]\tMean loss: {:.6f}, Mean primary metric: {:.2f}, Time to run: {:.1f} s'.format(
+            _logger.info('Summary: {} Epoch: {} [{}]\tMean loss: {:.6f}, {}: {:.2f}, Time to run: {:.1f} s'.format(
                 'Train' if train else 'Test',
                 epoch,
                 batch_info,
                 float(loss),
+                self.get_primary_metric_name(),
                 primary_metric,
                 time_s))
         else:
-            _logger.info('{} Epoch: {} [{}]\tLoss: {:.6f}, Primary metric: {:.2f}, Time to run: {:.1f} s'.format(
+            _logger.info('{} Epoch: {} [{}]\tLoss: {:.6f}, {}: {:.2f}, Time to run: {:.1f} s'.format(
                 'Train' if train else 'Test',
                 epoch,
                 batch_info,
                 float(loss),
+                self.get_primary_metric_name(),
                 primary_metric,
                 time_s))
 
@@ -232,6 +255,20 @@ class TrainingPipeline(object):
                                           'optimizer_epoch_{}.pth'.format(epoch))
         _logger.info('Saving optimizer to {}...'.format(optimizer_filename))
         torch.save(self.optimizer.state_dict(), optimizer_filename)
+        
+    def save_dimming_factors(self, epoch, gt_outputs, outputs, mode):
+        if mode=='train':
+            factors_filename = os.path.join(self.results_path, 
+                                            'dim_factors_epoch_{}_{}.csv'.\
+                                            format(epoch,mode))
+        elif mode=='test':
+            factors_filename = os.path.join(self.results_path, 
+                                            'dim_factors_{}.csv'.\
+                                            format(mode))
+        df = pd.DataFrame(zip(gt_outputs,  outputs), 
+                          columns=['True', 'Predicted'])
+        df.to_csv(factors_filename, index=False)
+        _logger.info('Saving {} dimming factors to {}...'.format(mode, factors_filename))
 
     def run(self):
         """ Actually does the train/test cycle for num_epochs. """
@@ -249,7 +286,7 @@ class TrainingPipeline(object):
             train_losses.append(loss)
             train_primary_metrics.append(primary_metric)
 
-            loss, primary_metric = self.test(epoch)
+            loss, primary_metric = self.test(epoch, final_epoch)
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 

@@ -29,11 +29,12 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
                  continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
                  yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 normalization, return_random_dim):
+                 normalization, return_random_dim, tol=0.1):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.normalization_by_max = normalization
         self.wavelengths = wavelengths
+        self.tol = tol
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -142,7 +143,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         # brightness dimming factor.
         return nn.MSELoss()(output, gt_output)
 
-    def calculate_primary_metric(self, epoch, output, gt_output, tol=0.1):
+    def calculate_primary_metric(self, epoch, output, gt_output):
         """
         Given some predicted output from a network and some ground truth, this method
         calculates a scalar on how "well" we are doing for a given problem to gauge
@@ -155,11 +156,14 @@ class AutocalibrationPipeline(TrainingPipeline):
         """
         diff = torch.abs(output - gt_output)
         diff_np = diff.cpu().detach().numpy()
-        primary_metric = (diff_np <= tol).sum() / (diff_np.shape[0]*diff_np.shape[1])
+        primary_metric = (diff_np <= self.tol).sum() / (diff_np.shape[0]*diff_np.shape[1])
         return primary_metric
 
     def is_higher_better_primary_metric(self):
         return True
+    
+    def get_primary_metric_name(self):
+        return 'Frequency of binary succes (tol={})'.format(self.tol)
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
         """ Print debugging details on the final batch per epoch during training or testing. """
