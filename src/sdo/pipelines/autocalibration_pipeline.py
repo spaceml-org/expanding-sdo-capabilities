@@ -254,17 +254,6 @@ class AutocalibrationPipeline(TrainingPipeline):
                      .format(df_pr_coeff))
         _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))  
 
-        # TODO: Either speed this up by doing it in torch or print it out less often.
-        # It's becomming a bottleneck now that things are faster elsewhere.
-        # For the final batch, the number of entries to subsample to print out for debugging.
-        num_subsample = 3
-        column_labels = ['Pred', 'GT', 'Mean Delta']
-        pretty_results = np.zeros((min(num_subsample, len(output)), len(column_labels)),
-                                  dtype=np.float32)
-
-        output = output.detach().cpu().numpy()
-        gt_output = gt_output.detach().cpu().numpy()
-
         # The mean channel prediction across each row of the batch results.
         pretty_results[:, 0] = np.round(
             output.mean(axis=1)[:num_subsample], decimals=2)
