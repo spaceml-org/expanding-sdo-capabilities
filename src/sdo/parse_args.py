@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import pprint
 
 import configargparse
 from configargparse import YAMLConfigFileParser
@@ -51,8 +52,10 @@ def parse_args(args):
     p.add_argument(
         '--log-minimal',
         dest='log_minimal',
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=False,
-        type=bool,
         help="If true, log lines will have no prefix; if false, extensive prefix logging will appear")
     p.add_argument(
         '-c',
@@ -102,6 +105,12 @@ def parse_args(args):
         type=int,
         default=100,
         help='Batch size for testing')
+    p.add_argument(
+        '--test-ratio',
+        dest='test_ratio',
+        type=float,
+        default=0.3,
+        help='What percentage of the data to retain for testing')
     p.add_argument(
         '--save-interval',
         dest='save_interval',
@@ -153,13 +162,17 @@ def parse_args(args):
     p.add_argument(
         '--deterministic-cuda',
         dest='determininistic_cuda',
-        type=bool,
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=True,
         help='Whether to force CUDA to be deterministic; can cause some perf slowdown')
     p.add_argument(
         '--continue-training',
         dest='continue_training',
-        type=bool,
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=False,
         help='Whether to continue training from a saved checkpoint')
     p.add_argument(
@@ -215,20 +228,34 @@ def parse_args(args):
     p.add_argument(
         '--scaling',
         dest='scaling',
-        type=bool,
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=False,
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
-        '--normalization_by_max',
-        dest='normalization_by_max',
-        type=bool,
+        '--norm-by-orig-img-max',
+        dest='norm_by_orig_img_max',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, dimmed images are normalized by the _original_ image max value.')
+    p.add_argument(
+        '--norm-by-dimmed-img-max',
+        dest='norm_by_dimmed_img_max',
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=True,
-        help='If True, in the autocalibration pipeline each image is divided by its max.')
+        help='If True, dimmed images are normalized by their _own_ max value.')
     p.add_argument(
         '--return-random-dim',
         dest='return_random_dim',
-        type=bool,
+        type=str2bool,
+        nargs='?',
+        const=True,
         default=False,
         help='If True, return fake random numbers for the brightness dimming factors during training')
 
@@ -250,7 +277,28 @@ def parse_args(args):
 
     args['scaled_width'] = int(args['actual_resolution'] / args['subsample'])
     args['scaled_height'] = args['scaled_width']
-    _logger.info('Actual resolution: {}, subsample: {}, scaled size: {}',
-        args['actual_resolution'], args['subsample'], args['scaled_width'])
-
+    
+    # The logger is not setup yet here, as we need the configargs themselves
+    # to configure it, so we just print to standard out these details.
+    print('\nParsed configuration:\n\n{}'.format(pprint.pformat(args, indent=2)))
     return configargparse.Namespace(**args)
+
+
+def str2bool(v):
+    """
+    Boolean ArgParse options are confusing by default: They just just --some-option
+    _without_ giving a True or False value; if the switch is present, such as
+    --some-option, then it becomes True. If someone gives '--some-option False'
+    the option will still evaluate as True! This method changes this default
+    behavior so that boolean command line args match expected behavior:
+    '--some-option=True' will evaluate to True and '--some-option=False'
+    will evaluate to False.
+    """
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise configargparse.ArgumentTypeError('Boolean value expected.')
