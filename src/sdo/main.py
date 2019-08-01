@@ -61,7 +61,6 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel, args.log_minimal)
-    _logger.info('Parsed arguments: {}'.format(args))
 
     create_dirs(args)
     save_config_details(args, args.results_path, args.experiment_name)
