@@ -23,8 +23,8 @@ class TrainingPipeline(object):
 
     def __init__(self, exp_name, train_dataset, test_dataset, train_loader, test_loader,
                  batch_size_train, batch_size_test, model, optimizer, log_interval,
-                 results_path, num_epochs, device, save_interval, continue_training,
-                 saved_model_path, saved_optimizer_path, start_epoch_at, scaling):
+                 results_path, num_epochs, device, save_interval, additional_metrics_interval, 
+                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at, scaling):
         self.exp_name = exp_name
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -39,6 +39,7 @@ class TrainingPipeline(object):
         self.num_epochs = num_epochs
         self.device = device
         self.save_interval = save_interval
+        self.additional_metrics_interval = additional_metrics_interval
         self.start_epoch_at = start_epoch_at
         self.scaling = scaling
 
@@ -135,17 +136,18 @@ class TrainingPipeline(object):
                                              self.train_dataset, loss, primary_metric,
                                              iteration_perf.elapsed, final_batch=False,
                                              train=True)
-
-        # Generate extra metrics useful for debugging and analysis.
-        # TODO the last batch is less populated, it would be better to produce these
-        # results on the second to last batch.
-        self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
-                                         train=True)
-
+                         
         self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
                                  np.mean(losses), primary_metric, epoch_perf.elapsed,
                                  final_batch=True, train=True)
-        
+                         
+        # Generate extra metrics useful for debugging and analysis.
+        # TODO the last batch is less populated, it would be better to produce these
+        # results on the second to last batch.
+        if epoch % self.additional_metrics_interval == 0 or final_epoch:
+                         self.generate_supporting_metrics(orig_data, output, input_data, 
+                                                          gt_output, epoch, train=True)
+
         if epoch % self.save_interval == 0 or final_epoch:
             self.save_training_results(epoch)
             self.save_dimming_factors(epoch, gt_outputs, outputs, mode='train')
@@ -182,17 +184,17 @@ class TrainingPipeline(object):
                                                  self.test_dataset, loss, primary_metric,
                                                  iteration_perf.elapsed, final_batch=False,
                                                  train=False)
-
-            # Generate extra metrics useful for debugging and analysis.
-            self.generate_supporting_metrics(orig_data, output, input_data, gt_output, epoch,
-                                             train=False)
-
+                         
             self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
                                      self.test_dataset, np.mean(losses), primary_metric,
                                      epoch_perf.elapsed, final_batch=True,
                                      train=False)
-            
-            if epoch % self.save_interval == 0 or final_epoch:
+            # Generate extra metrics useful for debugging and analysis.
+            if epoch%self.additional_metrics_interval == 0 or final_epoch:
+                         self.generate_supporting_metrics(orig_data, output, input_data, 
+                                                          gt_output, epoch, train=False)
+
+            if epoch%self.save_interval == 0 or final_epoch:
                 self.save_training_results(epoch)
                 self.save_dimming_factors(epoch, gt_outputs, outputs, mode='test')
             return np.mean(losses), np.mean(total_primary_metrics)
@@ -290,8 +292,6 @@ class TrainingPipeline(object):
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 
-            # TODO: Put the experiment name into the title of the graph or as a
-            # small subtitle somewhere.
             fig = plt.figure()
             plt.plot(train_losses, label='Training Loss')
             plt.plot(test_losses, label='Testing Loss')

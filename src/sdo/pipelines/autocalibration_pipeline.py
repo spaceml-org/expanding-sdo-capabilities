@@ -27,8 +27,8 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
-                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
-                 yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
+                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path, 
+                 start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
                  normalization, return_random_dim, tol=0.1):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
@@ -112,6 +112,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             num_epochs=num_epochs,
             device=device,
             save_interval=save_interval,
+            additional_metrics_interval=additional_metrics_interval,
             continue_training=continue_training,
             saved_model_path=saved_model_path,
             saved_optimizer_path=saved_optimizer_path,
@@ -253,21 +254,4 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('\n\nPearson coefficient values by channel \n {}'
                      .format(df_pr_coeff))
         _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))  
-
-        # The mean channel prediction across each row of the batch results.
-        pretty_results[:, 0] = np.round(
-            output.mean(axis=1)[:num_subsample], decimals=2)
-
-        # The mean channel ground truth across each row of the batch results.
-        pretty_results[:, 1] = np.round(
-            gt_output.mean(axis=1)[:num_subsample], decimals=2)
-
-        # The mean difference btw prediction and grouth truth across each row of the batch results.
-        pretty_results[:, 2] = np.round(np.abs(gt_output - output).mean(axis=1)[:num_subsample],
-                                        decimals=2)
-
-        df = pd.DataFrame(pretty_results, columns=column_labels)
-        _logger.info("\n\nRandom sample of mean predictions across channels, "
-                     "where each row is a sample in the training batch:\n")
-        _logger.info(df.to_string(index=False))
         _logger.info('\n')
