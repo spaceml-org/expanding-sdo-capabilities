@@ -27,8 +27,8 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
-                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at,
-                 yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
+                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path, 
+                 start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
                  return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max, tolerance):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
