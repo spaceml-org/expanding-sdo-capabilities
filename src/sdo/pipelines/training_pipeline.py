@@ -98,7 +98,8 @@ class TrainingPipeline(object):
         """
         return 'Primary metric'
 
-    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output, epoch,train):
+    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output,
+                                    epoch, train):
         """
         Every log_interval pass during training or testing in an epoch, we might want to
         calculate supporting metrics and graphs to know how we are doing.
@@ -208,8 +209,7 @@ class TrainingPipeline(object):
 
         if (epoch % self.save_interval == 0) or final_epoch:
             self.save_training_results(epoch)
-            self.save_predictions(
-                epoch, gt_outputs, outputs, train=False)
+            self.save_predictions(epoch, gt_outputs, outputs, train=False)
         return np.mean(losses), np.mean(total_primary_metrics)
 
     def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss, primary_metric, time_s,
