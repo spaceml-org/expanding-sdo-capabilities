@@ -10,6 +10,7 @@ import seaborn as sns
 
 import scipy.stats as stats
 
+from sdo.io import format_graph_prefix
 
 _logger = logging.getLogger(__name__)
 
