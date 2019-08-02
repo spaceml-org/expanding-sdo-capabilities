@@ -1,6 +1,9 @@
 """
 In this module we collect functions useful to produce some metric visualizations
 """
+import os
+import logging
+
 import matplotlib.pyplot as plt
 
 import seaborn as sns

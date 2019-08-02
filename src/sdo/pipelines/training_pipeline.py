@@ -14,7 +14,7 @@ import pandas as pd
 import torch
 
 from sdo.io import format_graph_prefix
-from sdo.metrics.plitting import plot_loss, plot_primary_metric
+from sdo.metrics.plotting import plot_loss, plot_primary_metric
 
 
 _logger = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ class TrainingPipeline(object):
         return np.mean(losses), np.mean(total_primary_metrics)
 
     def test(self, epoch, next_to_last_epoch=False, final_epoch=False):
-        _logger.info("\n\nTesting epoch {}\n".format(epoch))x
+        _logger.info("\n\nTesting epoch {}\n".format(epoch))
         with Timer() as epoch_perf, torch.no_grad():
             # Indicate to PyTorch that we are in testing mode.
             self.model.eval()
