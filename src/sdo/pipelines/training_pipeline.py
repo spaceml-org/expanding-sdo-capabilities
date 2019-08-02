@@ -62,13 +62,6 @@ class TrainingPipeline(object):
         pass
 
     @abstractmethod
-    def print_final_batch_details(self, normed_orig_data, output, input_data, gt_output, epoch,
-                                  train):
-        """ Override to print some debugging details on the final batch for a given epoch
-            of either the training or testing loop. """
-        pass
-
-    @abstractmethod
     def calculate_primary_metric(self, epoch, output, gt_output):
         """
         Given some predicted output from a network and some ground truth, this method
