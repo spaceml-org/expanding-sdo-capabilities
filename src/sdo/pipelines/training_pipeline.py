@@ -334,7 +334,7 @@ class TrainingPipeline(object):
         and predictions to disk.
         """
         next_to_last_epoch = (epoch == (self.start_epoch_at + self.num_epochs - 2))
-        last_epoch = (epoch == (self.start_epoch_at + self.num_epochs - 2))
+        last_epoch = (epoch == (self.start_epoch_at + self.num_epochs - 1))
         return next_to_last_epoch, last_epoch
 
     def run(self):
