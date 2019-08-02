@@ -85,13 +85,13 @@ class TrainingPipeline(object):
     @abstractmethod
     def get_primary_metric_name(self):
         """
-        This method returns a string containing the name of the metric suitable for 
-        printing out into a log giving a very brief name for what the primary metric 
+        This method returns a string containing the name of the metric suitable for
+        printing out into a log giving a very brief name for what the primary metric
         is tracking.
         """
         return 'Primary metric'
 
-    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output,
+    def generate_supporting_metrics(self, optional_debug_data, output, input_data, gt_output,
                                     epoch, train):
         """
         Every log_interval pass during training or testing in an epoch, we might want to
@@ -115,7 +115,7 @@ class TrainingPipeline(object):
             outputs = []
             for batch_idx, (input_data,
                             gt_output,
-                            normed_orig_data) in enumerate(self.train_loader):
+                            optional_debug_data) in enumerate(self.train_loader):
                 with Timer() as iteration_perf:
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
@@ -145,7 +145,7 @@ class TrainingPipeline(object):
 
         # Generate extra metrics useful for debugging and analysis.
         if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
-            self.generate_supporting_metrics(normed_orig_data, output, input_data, 
+            self.generate_supporting_metrics(optional_debug_data, output, input_data,
                                              gt_output, epoch, train=True)
 
         if (epoch % self.save_interval == 0) or final_epoch:
@@ -167,7 +167,7 @@ class TrainingPipeline(object):
             correct = 0
             for batch_idx, (input_data,
                             gt_output,
-                            normed_orig_data) in enumerate(self.test_loader):
+                            optional_debug_data) in enumerate(self.test_loader):
                 with Timer() as iteration_perf:
                     # Send the entire batch to the GPU as one to increase efficiency.
                     input_data = input_data.to(self.device)
@@ -195,7 +195,7 @@ class TrainingPipeline(object):
                                  next_to_last_epoch=True, train=False)
         # Generate extra metrics useful for debugging and analysis.
         if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
-            self.generate_supporting_metrics(normed_orig_data, output,
+            self.generate_supporting_metrics(optional_debug_data, output,
                                              input_data, gt_output,
                                              epoch, train=False)
 
@@ -273,7 +273,7 @@ class TrainingPipeline(object):
 
     def save_predictions(self, epoch, gt_outputs, outputs, train=True):
         """
-        This method saves the ground truth and the predictions for 
+        This method saves the ground truth and the predictions for
         post-modelling analysis. It is called at least once for training
         and once for test.
         """
@@ -290,7 +290,6 @@ class TrainingPipeline(object):
         df = pd.DataFrame(zip(gt_outputs,  outputs),
                           columns=['True', 'Predicted'])
         df.to_csv(predictions_filename, index=False)
-        
 
     def print_final_details(self, total_perf, train_losses, test_losses,
                             train_primary_metrics, test_primary_metrics):

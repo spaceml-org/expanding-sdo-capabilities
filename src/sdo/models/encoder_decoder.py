@@ -13,8 +13,11 @@ import sys
 from functools import reduce
 import operator
 
+
+
 def prod(iterable):
     return reduce(operator.mul, iterable, 1)
+
 
 class EncoderDecoder(nn.Module):
     """A Encoder Decoder module that is used to create one channel (e.g. AIA 211) from
@@ -93,7 +96,7 @@ class EncoderDecoder(nn.Module):
         x = torch.relu(x)
         return x
 
-    def forward(self,x):
+    def forward(self, x):
         batch_size = x.shape[0]
         x, indices1, indices2, indices3, indices4 = self._encoder(x)
         Shap=x.shape

@@ -1,0 +1,28 @@
+pipeline-name: EncoderDecoderPipeline
+model-version: 1
+results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
+log-minimal: True
+batch-size-train: 128
+batch-size-test: 128
+save-interval: 100
+log-interval: 10
+wavelengths:
+  - '0094'
+  - '0171'
+  - '0193'
+  - '0211'
+instruments:
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+actual-resolution: 512
+subsample: 4
+yr-range:
+  - 2011
+  - 2013
+h-step: 1
+min-step: 6
+scaling: True
+optimizer-weight-decay: 1e-5
+optimizer-lr: 0.0001

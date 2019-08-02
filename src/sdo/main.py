@@ -12,6 +12,7 @@ from sdo.io import format_epoch
 from sdo.parse_args import parse_args
 from sdo.pytorch_utilities import init_gpu, set_seed
 from sdo.pipelines.autocalibration_pipeline import AutocalibrationPipeline
+from sdo.pipelines.encoder_decoder_pipeline import EncoderDecoderPipeline
 
 
 __author__ = "vale-salvatelli"
@@ -102,11 +103,40 @@ def main(args):
                                            return_random_dim=args.return_random_dim,
                                            norm_by_orig_img_max=args.norm_by_orig_img_max,
                                            norm_by_dimmed_img_max=args.norm_by_dimmed_img_max,
+                                           optimizer_weight_decay=args.optimizer_weight_decay,
+                                           optimizer_lr=args.optimizer_lr,
                                            tolerance=args.tolerance)
-                                           
     elif args.pipeline_name == 'EncoderDecoderPipeline':
-        raise Exception('EncoderDecoderPipeline not implemented yet!')
-        # TODO: Implement
+        pipeline = EncoderDecoderPipeline(exp_name=args.experiment_name,
+                                          model_version=args.model_version,
+                                          actual_resolution=args.actual_resolution,
+                                          scaled_height=args.scaled_height,
+                                          scaled_width=args.scaled_width,
+                                          device=device,
+                                          instruments=args.instruments,
+                                          wavelengths=args.wavelengths,
+                                          subsample=args.subsample,
+                                          batch_size_train=args.batch_size_train,
+                                          batch_size_test=args.batch_size_test,
+                                          test_ratio=args.test_ratio,
+                                          log_interval=args.log_interval,
+                                          results_path=args.results_path,
+                                          num_epochs=args.num_epochs,
+                                          save_interval=args.save_interval,
+                                          additional_metrics_interval=args.additional_metrics_interval,
+                                          continue_training=args.continue_training,
+                                          saved_model_path=args.saved_model_path,
+                                          saved_optimizer_path=args.saved_optimizer_path,
+                                          start_epoch_at=args.start_epoch_at,
+                                          yr_range=args.yr_range,
+                                          mnt_step=args.mnt_step,
+                                          day_step=args.day_step,
+                                          h_step=args.h_step,
+                                          min_step=args.min_step,
+                                          dataloader_workers=args.dataloader_workers,
+                                          scaling=args.scaling,
+                                          optimizer_weight_decay=args.optimizer_weight_decay,
+                                          optimizer_lr=args.optimizer_lr)
     else:
         raise Exception('Unknown pipeline: {}'.format(args.pipeline_name))
 

@@ -27,9 +27,10 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
-                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path, 
+                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max, tolerance):
+                 return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max,
+                 optimizer_weight_decay, optimizer_lr, tolerance):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.norm_by_orig_img_max = norm_by_orig_img_max
@@ -42,14 +43,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Wavelengths: {}'.format(wavelengths))
         _logger.info('Instruments: {}'.format(instruments))
 
-        assert yr_range is not None and len(yr_range) > 0, \
-            'The AutocalibrationPipeline requires a yr_range: {}'.format(
-                yr_range)
-        _logger.info('Using following year range for both training and testing: {}'.format(
-            yr_range))
-
         _logger.info('\nSetting up training dataset:')
-        train_dataset = DimmedSDO_Dataset(self.num_channels,
+        train_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
                                           instr=instruments,
                                           channels=wavelengths, yr_range=yr_range,
                                           mnt_step=mnt_step, day_step=day_step,
@@ -63,7 +58,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           test_ratio=test_ratio)
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = DimmedSDO_Dataset(self.num_channels,
+        test_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
                                          instr=instruments,
                                          channels=wavelengths, yr_range=yr_range,
                                          mnt_step=mnt_step, day_step=day_step,
@@ -101,7 +96,8 @@ class AutocalibrationPipeline(TrainingPipeline):
             raise Exception('Unknown model version: {}'.format(model_version))
 
         model.cuda(device)
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
+                                     lr=optimizer_lr)
 
         super(AutocalibrationPipeline, self).__init__(
             exp_name=exp_name,
@@ -167,7 +163,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         """
         diff = torch.abs(output - gt_output)
         batch_size = diff.shape[0]
-        n_tensor_elements = batch_size*self.num_channels
+        n_tensor_elements = batch_size * self.num_channels
         primary_metric = (torch.sum(diff < self.tolerance, dtype=torch.float32) /
                           n_tensor_elements)
         return primary_metric.cpu()
@@ -178,19 +174,19 @@ class AutocalibrationPipeline(TrainingPipeline):
     def get_primary_metric_name(self):
         return 'Frequency of binary success (tol={})'.format(self.tolerance)
 
-    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output, epoch,
+    def generate_supporting_metrics(self, optional_debug_data, output, input_data, gt_output, epoch,
                                     train):
         """ Print debugging details on the final batch per epoch during training or testing. """
         super(AutocalibrationPipeline, self).generate_supporting_metrics(
-            normed_orig_data, output, input_data, gt_output, epoch, train)
+            optional_debug_data, output, input_data, gt_output, epoch, train)
 
         # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
 
         scale_min = 0
-        scale_max = normed_orig_data.max()
+        scale_max = optional_debug_data.max()
 
-        sample = normed_orig_data[0].cpu().numpy()
+        sample = optional_debug_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
 
         # TODO move the figure below into a plotting function
