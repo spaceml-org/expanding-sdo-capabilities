@@ -119,7 +119,9 @@ class TrainingPipeline(object):
             total_primary_metrics = []
             gt_outputs = []
             outputs = []
-            for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.train_loader):
+            for batch_idx, (input_data,
+                            gt_output,
+                            normed_orig_data) in enumerate(self.train_loader):
                 with Timer() as iteration_perf:
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
@@ -152,7 +154,7 @@ class TrainingPipeline(object):
         # results on the second to last batch.
         if (epoch % self.additional_metrics_interval == 0) or final_epoch:
             self.generate_supporting_metrics(normed_orig_data, output, input_data, 
-            gt_output, epoch, train=True)
+                                             gt_output, epoch, train=True)
 
         if (epoch % self.save_interval == 0) or final_epoch:
             self.save_training_results(epoch)
@@ -160,54 +162,55 @@ class TrainingPipeline(object):
 
         return np.mean(losses), np.mean(total_primary_metrics)
 
-    def test(self, epoch, final_epoch=False):
-        with Timer() as epoch_perf:
-            _logger.info("\n\nTesting epoch {}\n".format(epoch))
-            with torch.no_grad():
-                # Indicate to PyTorch that we are in testing mode.
-                self.model.eval()
-                losses = []
-                total_primary_metrics = []
-                times = []
-                gt_outputs = []
-                outputs = []
-                correct = 0
-                for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.test_loader):
-                    with Timer() as iteration_perf:
-                        # Send the entire batch to the GPU as one to increase efficiency.
-                        input_data = input_data.to(self.device)
-                        gt_output = gt_output.to(self.device)
-                        gt_outputs.append(gt_output)
-                        output = self.model(input_data)
-                        outputs.append(output)
-                        output = output.to(self.device)
-                        loss = self.get_loss_func(output, gt_output)
-                        losses.append(float(loss))
+    def test(self, epoch, next_to_last_epoch=False):
+        _logger.info("\n\nTesting epoch {}\n".format(epoch))x
+        with Timer() as epoch_perf, torch.no_grad():
+            # Indicate to PyTorch that we are in testing mode.
+            self.model.eval()
+            losses = []
+            total_primary_metrics = []
+            times = []
+            gt_outputs = []
+            outputs = []
+            correct = 0
+            for batch_idx, (input_data,
+                            gt_output,
+                            normed_orig_data) in enumerate(self.test_loader):
+                with Timer() as iteration_perf:
+                    # Send the entire batch to the GPU as one to increase efficiency.
+                    input_data = input_data.to(self.device)
+                    gt_output = gt_output.to(self.device)
+                    gt_outputs.append(gt_output)
+                    output = self.model(input_data)
+                    outputs.append(output)
+                    output = output.to(self.device)
+                    loss = self.get_loss_func(output, gt_output)
+                    losses.append(float(loss))
 
-                    if batch_idx % self.log_interval == 0:
-                        primary_metric = self.calculate_primary_metric(
-                            epoch, output, gt_output)
-                        total_primary_metrics.append(primary_metric)
-                        self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
-                                                 self.test_dataset, loss, primary_metric,
-                                                 iteration_perf.elapsed, final_batch=False,
-                                                 train=False)
+                if batch_idx % self.log_interval == 0:
+                    primary_metric = self.calculate_primary_metric(
+                        epoch, output, gt_output)
+                    total_primary_metrics.append(primary_metric)
+                    self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
+                                             self.test_dataset, loss, primary_metric,
+                                             iteration_perf.elapsed, final_batch=False,
+                                             train=False)
 
-            self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
-                                     self.test_dataset, np.mean(
-                                         losses), primary_metric,
-                                     epoch_perf.elapsed, final_batch=True,
-                                     train=False)
-            # Generate extra metrics useful for debugging and analysis.
-            if (epoch % self.additional_metrics_interval == 0) or final_epoch:
-                self.generate_supporting_metrics(normed_orig_data, output, 
-                input_data, gt_output, epoch, train=False)
+        self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
+                                 self.test_dataset, np.mean(
+                                     losses), primary_metric,
+                                 epoch_perf.elapsed, final_batch=True,
+                                 train=False)
+        # Generate extra metrics useful for debugging and analysis.
+        if (epoch % self.additional_metrics_interval == 0) or final_epoch:
+            self.generate_supporting_metrics(normed_orig_data, output,
+            input_data, gt_output, epoch, train=False)
 
-            if (epoch % self.save_interval == 0) or final_epoch:
-                self.save_training_results(epoch)
-                self.save_predictions(
-                    epoch, gt_outputs, outputs, train=False)
-            return np.mean(losses), np.mean(total_primary_metrics)
+        if (epoch % self.save_interval == 0) or final_epoch:
+            self.save_training_results(epoch)
+            self.save_predictions(
+                epoch, gt_outputs, outputs, train=False)
+        return np.mean(losses), np.mean(total_primary_metrics)
 
     def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss, primary_metric, time_s,
                             final_batch, train):
