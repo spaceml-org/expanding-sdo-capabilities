@@ -50,14 +50,25 @@ pip install -r requirements.txt
 
 Now you can run the pipeline. Arguments can be passed to `./src/sdo/main.py` either from the command-line as switches, or as a YAML configuration file. run `./src/sdo/main.py --help` to see a list of available configuration options.
 
-Results will be by default saved in a subfolder on a common path: `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/`. You should ensure the experiment name is something unique and in order to not risk to overwrite each other it should follow the following convention:
-`{number}{your_initials}_experiment_{topic}`. Looks also at the experiment notebook *here*.
+Results will be by default saved in a subfolder on a common path, depending on which sub-project is being worked on:
+* Autocalibration: `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results`
+* Encoder/decoder: `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt`
+
+You should choose an experiment name that is something unique in order to not risk overwriting each other. It should follow the following convention:
+
+`{number}{your_initials}_experiment_{topic}`
 
 To start a new training run:
 
 ```
 cd ~/expanding-sdo-capabilities
+
+# For autocalibration
 export CONFIG_FILE=config/autocalibration_default.yaml
+
+# For encoder/decoder
+export CONFIG_FILE=config/encoder_decoder_default.yaml
+
 export EXPERIMENT_NAME=01b_experiment_test
 export NUM_EPOCHS=5
 ./src/sdo/main.py \
@@ -70,18 +81,26 @@ Where `CONFIG_FILE` is a path to a YAML file that might have common configuratio
 that you don't want to have to type every time on the command line (see the above
 `config/autocalibration_default.yaml` for an example); `EXPERIMENT_NAME` is a unique
 experiment name used to partition your training results to 
-`/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$EXPERIMENT_NAME`;
+`/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$EXPERIMENT_NAME` or `/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt/$EXPERIMENT_NAME` depending on which sub-project pipeline you are running;
 and NUM_EPOCHS is the total number of training epochs you want.
 
 To resume a previously checkpointed training session:
 
 ```
 cd ~/expanding-sdo-capabilities
+
+# For autocalibration
 export CONFIG_FILE=config/autocalibration_default.yaml
-export EXPERIMENT_NAME=01b_experiment_1
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
+
+# For encoder/decoder
+export CONFIG_FILE=config/encoder_decoder_default.yaml
+export EXPERIMENT_NAME=some_experiment_name
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
+
 export START_EPOCH_AT=2
 export NUM_EPOCHS=5
-export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw//experiments_results
+
 ./src/sdo/main.py \
     -c $CONFIG_FILE \
     --experiment-name=$EXPERIMENT_NAME \
@@ -97,14 +116,14 @@ Where `START_EPOCH_AT` is the new training epoch to begin training from.
 Note that both in the YAML config file and on the command line, the major pipeline to run
 (whether the autocalibration architecture or the encoder/decoder architecture), is controlled
 by `--pipeline-name`, which can either be `AutocalibrationPipeline` or `EncoderDecoderPipeline`.
-`EncoderDecoderPipeline` is not yet implemented.
 
 To easily copy over training artifacts from a run to see how things went, first add the following
 to your laptop's `~/.bash_profile` or `~/.bashrc` file:
 
+# TODO!!! Have this work for all the pipelines
 ```
 sync_results_func() {
-        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results/$1 experiments_results
+        rsync -vrzhe ssh --progress --exclude '.git' --exclude .DS_Store --exclude *.pth p10login1:/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/$2/$1 experiments_results
 }
 alias sync_results=sync_results_func
 ```
@@ -118,13 +137,14 @@ source ~/.bash_profile
 Now you can use the following command to easily pull results back over to your laptop to view them:
 
 ```
-export EXPERIMENT_NAME=01b_experiment_1
 cd ~/expanding-sdo-capabilities
-sync_results
-open ./experiments_results/$EXPERIMENT_NAME
+sync_results some_experiment_name experiments_results
+open ./experiments_results/some_experiment_name
 ```
 
-Note that this skips syncing the very large `*.pth` files for saved checkpoint models and optimizer
+The first argument to `sync_results` is the experiment name you chose, while the second argument is which experiment folder to use based on the sub-project pipeline; if you are running the Autocalibration pipeline then it should be `experiments_results`, while for the Encoder/Decoder pipeline it should be `experiments_results_vt`.
+
+Note that `sync_results` skips syncing the very large `*.pth` files for saved checkpoint models and optimizer
 details to your laptop; those will remain on the IBM machine.
 
 # IBM Queue
@@ -134,7 +154,13 @@ file you created:
 
 ```
 ssh p10login1
+
+# For Autocalibration
 export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
+
+# For Encoder/Decoder
+export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
+
 export EXP=some_experiment && bsub -o $RESULTS_PATH/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
 ```
 

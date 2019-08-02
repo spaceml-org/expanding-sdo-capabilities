@@ -154,7 +154,7 @@ def sdo_reverse_scale(img, ch, aunit_dict=AUNIT, bunit=BUNIT):
     img (np.array): image to be rescaled
     ch (str): string describing the channel img belongs to
     aunit_dict (dict int): units UV channels
-    bunit (int): units magnetogram 
+    bunit (int): units magnetogram
 
     Returns np.array of the same size of img
     """

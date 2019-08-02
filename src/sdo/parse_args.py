@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import pprint
@@ -7,7 +6,6 @@ import configargparse
 from configargparse import YAMLConfigFileParser
 
 from sdo import __version__
-from sdo.global_vars import EXP_RESULTS_BASEDIR
 
 
 _logger = logging.getLogger(__name__)
@@ -65,14 +63,16 @@ def parse_args(args):
     p.add_argument(
         '-p',
         '--pipeline-name',
-        required=True,
         dest='pipeline_name',
+        type=str,
+        required=True,
         help='Which pipeline to use: AutocalibrationPipeline or EncoderDecoderPipeline')
     p.add_argument(
         '--experiment-name',
         dest='experiment_name',
-        default=None,
-        help='The name of this experiment, used to partition result artifacts; defaults to date and time')
+        type=str,
+        required=True,
+        help='The name of this experiment, used to partition result artifacts')
     p.add_argument(
         '--model-version',
         dest='model_version',
@@ -82,7 +82,7 @@ def parse_args(args):
     p.add_argument(
         '--results-path',
         dest='results_path',
-        default=EXP_RESULTS_BASEDIR,
+        required=True,
         help='Where to store generated logs, models, etc., relative to --artifacts-root-path',
         )
     p.add_argument(
@@ -272,11 +272,18 @@ def parse_args(args):
         const=True,
         default=False,
         help='If True, return fake random numbers for the brightness dimming factors during training')
+    p.add_argument(
+        '--optimizer-weight-decay',
+        type=float,
+        default=0,
+        help='The weight decay to use for whatever optimizer might be used; current default Torchs Adam default')
+    p.add_argument(
+        '--optimizer-lr',
+        type=float,
+        default=1e-3,
+        help='The learning rate to use for whatever optimizer might be used; current default Torchs Adam default')
 
     args = vars(p.parse_args(args))
-
-    if not args['experiment_name']:
-        args['experiment_name'] = f"experiment-{datetime.datetime.now():%Y-%m-%d-time-%H-%M-%S}"
 
     # Make downstream processing easier by expanding paths.
     args['results_path'] = os.path.abspath(os.path.join(args['results_path'],

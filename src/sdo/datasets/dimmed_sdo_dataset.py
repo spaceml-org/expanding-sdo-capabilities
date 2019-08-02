@@ -2,7 +2,6 @@
 A version of the SDO dataset that can synthetically dim its brightness
 to aid training.
 """
-
 import torch
 
 from sdo.datasets.sdo_dataset import SDO_Dataset

@@ -1,5 +1,7 @@
-# Run this via bsub as follows, making sure to change EXP= to your experiment name.
-# export EXP=some_experiment && export RES_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results &&bsub -o $RES_PATH/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
+# Run this via bsub as follows, making sure to change EXP= to your experiment name and
+# RES= to where the results should go (experiments_results for the Autocalibration pipeline
+# and experiments_results_vt for the encoder/decoder pipeline)
+# export EXP=some_experiment && export RES=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results && bsub -o $RES/$EXP/training_log.txt -J "$EXP" < ./scripts/bqueues/template.lsf
 
 #BSUB -L /bin/bash
 #BSUB -gpu "num=1"
@@ -15,7 +17,10 @@ EXPERIMENT_NAME=some_experiment
 CONDA_ENV=wmlce_py3_sdo_pipeline
 
 # Point at your pipeline YAML file.
+# For autocalibration
 CONFIG_FILE=config/autocalibration_default.yaml
+# For encoder/decoder
+#CONFIG_FILE=config/encoder_decoder_default.yaml
 
 # Initialize Anaconda
 CONDA_ROOT=/gpfs/software/wmlce/anaconda3
