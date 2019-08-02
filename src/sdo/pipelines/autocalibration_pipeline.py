@@ -27,14 +27,14 @@ class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, log_interval, results_path, num_epochs, save_interval,
-                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path, 
+                 additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 normalization, return_random_dim, tol=0.1):
+                 normalization, return_random_dim, tolerance):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.normalization_by_max = normalization
         self.wavelengths = wavelengths
-        self.tol = tol
+        self.tolerance = tolerance
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -147,24 +147,22 @@ class AutocalibrationPipeline(TrainingPipeline):
     def calculate_primary_metric(self, epoch, output, gt_output):
         """
         Given some predicted output from a network and some ground truth, this method
-        calculates a scalar on how "well" we are doing for a given problem to gauge
-        progress during different experiments and during training. Note that we
-        already calculate and print out the loss outside of this method, so this
-        method is appropriate for other kinds of scalar values indicating progress
-        you'd like to use. The primary metric currently chosen is the binary frequency
-        of correct cases, where a case is considerated correct if the real and predicted
-        value differ equal less than the tol.
+        calculates the binary frequency of correct cases, where a case is considerated 
+        correct if the real and predicted value differ equal less than the tolerance. 
+        The mean over the batch and the channels is returned as single metric value.
         """
         diff = torch.abs(output - gt_output)
-        diff_np = diff.cpu().detach().numpy()
-        primary_metric = (diff_np <= self.tol).sum() / (diff_np.shape[0]*diff_np.shape[1])
-        return primary_metric
+        batch_size = diff.shape[0]
+        n_tensor_elements = batch_size*self.num_channels
+        primary_metric = (torch.sum(diff < self.tolerance, dtype=torch.float32) /
+                          n_tensor_elements)
+        return primary_metric.cpu()
 
     def is_higher_better_primary_metric(self):
         return True
-    
+
     def get_primary_metric_name(self):
-        return 'Frequency of binary succes (tol={})'.format(self.tol)
+        return 'Frequency of binary success (tol={})'.format(self.tolerance)
 
     def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch, train):
         """ Print debugging details on the final batch per epoch during training or testing. """
@@ -176,8 +174,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         data_min, data_max = torch.min(orig_data), torch.max(orig_data)
         sample = orig_data[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
-        
-        #TODO move the figure below into a plotting function
+
+        # TODO move the figure below into a plotting function
         fig = plt.figure()
         pos = 0
         for i, (channel, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
@@ -209,7 +207,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
 
-        #TODO move dimming values figure below into a plotting function if we still need it
+        # TODO move dimming values figure below into a plotting function if we still need it
         # or decide to remove it
         fig = plt.figure()
         dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
@@ -230,28 +228,28 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Dimming factors graph saved to {}'.format(img_file))
 
         # Plotting regression plot between Ground Truth Dimm factor vs. Predicted Dimm Factors
-        # this plot includes histrograms of the variables
+        # this plot includes histograms of the variables
         output_numpy = output.detach().cpu().numpy()
         gt_output_numpy = gt_output.detach().cpu().numpy()
-        if train:
-            title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Training'
-        else:
-            title = 'GT Dimmed Factor vs Predicted Dimmed Factor - Testing'
+        title = 'GT Dimmed Factor vs. Predicted Dimmed Factor - {}'.format(
+                'Training' if train else 'Testing')
         x_label = "Predicted Dimmed Factor"
-        y_label =  "Ground Truth Dimmed Factor"
+        y_label = "Ground Truth Dimmed Factor"
         img_file = os.path.join(self.results_path, '{}_GTvsPR_plot_metric_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
         # all channels are plotted together
-        plot_regression(output_numpy.flatten(), gt_output_numpy.flatten(), 
+        plot_regression(output_numpy.flatten(), gt_output_numpy.flatten(),
                         title, x_label, y_label, img_file)
         _logger.info('Regression plot saved to {}'.format(img_file))
-            
+
         # Pearson correlation values last batch
         pr_coeff = []
         for i, channel in enumerate(self.wavelengths):
-            pr_coeff.append(stats.pearsonr(output_numpy[i], gt_output_numpy[i])[0])
-        df_pr_coeff = pd.DataFrame(dict(zip(self.wavelengths, pr_coeff)), index=[0])
+            pr_coeff.append(stats.pearsonr(
+                output_numpy[i], gt_output_numpy[i])[0])
+        df_pr_coeff = pd.DataFrame(
+            dict(zip(self.wavelengths, pr_coeff)), index=[0])
         _logger.info('\n\nPearson coefficient values by channel \n {}'
                      .format(df_pr_coeff))
-        _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))  
+        _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))
         _logger.info('\n')

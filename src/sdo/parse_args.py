@@ -109,7 +109,7 @@ def parse_args(args):
         default=50,
         help='Every save-interval epochs we will save the trained model and optimizer state')
     p.add_argument(
-        '--additional_metrics_interval',
+        '--add-metrics-interval',
         dest='additional_metrics_interval',
         type=int,
         default=5,
@@ -231,6 +231,14 @@ def parse_args(args):
         type=bool,
         default=True,
         help='If True, in the autocalibration pipeline each image is divided by its max.')
+    p.add_argument(
+        '--tolerance',
+        dest='tolerance',
+        type=float,
+        default=0.05,
+        help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
+             'If the difference is above this value the prediction is considered unsuccessful.'
+             'This value affects the computation of the primary metric (frequency of binary success).')
     p.add_argument(
         '--return-random-dim',
         dest='return_random_dim',

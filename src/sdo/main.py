@@ -84,7 +84,7 @@ def main(args):
                                            batch_size_train=args.batch_size_train,
                                            batch_size_test=args.batch_size_test,
                                            log_interval=args.log_interval,
-                                           additional_metrics_interval= args.additional_metrics_interval,
+                                           additional_metrics_interval=args.additional_metrics_interval,
                                            results_path=args.results_path,
                                            num_epochs=args.num_epochs,
                                            save_interval=args.save_interval,
@@ -100,7 +100,8 @@ def main(args):
                                            dataloader_workers=args.dataloader_workers,
                                            scaling=args.scaling,
                                            normalization=args.normalization_by_max,
-                                           return_random_dim=args.return_random_dim)
+                                           return_random_dim=args.return_random_dim,
+                                           tolerance=args.tolerance)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')
         # TODO: Implement
