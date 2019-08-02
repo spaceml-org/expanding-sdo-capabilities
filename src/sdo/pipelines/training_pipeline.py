@@ -102,7 +102,7 @@ class TrainingPipeline(object):
         # that are specific to sub-projects that they also want to generate.
         pass
 
-    def train(self, epoch, final_epoch=False):
+    def train(self, epoch, next_to_last_epoch=False, final_epoch=False):
         with Timer() as epoch_perf:
             _logger.info('\n\n')
             _logger.info("===================================\n\n\n\n")
@@ -136,17 +136,15 @@ class TrainingPipeline(object):
                     total_primary_metrics.append(primary_metric)
                     self.print_epoch_details(epoch, batch_idx, self.batch_size_train,
                                              self.train_dataset, loss, primary_metric,
-                                             iteration_perf.elapsed, final_batch=False,
-                                             train=True)
+                                             iteration_perf.elapsed,
+                                             next_to_last_epoch=False, train=True)
 
         self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
                                  np.mean(losses), primary_metric, epoch_perf.elapsed,
-                                 final_batch=True, train=True)
+                                 next_to_last_epoch=True, train=True)
 
         # Generate extra metrics useful for debugging and analysis.
-        # TODO the last batch is less populated, it would be better to produce these
-        # results on the second to last batch.
-        if (epoch % self.additional_metrics_interval == 0) or final_epoch:
+        if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
             self.generate_supporting_metrics(normed_orig_data, output, input_data, 
                                              gt_output, epoch, train=True)
 
@@ -156,7 +154,7 @@ class TrainingPipeline(object):
 
         return np.mean(losses), np.mean(total_primary_metrics)
 
-    def test(self, epoch, next_to_last_epoch=False):
+    def test(self, epoch, next_to_last_epoch=False, final_epoch=False):
         _logger.info("\n\nTesting epoch {}\n".format(epoch))x
         with Timer() as epoch_perf, torch.no_grad():
             # Indicate to PyTorch that we are in testing mode.
@@ -187,31 +185,32 @@ class TrainingPipeline(object):
                     total_primary_metrics.append(primary_metric)
                     self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
                                              self.test_dataset, loss, primary_metric,
-                                             iteration_perf.elapsed, final_batch=False,
-                                             train=False)
+                                             iteration_perf.elapsed,
+                                             next_to_last_epoch=False, train=False)
 
         self.print_epoch_details(epoch, batch_idx, self.batch_size_test,
                                  self.test_dataset, np.mean(
                                      losses), primary_metric,
-                                 epoch_perf.elapsed, final_batch=True,
-                                 train=False)
+                                 epoch_perf.elapsed,
+                                 next_to_last_epoch=True, train=False)
         # Generate extra metrics useful for debugging and analysis.
-        if (epoch % self.additional_metrics_interval == 0) or final_epoch:
+        if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
             self.generate_supporting_metrics(normed_orig_data, output,
-            input_data, gt_output, epoch, train=False)
+                                             input_data, gt_output,
+                                             epoch, train=False)
 
         if (epoch % self.save_interval == 0) or final_epoch:
             self.save_training_results(epoch)
             self.save_predictions(epoch, gt_outputs, outputs, train=False)
         return np.mean(losses), np.mean(total_primary_metrics)
 
-    def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss, primary_metric, time_s,
-                            final_batch, train):
+    def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss,
+                            primary_metric, time_s, next_to_last_epoch, train):
         """
         During epochs, this method prints some details every `log_interval` steps.
         """
         num_batches = math.ceil(len(dataset) / batch_size)
-        if final_batch:
+        if next_to_last_epoch:
             epoch_percentage_done = 100.0
             data_idx = len(dataset)
         else:
@@ -224,8 +223,10 @@ class TrainingPipeline(object):
             epoch_percentage_done,
         )
 
-        if final_batch:
-            _logger.info('Summary: {} Epoch: {} [{}]\tMean loss: {:.6f}, {}: {:.2f}, Time to run: {:.1f} s'.format(
+        if next_to_last_epoch:
+            _logger.info('Summary: {} Epoch: {} [{}]\t'
+                         'Mean loss: {:.6f}, {}: {:.2f}, '
+                         'Time to run: {:.1f} s'.format(
                 'Train' if train else 'Test',
                 epoch,
                 batch_info,
@@ -234,7 +235,9 @@ class TrainingPipeline(object):
                 primary_metric,
                 time_s))
         else:
-            _logger.info('{} Epoch: {} [{}]\tLoss: {:.6f}, {}: {:.2f}, Time to run: {:.1f} s'.format(
+            _logger.info('{} Epoch: {} [{}]\t'
+                         'Loss: {:.6f}, {}: {:.2f}, '
+                         'Time to run: {:.1f} s'.format(
                 'Train' if train else 'Test',
                 epoch,
                 batch_info,
@@ -243,7 +246,8 @@ class TrainingPipeline(object):
                 primary_metric,
                 time_s))
 
-    def load_saved_checkpoint(self, model, model_path, optimizer, optimizer_path, start_epoch_at):
+    def load_saved_checkpoint(self, model, model_path, optimizer, optimizer_path,
+                              start_epoch_at):
         """ Given some saved model and optimizer, load and return them. """
         model_state_dict = torch.load(model_path)
         model.load_state_dict(model_state_dict)
@@ -320,6 +324,19 @@ class TrainingPipeline(object):
             best(test_primary_metrics),
             best_arg(test_primary_metrics) + 1))
 
+    def get_ending_epoch_details(self, epoch):
+        """
+        Determine if we are at the next to last final epoch or the final epoch.
+        We want to do the final calculations on the next to last final epoch
+        to determine metrics and graphs, since the truly final epoch might not
+        have a full batch, which could bias our calcuations. We also need
+        to know the truly final epoch in order to save final results
+        and predictions to disk.
+        """
+        next_to_last_epoch = (epoch == (self.start_epoch_at + self.num_epochs - 2))
+        last_epoch = (epoch == (self.start_epoch_at + self.num_epochs - 2))
+        return next_to_last_epoch, last_epoch
+
     def run(self):
         """ Actually does the train/test cycle for num_epochs. """
         self.show_sample(self.train_loader)
@@ -330,22 +347,22 @@ class TrainingPipeline(object):
         test_primary_metrics = []
         with Timer() as total_perf:
             for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
-                final_epoch = True if epoch == (
-                    self.start_epoch_at + self.num_epochs - 1) else False
+                next_to_last_epoch, last_epoch = self.get_ending_epoch_details(epoch)
 
-                loss, primary_metric = self.train(epoch, final_epoch)
+                loss, primary_metric = self.train(epoch, next_to_last_epoch, last_epoch)
                 train_losses.append(loss)
                 train_primary_metrics.append(primary_metric)
 
-                loss, primary_metric = self.test(epoch, final_epoch)
+                loss, primary_metric = self.test(epoch, next_to_last_epoch, last_epoch)
                 test_losses.append(loss)
                 test_primary_metrics.append(primary_metric)
 
-                plot_loss(epoch, train_losses, test_losses, self.results_path,
-                          self.exp_name)
-                plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
-                                    self.results_path, self.exp_name,
-                                    self.get_primary_metric_name())
+                if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
+                    plot_loss(epoch, train_losses, test_losses, self.results_path,
+                              self.exp_name)
+                    plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
+                                        self.results_path, self.exp_name,
+                                        self.get_primary_metric_name())
 
         self.print_final_details(total_perf, train_losses, test_losses,
                                  train_primary_metrics, test_primary_metrics)
