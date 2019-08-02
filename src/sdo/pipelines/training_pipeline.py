@@ -60,7 +60,8 @@ class TrainingPipeline(object):
         pass
 
     @abstractmethod
-    def print_final_batch_details(self, orig_data, output, input_data, gt_output, epoch, train):
+    def print_final_batch_details(self, normed_orig_data, output, input_data, gt_output, epoch,
+                                  train):
         """ Override to print some debugging details on the final batch for a given epoch
             of either the training or testing loop. """
         pass
@@ -95,8 +96,7 @@ class TrainingPipeline(object):
         """
         return 'Primary metric'
 
-    def generate_supporting_metrics(self, orig_data, output, input_data, gt_output, epoch,
-                                    train):
+    def generate_supporting_metrics(self, normed_orig_data, output, input_data, gt_output, epoch,train):
         """
         Every log_interval pass during training or testing in an epoch, we might want to
         calculate supporting metrics and graphs to know how we are doing.
@@ -117,7 +117,7 @@ class TrainingPipeline(object):
             total_primary_metrics = []
             gt_outputs = []
             outputs = []
-            for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.train_loader):
+            for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.train_loader):
                 with Timer() as iteration_perf:
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
@@ -149,8 +149,8 @@ class TrainingPipeline(object):
         # TODO the last batch is less populated, it would be better to produce these
         # results on the second to last batch.
         if (epoch % self.additional_metrics_interval == 0) or final_epoch:
-            self.generate_supporting_metrics(orig_data, output, input_data,
-                                             gt_output, epoch, train=True)
+            self.generate_supporting_metrics(normed_orig_data, output, input_data, 
+            gt_output, epoch, train=True)
 
         if (epoch % self.save_interval == 0) or final_epoch:
             self.save_training_results(epoch)
@@ -170,7 +170,7 @@ class TrainingPipeline(object):
                 gt_outputs = []
                 outputs = []
                 correct = 0
-                for batch_idx, (input_data, gt_output, orig_data) in enumerate(self.test_loader):
+                for batch_idx, (input_data, gt_output, normed_orig_data) in enumerate(self.test_loader):
                     with Timer() as iteration_perf:
                         # Send the entire batch to the GPU as one to increase efficiency.
                         input_data = input_data.to(self.device)
@@ -198,8 +198,8 @@ class TrainingPipeline(object):
                                      train=False)
             # Generate extra metrics useful for debugging and analysis.
             if (epoch % self.additional_metrics_interval == 0) or final_epoch:
-                self.generate_supporting_metrics(orig_data, output, input_data,
-                                                 gt_output, epoch, train=False)
+                self.generate_supporting_metrics(normed_orig_data, output, 
+                input_data, gt_output, epoch, train=False)
 
             if (epoch % self.save_interval == 0) or final_epoch:
                 self.save_training_results(epoch)
