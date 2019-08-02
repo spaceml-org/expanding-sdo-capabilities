@@ -2,8 +2,14 @@
 In this module we collect functions useful to produce some metric visualizations
 """
 import matplotlib.pyplot as plt
+
 import seaborn as sns
+
 import scipy.stats as stats
+
+
+_logger = logging.getLogger(__name__)
+
 
 def plot_regression(predicted, ground_truth, title, x_label, y_label, filename):
     """
@@ -25,3 +31,44 @@ def plot_regression(predicted, ground_truth, title, x_label, y_label, filename):
     ax.annotate(stats.pearsonr)
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
+
+
+def plot_loss(epoch, train_losses, test_losses, results_path, exp_name):
+    """
+    Plot both training and testing losses on the same graph.
+    """
+    fig = plt.figure()
+    plt.plot(train_losses, label='Training Loss')
+    plt.plot(test_losses, label='Testing Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training/testing loss after {} epochs'.format(epoch))
+    img_file = os.path.join(results_path, '{}_loss_graph.png'.format(
+        format_graph_prefix(epoch, exp_name)))
+    plt.legend()
+    plt.savefig(img_file, bbox_inches='tight')
+    plt.close()
+    _logger.info('\nTraining/testing loss graph for epoch {} saved to {}'.format(
+        epoch, img_file))
+
+
+def plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
+                        results_path, exp_name, metric_name):
+    """
+    Plot both training and testing primary metrics on the same graph.
+    """
+    fig = plt.figure()
+    plt.plot(train_primary_metrics, label='Training Primary Metric')
+    plt.plot(test_primary_metrics, label='Testing Primary Metric')
+    plt.xlabel('Epoch')
+    plt.ylabel('Primary metric')
+    plt.title(
+        'Training/testing primary metric ({}) after {} epochs'.format(
+            self.get_primary_metric_name(), epoch))
+    img_file = os.path.join(self.results_path, '{}_primary_metric_graph.png'.format(
+        format_graph_prefix(epoch, self.exp_name)))
+    plt.legend()
+    plt.savefig(img_file, bbox_inches='tight')
+    plt.close()
+    _logger.info('Training/testing primary metric graph for epoch {} saved to {}'.format(
+        epoch, img_file))

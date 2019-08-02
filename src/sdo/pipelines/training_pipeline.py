@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 from contexttimer import Timer
 
 import numpy as np
+
 import pandas as pd
 
 import torch
 
 from sdo.io import format_graph_prefix
+from sdo.metrics.plitting import plot_loss, plot_primary_metric
 
 
 _logger = logging.getLogger(__name__)
@@ -311,34 +313,11 @@ class TrainingPipeline(object):
             test_losses.append(loss)
             test_primary_metrics.append(primary_metric)
 
-            fig = plt.figure()
-            plt.plot(train_losses, label='Training Loss')
-            plt.plot(test_losses, label='Testing Loss')
-            plt.xlabel('Epoch')
-            plt.ylabel('Loss')
-            plt.title('Training/testing loss after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_loss_graph.png'.format(
-                format_graph_prefix(epoch, self.exp_name)))
-            plt.legend()
-            plt.savefig(img_file, bbox_inches='tight')
-            plt.close()
-            _logger.info('\nTraining/testing loss graph for epoch {} saved to {}'.format(
-                epoch, img_file))
-
-            fig = plt.figure()
-            plt.plot(train_primary_metrics, label='Training Primary Metric')
-            plt.plot(test_primary_metrics, label='Testing Primary Metric')
-            plt.xlabel('Epoch')
-            plt.ylabel('Primary metric')
-            plt.title(
-                'Training/testing primary metric after {} epochs'.format(epoch))
-            img_file = os.path.join(self.results_path, '{}_primary_metric_graph.png'.format(
-                format_graph_prefix(epoch, self.exp_name)))
-            plt.legend()
-            plt.savefig(img_file, bbox_inches='tight')
-            plt.close()
-            _logger.info('Training/testing primary metric graph for epoch {} saved to {}'.format(
-                epoch, img_file))
+            plot_loss(epoch, train_losses, test_losses, self.results_path,
+                      self.exp_name)
+            plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
+                                self.results_path, self.exp_name,
+                                self.get_primary_metric_name())
 
         # TODO: Print the total aggregate training/testing time.
 
