@@ -118,6 +118,12 @@ def parse_args(args):
         default=50,
         help='Every save-interval epochs we will save the trained model and optimizer state')
     p.add_argument(
+        '--add-metrics-interval',
+        dest='additional_metrics_interval',
+        type=int,
+        default=5,
+        help='Every additional_metrics_interval epochs we will save the additional metrics')
+    p.add_argument(
         '--log-interval',
         dest='log_interval',
         type=int,
@@ -250,6 +256,14 @@ def parse_args(args):
         const=True,
         default=True,
         help='If True, dimmed images are normalized by their _own_ max value.')
+    p.add_argument(
+        '--tolerance',
+        dest='tolerance',
+        type=float,
+        default=0.05,
+        help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
+             'If the difference is above this value the prediction is considered unsuccessful.'
+             'This value affects the computation of the primary metric (frequency of binary success).')
     p.add_argument(
         '--return-random-dim',
         dest='return_random_dim',

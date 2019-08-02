@@ -84,6 +84,7 @@ def main(args):
                                            batch_size_test=args.batch_size_test,
                                            test_ratio=args.test_ratio,
                                            log_interval=args.log_interval,
+                                           additional_metrics_interval=args.additional_metrics_interval,
                                            results_path=args.results_path,
                                            num_epochs=args.num_epochs,
                                            save_interval=args.save_interval,
@@ -100,7 +101,9 @@ def main(args):
                                            scaling=args.scaling,
                                            return_random_dim=args.return_random_dim,
                                            norm_by_orig_img_max=args.norm_by_orig_img_max,
-                                           norm_by_dimmed_img_max=args.norm_by_dimmed_img_max)
+                                           norm_by_dimmed_img_max=args.norm_by_dimmed_img_max,
+                                           tolerance=args.tolerance)
+                                           
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         raise Exception('EncoderDecoderPipeline not implemented yet!')
         # TODO: Implement
