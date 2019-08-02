@@ -292,33 +292,8 @@ class TrainingPipeline(object):
         df.to_csv(predictions_filename, index=False)
         
 
-    def run(self):
-        """ Actually does the train/test cycle for num_epochs. """
-        self.show_sample(self.train_loader)
-
-        train_losses = []
-        test_losses = []
-        train_primary_metrics = []
-        test_primary_metrics = []
-        with Timer() as total_perf:
-            for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
-                final_epoch = True if epoch == (
-                    self.start_epoch_at + self.num_epochs - 1) else False
-
-                loss, primary_metric = self.train(epoch, final_epoch)
-                train_losses.append(loss)
-                train_primary_metrics.append(primary_metric)
-
-                loss, primary_metric = self.test(epoch, final_epoch)
-                test_losses.append(loss)
-                test_primary_metrics.append(primary_metric)
-
-                plot_loss(epoch, train_losses, test_losses, self.results_path,
-                          self.exp_name)
-                plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
-                                    self.results_path, self.exp_name,
-                                    self.get_primary_metric_name())
-
+    def print_final_details(self, total_perf, train_losses, test_losses,
+                            train_primary_metrics, test_primary_metrics):
         _logger.info('\n\nTotal testing/training time: {}'.format(
             total_perf.elapsed))
 
@@ -348,3 +323,33 @@ class TrainingPipeline(object):
             self.get_primary_metric_name(),
             best(test_primary_metrics),
             best_arg(test_primary_metrics) + 1))
+
+    def run(self):
+        """ Actually does the train/test cycle for num_epochs. """
+        self.show_sample(self.train_loader)
+
+        train_losses = []
+        test_losses = []
+        train_primary_metrics = []
+        test_primary_metrics = []
+        with Timer() as total_perf:
+            for epoch in range(self.start_epoch_at, self.start_epoch_at + self.num_epochs):
+                final_epoch = True if epoch == (
+                    self.start_epoch_at + self.num_epochs - 1) else False
+
+                loss, primary_metric = self.train(epoch, final_epoch)
+                train_losses.append(loss)
+                train_primary_metrics.append(primary_metric)
+
+                loss, primary_metric = self.test(epoch, final_epoch)
+                test_losses.append(loss)
+                test_primary_metrics.append(primary_metric)
+
+                plot_loss(epoch, train_losses, test_losses, self.results_path,
+                          self.exp_name)
+                plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
+                                    self.results_path, self.exp_name,
+                                    self.get_primary_metric_name())
+
+        self.print_final_details(total_perf, train_losses, test_losses,
+                                 train_primary_metrics, test_primary_metrics)
