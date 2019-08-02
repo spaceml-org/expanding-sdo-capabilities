@@ -360,7 +360,12 @@ class TrainingPipeline(object):
             best = np.min
             best_arg = np.argmin
 
-        _logger.info('\nFinal best training primary metric: {}, encountered at epoch: {}'.format(
-            best(train_primary_metrics), best_arg(train_primary_metrics) + 1))
-        _logger.info('Final best testing primary metric: {}, encountered at epoch: {}'.format(
-            best(test_primary_metrics), best_arg(test_primary_metrics) + 1))
+        _logger.info('\nFinal best training {}: {}, encountered at epoch: {}'.format(
+            self.get_primary_metric_name(),
+            best(train_primary_metrics),
+            best_arg(train_primary_metrics) + 1))
+        _logger.info('Final best testing {}: {}, encountered at epoch: {}'.format(
+            self.get_primary_metric_name(),
+            best(test_primary_metrics),
+            best_arg(test_primary_metrics) + 1))
+
