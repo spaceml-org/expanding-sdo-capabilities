@@ -68,9 +68,9 @@ def plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
     plt.ylabel('Primary metric')
     plt.title(
         'Training/testing primary metric ({}) after {} epochs'.format(
-            self.get_primary_metric_name(), epoch))
-    img_file = os.path.join(self.results_path, '{}_primary_metric_graph.png'.format(
-        format_graph_prefix(epoch, self.exp_name)))
+            metric_name, epoch))
+    img_file = os.path.join(results_path, '{}_primary_metric_graph.png'.format(
+        format_graph_prefix(epoch, exp_name)))
     plt.legend()
     plt.savefig(img_file, bbox_inches='tight')
     plt.close()

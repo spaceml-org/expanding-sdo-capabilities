@@ -20,9 +20,11 @@ actual-resolution: 512
 subsample: 4
 yr-range:
   - 2011
-  - 2013
-h-step: 1
-min-step: 6
+  - 2012
+min-step: 60
+h-step: 6
+mnt-step: 1
+day-step: 1
 scaling: True
 optimizer-weight-decay: 1e-5
 optimizer-lr: 0.0001
