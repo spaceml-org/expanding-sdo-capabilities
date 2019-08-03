@@ -246,7 +246,7 @@ def parse_args(args):
         type=str2bool,
         nargs='?',
         const=True,
-        default=False,
+        default=True,
         help='If True, dimmed images are normalized by the _original_ image max value.')
     p.add_argument(
         '--norm-by-dimmed-img-max',
@@ -254,7 +254,7 @@ def parse_args(args):
         type=str2bool,
         nargs='?',
         const=True,
-        default=True,
+        default=False,
         help='If True, dimmed images are normalized by their _own_ max value.')
     p.add_argument(
         '--tolerance',
@@ -288,7 +288,6 @@ def parse_args(args):
         type=float,
         default=0.01,
         help='Smaller degradation factor that can be randomly generated. The maximum is currently fixed to 1.')
-
 
     args = vars(p.parse_args(args))
 
