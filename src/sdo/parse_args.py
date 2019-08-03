@@ -282,6 +282,13 @@ def parse_args(args):
         type=float,
         default=1e-3,
         help='The learning rate to use for whatever optimizer might be used; current default Torchs Adam default')
+    p.add_argument(
+        '--min-dim',
+        dest='min_alpha',
+        type=float,
+        default=0.01,
+        help='Smaller degradation factor that can be randomly generated. The maximum is currently fixed to 1.')
+
 
     args = vars(p.parse_args(args))
 
