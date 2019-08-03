@@ -283,7 +283,7 @@ def parse_args(args):
         default=1e-3,
         help='The learning rate to use for whatever optimizer might be used; current default Torchs Adam default')
     p.add_argument(
-        '--min-dim',
+        '--min-alpha',
         dest='min_alpha',
         type=float,
         default=0.01,
