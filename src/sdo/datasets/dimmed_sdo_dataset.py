@@ -9,17 +9,22 @@ from sdo.datasets.sdo_dataset import SDO_Dataset
 
 class DimmedSDO_Dataset(SDO_Dataset):
     def __init__(self, num_channels, return_random_dim,
-                 norm_by_orig_img_max,
-                 norm_by_dimmed_img_max, *args, **kwargs):
+                 norm_by_orig_img_max, norm_by_dimmed_img_max,
+                 min_alpha, *args, **kwargs):
         super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
         self.return_random_dim = return_random_dim
         self.norm_by_orig_img_max = norm_by_orig_img_max
         self.norm_by_dimmed_img_max = norm_by_dimmed_img_max
+        self.min_alpha = min_alpha
 
     def __getitem__(self, idx):
         orig_img = super(DimmedSDO_Dataset, self).__getitem__(idx)
         dimmed_img = orig_img.clone()
+
+        dim_factor = torch.zeros(self.num_channels)
+        while any(dim_factor < self.min_alpha):
+            dim_factor = torch.rand(self.num_channels)
 
         dim_factor = torch.rand(self.num_channels)
         for c in range(self.num_channels):

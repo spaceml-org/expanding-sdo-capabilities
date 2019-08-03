@@ -105,7 +105,8 @@ def main(args):
                                            norm_by_dimmed_img_max=args.norm_by_dimmed_img_max,
                                            optimizer_weight_decay=args.optimizer_weight_decay,
                                            optimizer_lr=args.optimizer_lr,
-                                           tolerance=args.tolerance)
+                                           tolerance=args.tolerance,
+                                           min_alpha=args.min_alpha)
     elif args.pipeline_name == 'EncoderDecoderPipeline':
         pipeline = EncoderDecoderPipeline(exp_name=args.experiment_name,
                                           model_version=args.model_version,

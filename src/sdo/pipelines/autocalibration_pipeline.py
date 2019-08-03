@@ -30,7 +30,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
                  return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max,
-                 optimizer_weight_decay, optimizer_lr, tolerance):
+                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.norm_by_orig_img_max = norm_by_orig_img_max
@@ -55,7 +55,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           return_random_dim=return_random_dim,
                                           norm_by_orig_img_max=norm_by_orig_img_max,
                                           norm_by_dimmed_img_max=norm_by_dimmed_img_max,
-                                          test_ratio=test_ratio)
+                                          test_ratio=test_ratio,
+                                          min_alpha=min_alpha)
 
         _logger.info('\nSetting up testing dataset:')
         test_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
@@ -69,7 +70,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          return_random_dim=return_random_dim,
                                          norm_by_orig_img_max=norm_by_orig_img_max,
                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max,
-                                         test_ratio=test_ratio, test=True)
+                                         test_ratio=test_ratio, min_alpha=min_alpha,
+                                         test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
         # Apply this global mean/std across the data to normalize it in the
