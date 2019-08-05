@@ -20,6 +20,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
 
     def __getitem__(self, idx):
         orig_img = super(DimmedSDO_Dataset, self).__getitem__(idx)
+        # If scaling==True, then orig_img is already scaled here.
         dimmed_img = orig_img.clone()
 
         dim_factor = torch.zeros(self.num_channels)
@@ -45,7 +46,11 @@ class DimmedSDO_Dataset(SDO_Dataset):
                 'You can not have both norm_by_orig_img_max and norm_by_dimmed_img_max True'
             max_value = dimmed_img.max()
 
-        if max_value is not None:
+        if max_value is None:
+            # Scaling already happened in the superclass with scaling=True.
+            normed_dimmed_img = dimmed_img
+            normed_orig_img = orig_img
+        else:
             # Scale the images roughly between [0.0, 1.0]
             normed_dimmed_img = dimmed_img / max_value
             normed_orig_img = orig_img / max_value
