@@ -279,17 +279,22 @@ class TrainingPipeline(object):
         """
         if train:
             predictions_filename = os.path.join(
-                self.results_path, '{}_train_predictions.csv'.format(
+                self.results_path, '{}_train_predictions.npy'.format(
                 format_graph_prefix(epoch, self.exp_name)))
         else:
             predictions_filename = os.path.join(
-                self.results_path, '{}_test_predictions.csv'.format(
+                self.results_path, '{}_test_predictions.npy'.format(
                 format_graph_prefix(epoch, self.exp_name)))
         _logger.info('Saving ground truths and predictions to {}...'.
                      format(predictions_filename))
-        df = pd.DataFrame(zip(gt_outputs,  outputs),
-                          columns=['True', 'Predicted'])
-        df.to_csv(predictions_filename, index=False)
+        
+        gt_outputs_np = torch.cat(gt_outputs).detach().cpu().numpy()
+        outputs_np = torch.cat(outputs).detach().cpu().numpy()
+        # stacked factors will have shape (len_dataset, len_channels, 2)
+        # In the last column, the first element is the ground truth, the 
+        # second element is the predicted
+        stacked_factors = np.dstack((gt_outputs_np, outputs_np))
+        np.save(predictions_filename, stacked_factors)
 
     def print_final_details(self, total_perf, train_losses, test_losses,
                             train_primary_metrics, test_primary_metrics):
