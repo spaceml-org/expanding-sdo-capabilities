@@ -89,8 +89,13 @@ def pass_seed_to_worker(worker_id):
     will ensure that they are all given the correct random seed on
     initialization to prevent the following problem:
     https://github.com/pytorch/pytorch/issues/5059
+    Keep in mind that pytorch creates and destroys these workers on _every_
+    epoch, so we have to be extra careful about setting our random seeds
+    so they won't repeat every epoch!
     """
-    set_seed(np.random.get_state()[1][0] + worker_id)
+    # Numpy can't have random seeds greater than 2^32 - 1.
+    seed = (torch.initial_seed() // (2**32 - 1)) + worker_id
+    set_seed(seed)
 
 
 def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
