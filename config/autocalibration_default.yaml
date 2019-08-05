@@ -3,6 +3,7 @@ model-version: 1
 results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
 min-alpha: 0.01
 log-minimal: True
+scaling: True
 batch-size-train: 64
 batch-size-test: 256
 save-interval: 100
