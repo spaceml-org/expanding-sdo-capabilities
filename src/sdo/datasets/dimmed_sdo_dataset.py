@@ -27,9 +27,8 @@ class DimmedSDO_Dataset(SDO_Dataset):
         while any(dim_factor < self.min_alpha):
             dim_factor = torch.rand(self.num_channels)
 
-        dim_factor = torch.rand(self.num_channels)
         for c in range(self.num_channels):
-            dimmed_img[c] *= dim_factor[c]
+            dimmed_img[c] = dimmed_img[c] * dim_factor[c]
 
         # TODO: Allow this 'max' scaling to happen in the SDODataset class rather
         # than externally here.
