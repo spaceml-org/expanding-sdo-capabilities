@@ -56,7 +56,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           norm_by_orig_img_max=norm_by_orig_img_max,
                                           norm_by_dimmed_img_max=norm_by_dimmed_img_max,
                                           test_ratio=test_ratio,
-                                          min_alpha=min_alpha)
+                                          min_alpha=min_alpha,
+                                          shuffle=True)
 
         _logger.info('\nSetting up testing dataset:')
         test_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
@@ -71,7 +72,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          norm_by_orig_img_max=norm_by_orig_img_max,
                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max,
                                          test_ratio=test_ratio, min_alpha=min_alpha,
-                                         test=True)
+                                         shuffle=True, test=True)
 
         # TODO: Calculate global mean/std across brightness adjusted data.
         # Apply this global mean/std across the data to normalize it in the
@@ -176,20 +177,23 @@ class AutocalibrationPipeline(TrainingPipeline):
     def get_primary_metric_name(self):
         return 'Frequency of binary success (tol={})'.format(self.tolerance)
 
-    def generate_supporting_metrics(self, optional_debug_data, output, input_data, gt_output, epoch,
+    def generate_supporting_metrics(self, orig_img, output, input_data, gt_output, epoch,
                                     train):
         """ Print debugging details on the final batch per epoch during training or testing. """
         super(AutocalibrationPipeline, self).generate_supporting_metrics(
-            optional_debug_data, output, input_data, gt_output, epoch, train)
+            orig_img, output, input_data, gt_output, epoch, train)
 
         # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
 
-        scale_min = 0
-        scale_max = optional_debug_data.max()
-
-        sample = optional_debug_data[0].cpu().numpy()
+        sample = orig_img[0].cpu().numpy()
         sample_dimmed = input_data[0].cpu().numpy()
+
+        scale_min = 0
+        # Make sure that our visualization aren't too affected by very large outliers.
+        # TODO: Scale the divisor by our different channel wavelengths somehow instead
+        # of having the fixed value of 10.
+        scale_max = sample.max() / 10.0
 
         # TODO move the figure below into a plotting function
         fig = plt.figure()
@@ -227,7 +231,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             ax4 = fig.add_subplot(self.num_channels, 4, pos)
             ax4.axis('off')
             channel_diff = channel_orig - reconstructed_channel
-            ax4.imshow(channel_diff, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
+            ax4.imshow(channel_diff, norm=None, cmap='hot')
 
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
