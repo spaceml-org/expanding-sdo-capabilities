@@ -3,6 +3,10 @@ import math
 import random
 import os
 import shutil
+from functools import reduce
+import operator
+import logging
+
 import torch
 import torchvision as tv
 import torchvision.transforms as transforms
@@ -10,11 +14,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import sys
-from functools import reduce
-import operator
+
+
+_logger = logging.getLogger(__name__)
+
+
 
 def prod(iterable):
     return reduce(operator.mul, iterable, 1)
+
 
 class BasicEncoder(nn.Module):
     """A Encoder Decoder module that is used to create one channel (e.g. AIA 211) from
@@ -52,23 +60,23 @@ class BasicEncoder(nn.Module):
         #self.lin2 = nn.Linear(hidden_dim, sample_encoder_output_dim)
     
         
-        print('EncoderDecoder architecture:')
-        print('Input shape: {}'.format(input_shape))
-        print('Input dim  : {}'.format(prod(input_shape)))
-        #print('Encoded dim: {}'.format(sample_encoder_output_dim))
-        #print('Hidden dim : {}'.format(hidden_dim))
-        print('Learnable params: {}'.format(sum([p.numel() for p in self.parameters()])))
+        _logger.info('EncoderDecoder architecture:')
+        _logger.info('Input shape: {}'.format(input_shape))
+        _logger.info('Input dim  : {}'.format(prod(input_shape)))
+        #_logger.info('Encoded dim: {}'.format(sample_encoder_output_dim))
+        #_logger.info('Hidden dim : {}'.format(hidden_dim))
+        _logger.info('Learnable params: {}'.format(sum([p.numel() for p in self.parameters()])))
 
     def _encoder(self, x):
-        #print(x.shape)
+        #_logger.info(x.shape)
         x = self.conv1(x)
-        #print(x.shape)
+        #_logger.info(x.shape)
         x = F.relu(x)
         x = self.conv2(x)
-        #print(x.shape)
+        #_logger.info(x.shape)
         x = F.relu(x)
         x = self.conv3(x)
-        #print(x.shape)
+        #_logger.info(x.shape)
         x = F.relu(x)
         
         #x, indices1 = self.pool(x)

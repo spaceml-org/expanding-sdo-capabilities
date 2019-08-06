@@ -75,10 +75,9 @@ class ProxyTelescopePipeline(TrainingPipeline):
         if model_version == 1:
             model = EncoderDecoder(input_shape=[self.num_channels - 1, scaled_height,
                                                 scaled_width])
-        if model_version == 2:
+        elif model_version == 2:
             model = BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
                                                 scaled_width])
-            
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
