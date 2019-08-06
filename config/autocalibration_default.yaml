@@ -29,3 +29,8 @@ subsample: 4
 yr-range:
   - 2012
   - 2013
+min-step: 60
+h-step: 6
+mnt-step: 1
+day-step: 1
+tolerance: 0.05

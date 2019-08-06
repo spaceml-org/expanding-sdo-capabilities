@@ -156,9 +156,13 @@ class EncoderDecoderPipeline(TrainingPipeline):
         ground_truth = gt_output.detach().cpu().numpy()
 
         # TODO: Can also include the filtering components.
+        # TODO: Compute this across the entire batch, and do it at longer epoch
+        # intervals because its slow.
         psd_1Dpred = azimuthal_average(compute_2Dpsd(prediction[0, 0, :, :]))
         psd_1Dtruth = azimuthal_average(compute_2Dpsd(ground_truth[0, 0, :, :]))
 
+        # TODO: Create a flag that will directly compare these two values without
+        # the log.
         primary_metric = mean_squared_error(np.log(psd_1Dtruth),
                                             np.log(psd_1Dpred))
 
