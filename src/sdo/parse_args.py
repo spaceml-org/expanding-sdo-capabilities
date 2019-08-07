@@ -237,16 +237,17 @@ def parse_args(args):
         type=str2bool,
         nargs='?',
         const=True,
-        default=False,
+        default=True,
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
+    # TODO: Remove these two norm types.
     p.add_argument(
         '--norm-by-orig-img-max',
         dest='norm_by_orig_img_max',
         type=str2bool,
         nargs='?',
         const=True,
-        default=True,
+        default=False,
         help='If True, dimmed images are normalized by the _original_ image max value.')
     p.add_argument(
         '--norm-by-dimmed-img-max',
@@ -264,6 +265,7 @@ def parse_args(args):
         help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
              'If the difference is above this value the prediction is considered unsuccessful.'
              'This value affects the computation of the primary metric (frequency of binary success).')
+    # TODO: Remove this flag now that its experiments are done.
     p.add_argument(
         '--return-random-dim',
         dest='return_random_dim',
