@@ -136,7 +136,8 @@ def main(args):
           dataloader_workers=args.dataloader_workers,
           scaling=args.scaling,
           optimizer_weight_decay=args.optimizer_weight_decay,
-          optimizer_lr=args.optimizer_lr)
+          optimizer_lr=args.optimizer_lr,
+          loss=args.loss)
     else:
         raise Exception('Unknown pipeline: {}'.format(args.pipeline_name))
 

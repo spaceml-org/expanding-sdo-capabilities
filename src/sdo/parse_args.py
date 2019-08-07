@@ -264,6 +264,12 @@ def parse_args(args):
         type=float,
         default=0.01,
         help='Smaller degradation factor that can be randomly generated. The maximum is currently fixed to 1.')
+    p.add_argument(
+        '--loss',
+        dest='loss',
+        type=str,
+        default='ssim',
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) or mse. ')
 
     args = vars(p.parse_args(args))
 
