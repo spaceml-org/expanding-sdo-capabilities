@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 import numpy as np
+from math import sqrt
 
 import torch
 import torch.nn as nn
@@ -11,7 +12,6 @@ import torch.optim as optim
 
 import seaborn as sns
 
-from sklearn.metrics import mean_squared_error
 import scipy.stats as stats
 
 import pandas
@@ -19,6 +19,8 @@ import pandas
 from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
 from sdo.io import format_graph_prefix
 from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
+from sdo.metrics.ssim_metric import SSIM, ssim
+from sklearn.metrics import mean_squared_error
 from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
 from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
 from sdo.models.vt_basic_encoder import VT_BasicEncoder
@@ -35,8 +37,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers,
-                 scaling, optimizer_weight_decay, optimizer_lr):
+                 scaling, optimizer_weight_decay, optimizer_lr, loss):
         self.num_channels = len(wavelengths)
+        self.loss = loss
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -144,8 +147,16 @@ class VirtualTelescopePipeline(TrainingPipeline):
 
     def get_loss_func(self, output, gt_output):
         """ Return the loss function this pipeline is using. """
-        distance = nn.MSELoss()
-        return torch.sqrt(distance(output, gt_output))
+        if self.loss == 'mse':
+            mse_loss = nn.MSELoss()
+            return torch.sqrt(mse_loss(output, gt_output))
+        elif self.loss == 'ssim':
+            ssim_loss = SSIM()
+            # TODO ssim can be lower than 1, to investigate if the sign matters
+            # but we cannot have a flipping sign into the loss function
+            return (1 - abs(ssim_loss(output, gt_output)))
+        else:
+            _logger.error('Required loss not implemented')
 
     def calculate_primary_metric(self, epoch, output, gt_output):
         """
@@ -156,24 +167,16 @@ class VirtualTelescopePipeline(TrainingPipeline):
         method is appropriate for other kinds of scalar values indicating progress
         you'd like to use.
         """
-        # TODO: Do this all on the GPU via Torch, rather than the CPU via Numpy.
-        prediction = output.detach().cpu().numpy()
-        ground_truth = gt_output.detach().cpu().numpy()
-
-        # TODO: Can also include the filtering components.
-        psd_1Dpred = azimuthal_average(compute_2Dpsd(prediction[0, 0, :, :]))
-        psd_1Dtruth = azimuthal_average(compute_2Dpsd(ground_truth[0, 0, :, :]))
-
-        primary_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
-
-        # Note: lower values are better for our primary metric here.
-        return primary_metric
+        metric1 = torch.sqrt(torch.mean((output - gt_output).pow(2)))
+        metric2 = torch.abs(1-ssim(output, gt_output))
+        primary_metric = (metric1 + metric2)/2.
+        return primary_metric.detach().cpu().item()
 
     def is_higher_better_primary_metric(self):
         return False
 
     def get_primary_metric_name(self):
-        return 'MSE of azimuthal average'
+        return '(RMSE + abs(1-SSIM))/2'
 
     def generate_supporting_metrics(self, optional_debug_data, output, input_data, gt_output, epoch,
                                     train):
@@ -181,6 +184,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
         super(VirtualTelescopePipeline, self).generate_supporting_metrics(
             optional_debug_data, output, input_data, gt_output, epoch, train)
 
+         # TODO: Do this all on the GPU via Torch, rather than the CPU via Numpy.
         input_data = input_data.detach().cpu().numpy()
         output = output.detach().cpu().numpy()
         gt_output = gt_output.detach().cpu().numpy()
@@ -227,4 +231,10 @@ class VirtualTelescopePipeline(TrainingPipeline):
         #  emd = earth_movers_distance(output[0][0], gt_output[0][0])
         _logger.info('Structural similarity for single sample: {}'.format(struc_sim))
         _logger.info('Pixel similarity for single sample: {}'.format(pix_sim))
+        # TODO: Can also include the filtering components.
+        # Note: lower values are better for the psd metric here.
+        psd_1Dpred = azimuthal_average(compute_2Dpsd(output[0, 0, :, :]))
+        psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[0, 0, :, :]))
+        psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
+        _logger.info('PSD metric for single sample: {}'.format(psd_metric))
         
