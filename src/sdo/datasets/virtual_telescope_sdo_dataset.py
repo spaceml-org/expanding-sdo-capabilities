@@ -1,19 +1,19 @@
 """
-A version of the SDO dataset suitable for the encoder/decoder that
-returns data samples as (input_data_image, gt_image).
+A version of the SDO dataset suitable for the virtual telescope
+that returns data samples as (input_data_image, gt_image).
 """
 import torch
 
 from sdo.datasets.sdo_dataset import SDO_Dataset
 
 
-class EncoderDecoderSDO_Dataset(SDO_Dataset):
+class VirtualTelescopeSDO_Dataset(SDO_Dataset):
     def __init__(self, num_channels, *args, **kwargs):
-        super(EncoderDecoderSDO_Dataset, self).__init__(*args, **kwargs)
+        super(VirtualTelescopeSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
 
     def __getitem__(self, idx):
-        data = super(EncoderDecoderSDO_Dataset, self).__getitem__(idx)
+        data = super(VirtualTelescopeSDO_Dataset, self).__getitem__(idx)
         # Note: Shape is (num_channels, height, width)
 
         assert data.shape[0] == self.num_channels, \

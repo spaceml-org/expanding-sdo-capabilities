@@ -19,7 +19,7 @@ def prod(iterable):
     return reduce(operator.mul, iterable, 1)
 
 
-class EncoderDecoder(nn.Module):
+class VT_EncoderDecoder(nn.Module):
     """A Encoder Decoder module that is used to create one channel (e.g. AIA 211) from
        three other AIA channels (e.g. AIA 94, 193, and 171).
     """
@@ -30,7 +30,7 @@ class EncoderDecoder(nn.Module):
         1. input_shape: of the form of (n_channels x width x height)
         2. hidden_dim = number of hidden layers for the fully connected network.
         """
-        super(EncoderDecoder,self).__init__()
+        super(VT_EncoderDecoder,self).__init__()
         num_channels = input_shape[0]
         self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=32, kernel_size=3)
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
@@ -55,7 +55,7 @@ class EncoderDecoder(nn.Module):
         self.lin2 = nn.Linear(hidden_dim, sample_encoder_output_dim)
     
         
-        print('EncoderDecoder architecture:')
+        print('VT_EncoderDecoder architecture:')
         print('Input shape: {}'.format(input_shape))
         print('Input dim  : {}'.format(prod(input_shape)))
         print('Encoded dim: {}'.format(sample_encoder_output_dim))

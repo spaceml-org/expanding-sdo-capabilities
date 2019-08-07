@@ -1,3 +1,6 @@
+"""
+Extended metrics useful for the virtual telescope pipeline.
+"""
 import warnings
 
 import numpy as np

@@ -29,14 +29,12 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 return_random_dim, norm_by_orig_img_max, norm_by_dimmed_img_max,
                  optimizer_weight_decay, optimizer_lr, tolerance, min_alpha):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
-        self.norm_by_orig_img_max = norm_by_orig_img_max
-        self.norm_by_dimmed_img_max = norm_by_dimmed_img_max
         self.wavelengths = wavelengths
         self.tolerance = tolerance
+        self.scaling = scaling
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -52,9 +50,6 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           resolution=actual_resolution,
                                           subsample=subsample,
                                           normalization=0, scaling=scaling,
-                                          return_random_dim=return_random_dim,
-                                          norm_by_orig_img_max=norm_by_orig_img_max,
-                                          norm_by_dimmed_img_max=norm_by_dimmed_img_max,
                                           test_ratio=test_ratio,
                                           min_alpha=min_alpha,
                                           shuffle=True)
@@ -68,16 +63,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          resolution=actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=scaling,
-                                         return_random_dim=return_random_dim,
-                                         norm_by_orig_img_max=norm_by_orig_img_max,
-                                         norm_by_dimmed_img_max=norm_by_dimmed_img_max,
                                          test_ratio=test_ratio, min_alpha=min_alpha,
                                          shuffle=True, test=True)
-
-        # TODO: Calculate global mean/std across brightness adjusted data.
-        # Apply this global mean/std across the data to normalize it in the
-        # loader. Note that we might not want to apply the std as this might
-        # remove our brightness correlations.
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
                                          dataloader_workers, train=True)
@@ -130,11 +117,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         # Get a single sample from the dataset, with all of its channels.
         dimmed_img, dim_factors, orig_img = loader.dataset[0]
 
-        _logger.info('\nNormalization flags:')
-        _logger.info('norm_by_orig_img_max: {}'.format(
-            self.norm_by_orig_img_max))
-        _logger.info('norm_by_dimmed_img_max: {}'.format(
-            self.norm_by_dimmed_img_max))
+        _logger.info('\nScaling: {}'.format(self.scaling))
 
         _logger.info('\nDimmed image:')
         _logger.info('\tMax value: {}, min value: {}'.format(torch.max(dimmed_img),
