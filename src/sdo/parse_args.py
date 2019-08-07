@@ -66,7 +66,7 @@ def parse_args(args):
         dest='pipeline_name',
         type=str,
         required=True,
-        help='Which pipeline to use: AutocalibrationPipeline or EncoderDecoderPipeline')
+        help='Which pipeline to use: AutocalibrationPipeline or VirtualTelescopePipeline')
     p.add_argument(
         '--experiment-name',
         dest='experiment_name',
@@ -240,23 +240,6 @@ def parse_args(args):
         default=True,
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
-    # TODO: Remove these two norm types.
-    p.add_argument(
-        '--norm-by-orig-img-max',
-        dest='norm_by_orig_img_max',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If True, dimmed images are normalized by the _original_ image max value.')
-    p.add_argument(
-        '--norm-by-dimmed-img-max',
-        dest='norm_by_dimmed_img_max',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If True, dimmed images are normalized by their _own_ max value.')
     p.add_argument(
         '--tolerance',
         dest='tolerance',
@@ -265,15 +248,6 @@ def parse_args(args):
         help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
              'If the difference is above this value the prediction is considered unsuccessful.'
              'This value affects the computation of the primary metric (frequency of binary success).')
-    # TODO: Remove this flag now that its experiments are done.
-    p.add_argument(
-        '--return-random-dim',
-        dest='return_random_dim',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If True, return fake random numbers for the brightness dimming factors during training')
     p.add_argument(
         '--optimizer-weight-decay',
         type=float,

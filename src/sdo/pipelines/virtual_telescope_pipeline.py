@@ -16,12 +16,12 @@ import scipy.stats as stats
 
 import pandas
 
-from sdo.datasets.proxy_telescope_sdo_dataset import ProxyTelescopeSDO_Dataset
+from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
 from sdo.io import format_graph_prefix
 from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
-from sdo.metrics.extended_encoder_decoder_metrics import structural_sim, pixel_sim
-from sdo.models.encoder_decoder import EncoderDecoder 
-from sdo.models.basic_encoder import BasicEncoder 
+from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
+from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
+from sdo.models.vt_basic_encoder import VT_BasicEncoder
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 
@@ -29,7 +29,7 @@ from sdo.pytorch_utilities import create_dataloader
 _logger = logging.getLogger(__name__)
 
 
-class ProxyTelescopePipeline(TrainingPipeline):
+class VirtualTelescopePipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
@@ -44,7 +44,7 @@ class ProxyTelescopePipeline(TrainingPipeline):
         _logger.info('Instruments: {}'.format(instruments))
 
         _logger.info('\nSetting up training dataset:')
-        train_dataset = ProxyTelescopeSDO_Dataset(
+        train_dataset = VirtualTelescopeSDO_Dataset(
                                     num_channels=self.num_channels,
                                     instr=instruments,
                                     channels=wavelengths, yr_range=yr_range,
@@ -56,7 +56,7 @@ class ProxyTelescopePipeline(TrainingPipeline):
                                     test_ratio=test_ratio)
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = ProxyTelescopeSDO_Dataset(
+        test_dataset = VirtualTelescopeSDO_Dataset(
                                    num_channels=self.num_channels,
                                    instr=instruments,
                                    channels=wavelengths, yr_range=yr_range,
@@ -73,11 +73,12 @@ class ProxyTelescopePipeline(TrainingPipeline):
                                         dataloader_workers, train=False)
 
         if model_version == 1:
-            model = EncoderDecoder(input_shape=[self.num_channels - 1, scaled_height,
-                                                scaled_width])
+            # TODO add hidden_dim to the pipeline parameters
+            model = VT_EncoderDecoder(input_shape=[self.num_channels - 1, scaled_height,
+                                                   scaled_width], hidden_dim=512)
         elif model_version == 2:
-            model = BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
-                                                scaled_width])
+            model = VT_BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
+                                                 scaled_width])
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -89,7 +90,7 @@ class ProxyTelescopePipeline(TrainingPipeline):
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
                                      lr=optimizer_lr)
 
-        super(ProxyTelescopePipeline, self).__init__(
+        super(VirtualTelescopePipeline, self).__init__(
             exp_name=exp_name,
             train_dataset=train_dataset,
             test_dataset=test_dataset,
@@ -163,14 +164,12 @@ class ProxyTelescopePipeline(TrainingPipeline):
         psd_1Dpred = azimuthal_average(compute_2Dpsd(prediction[0, 0, :, :]))
         psd_1Dtruth = azimuthal_average(compute_2Dpsd(ground_truth[0, 0, :, :]))
 
-        primary_metric = mean_squared_error(psd_1Dtruth,psd_1Dpred) #MCMC removed log
+        primary_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
 
         # Note: lower values are better for our primary metric here.
         return primary_metric
 
     def is_higher_better_primary_metric(self):
-        # TODO: Confirm for the primary metric for the encoder/decoder above
-        # whether lower is better.
         return False
 
     def get_primary_metric_name(self):
@@ -179,7 +178,7 @@ class ProxyTelescopePipeline(TrainingPipeline):
     def generate_supporting_metrics(self, optional_debug_data, output, input_data, gt_output, epoch,
                                     train):
         """ Print debugging details on the final batch per epoch during training or testing. """
-        super(ProxyTelescopePipeline, self).generate_supporting_metrics(
+        super(VirtualTelescopePipeline, self).generate_supporting_metrics(
             optional_debug_data, output, input_data, gt_output, epoch, train)
 
         input_data = input_data.detach().cpu().numpy()

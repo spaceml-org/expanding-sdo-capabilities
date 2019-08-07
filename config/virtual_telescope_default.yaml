@@ -1,5 +1,5 @@
-pipeline-name: ProxyTelescopePipeline
-model-version: 2
+pipeline-name: VirtualTelescopePipeline
+model-version: 1
 results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
 log-minimal: True
 batch-size-train: 128
@@ -26,3 +26,5 @@ h-step: 6
 mnt-step: 1
 day-step: 1
 scaling: True
+optimizer-weight-decay: 1e-5
+optimizer-lr: 0.0001

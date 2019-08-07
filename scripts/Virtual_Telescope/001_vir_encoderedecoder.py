@@ -20,7 +20,7 @@ import sys
 from sdo.sdo_dataset import SDO_Dataset
 from torch.utils.data import DataLoader
 from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
-from sdo.models.encoder_decoder import EncoderDecoder
+from sdo.models.encoder_decoder import VT_EncoderDecoder
 
 output_path = '/gpfs/gpfs_gl4_16mb/b9p111/b9p111ar/results_VT/'
 #just a way to get nice logging messages from the sdo package
@@ -55,7 +55,7 @@ test_data_loader = DataLoader(test_data, batch_size=128, shuffle=True)
 
 #defining some params
 num_epochs = 2000 
-model = EncoderDecoder(input_shape=[input_channels,img_shape,img_shape]).cuda(device)
+model = VT_EncoderDecoder(input_shape=[input_channels,img_shape,img_shape]).cuda(device)
 distance = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(),weight_decay=1e-5,lr=0.0001)
 
