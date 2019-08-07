@@ -22,6 +22,17 @@ class DimmedSDO_Dataset(SDO_Dataset):
         orig_img = super(DimmedSDO_Dataset, self).__getitem__(idx)
         # If scaling==True, then orig_img is already scaled here.
         dimmed_img = orig_img.clone()
+        
+        # Experiment: crop the sun image to the central part (this will avoid to pass pixel 
+        # information not related to the sun and possibly very constant across time)
+        x_dim = dimmed_img.shape[1]
+        y_dim = dimmed_img.shape[2]
+        l_xlim = int(x_dim/4.)
+        r_xlim = int(x_dim*(3./4.))
+        b_ylim = int(y_dim/4.)
+        u_ylim = int(y_dim*(3./4.))
+        roi_cut_out=[l_xlim, r_xlim, b_ylim, u_ylim]
+        dimmed_image=dimmed_img[:, l_xlim:r_xlim, b_ylim:u_ylim]
 
         dim_factor = torch.zeros(self.num_channels)
         while any(dim_factor < self.min_alpha):

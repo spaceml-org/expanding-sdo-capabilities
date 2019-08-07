@@ -10,20 +10,20 @@ save-interval: 100
 log-interval: 10
 wavelengths:
   - "0094"
-  - "0131"
-  - "0171"
-  - "0193"
-  - "0211"
-  - "0304"
-  - "0335"
+#  - "0131"
+#  - "0171"
+#  - "0193"
+#  - "0211"
+#  - "0304"
+#  - "0335"
 instruments:
   - AIA
-  - AIA
-  - AIA
-  - AIA
-  - AIA
-  - AIA
-  - AIA
+#  - AIA
+#  - AIA
+#  - AIA
+#  - AIA
+#  - AIA
+#  - AIA
 actual-resolution: 512
 subsample: 4
 yr-range:
