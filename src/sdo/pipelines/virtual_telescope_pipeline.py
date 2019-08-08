@@ -26,6 +26,7 @@ from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
 from sdo.models.vt_basic_encoder import VT_BasicEncoder
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
+from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
 
 
 _logger = logging.getLogger(__name__)
@@ -189,52 +190,34 @@ class VirtualTelescopePipeline(TrainingPipeline):
         output = output.detach().cpu().numpy()
         gt_output = gt_output.detach().cpu().numpy()
 
-        # Print each of the input channels on their own line.
-        fig = plt.figure()
-        pos = 0
-        for i in range(self.num_channels - 1):
-            pos += 1
-
-            ax = fig.add_subplot(self.num_channels + 1, 1, pos)
-            fig.subplots_adjust(top=3.0)
-            ax.set_title('Input Channel {}'.format(i + 1))
-            ax.axis('off')
-            ax.imshow(input_data[0][i], vmin=0, vmax=1)
-
-        pos += 1
-
-        ax = fig.add_subplot(self.num_channels + 1, 1, pos)
-        fig.subplots_adjust(top=3.0)
-        ax.set_title('Predicted Output Channel {}'.format(self.num_channels - 1))
-        ax.axis('off')
-        ax.imshow(output[0][0], vmin=0, vmax=1)
-
-        pos += 1
-
-        ax = fig.add_subplot(self.num_channels + 1, 1, pos)
-        fig.subplots_adjust(top=3.0)
-        ax.set_title('Ground Truth Output Channel {}'.format(self.num_channels - 1))
-        ax.axis('off')
-        ax.imshow(gt_output[0][0], vmin=0, vmax=1)
-
-        img_file = os.path.join(self.results_path, '{}_debug_sample.png'.format(
-            format_graph_prefix(epoch, self.exp_name)))
-        plt.savefig(img_file, bbox_inches='tight')
-        plt.close()
+        
+        # the following plots and metrics will be computed on one single batch index
+        index = 0
+        img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
+            format_graph_prefix(epoch, self.exp_name),' train' if train else 'test'))
+        plot_vt_sample(self.num_channels, input_data, output, gt_output, img_file, 
+                       index=index)
         _logger.info('Debug sample saved to {}'.format(img_file))
-
+        
+        img_file = os.path.join(self.results_path, '{}_2dhist_{}.png'.format(
+            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
+        plot_2d_hist(gt_output[index][0], output[index][0], img_file)
+        _logger.info('2D histogram saved to {}'.format(img_file))
+        
+        img_file = os.path.join(self.results_path, '{}_diff_hist_map_{}.png'.format(
+            format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
+        plot_difference(gt_output[index][0], output[index][0], img_file)
+        
         # Get the similarity values between the predicted and ground truth outputs.
         # TODO: Do all these operations on the GPU with Torch, not the CPU via Numpy.
-        struc_sim = structural_sim(output[0][0], gt_output[0][0])
-        pix_sim = pixel_sim(output[0][0], gt_output[0][0])
-        #   sift_sim = sift_sim(output[0][0], gt_output[0][0])
-        #  emd = earth_movers_distance(output[0][0], gt_output[0][0])
+        struc_sim = structural_sim(output[index][0], gt_output[index][0])
+        pix_sim = pixel_sim(output[index][0], gt_output[index][0])
         _logger.info('Structural similarity for single sample: {}'.format(struc_sim))
         _logger.info('Pixel similarity for single sample: {}'.format(pix_sim))
         # TODO: Can also include the filtering components.
         # Note: lower values are better for the psd metric here.
-        psd_1Dpred = azimuthal_average(compute_2Dpsd(output[0, 0, :, :]))
-        psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[0, 0, :, :]))
+        psd_1Dpred = azimuthal_average(compute_2Dpsd(output[index, 0, :, :]))
+        psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
         psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
         _logger.info('PSD metric for single sample: {}'.format(psd_metric))
         
