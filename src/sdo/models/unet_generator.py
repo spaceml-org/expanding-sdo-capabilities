@@ -1,3 +1,4 @@
+# modified from https://github.com/GunhoChoi/Kind-PyTorch-Tutorial/blob/master/12_Semantic_Segmentation/UNet.py
 from sdo.models.basic_blocks import * 
 
 class UnetGenerator(nn.Module):
