@@ -24,6 +24,7 @@ from sklearn.metrics import mean_squared_error
 from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
 from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
 from sdo.models.vt_basic_encoder import VT_BasicEncoder
+from sdo.models.unet_generator import UnetGenerator
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
@@ -83,6 +84,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
         elif model_version == 2:
             model = VT_BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
                                                  scaled_width])
+        elif model_version == 3:
+            model = UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
+                                                 scaled_width], num_filter=64)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
