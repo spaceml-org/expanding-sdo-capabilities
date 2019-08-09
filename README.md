@@ -66,8 +66,8 @@ cd ~/expanding-sdo-capabilities
 # For autocalibration
 export CONFIG_FILE=config/autocalibration_default.yaml
 
-# For encoder/decoder
-export CONFIG_FILE=config/encoder_decoder_default.yaml
+# For virtual telescope
+export CONFIG_FILE=config/virtual_telescope_default.yaml
 
 export EXPERIMENT_NAME=01b_experiment_test
 export NUM_EPOCHS=5
@@ -93,8 +93,8 @@ cd ~/expanding-sdo-capabilities
 export CONFIG_FILE=config/autocalibration_default.yaml
 export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
 
-# For encoder/decoder
-export CONFIG_FILE=config/encoder_decoder_default.yaml
+# For virtual telescope
+export CONFIG_FILE=config/virtual_telescope_default.yaml
 export EXPERIMENT_NAME=some_experiment_name
 export RESULTS_PATH=/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
 
@@ -114,8 +114,8 @@ export NUM_EPOCHS=5
 Where `START_EPOCH_AT` is the new training epoch to begin training from.
 
 Note that both in the YAML config file and on the command line, the major pipeline to run
-(whether the autocalibration architecture or the encoder/decoder architecture), is controlled
-by `--pipeline-name`, which can either be `AutocalibrationPipeline` or `EncoderDecoderPipeline`.
+(whether the autocalibration architecture or the virtual telescope architecture), is controlled
+by `--pipeline-name`, which can either be `AutocalibrationPipeline` or `VirtualTelescopePipeline`.
 
 To easily copy over training artifacts from a run to see how things went, first add the following
 to your laptop's `~/.bash_profile` or `~/.bashrc` file:

@@ -120,39 +120,44 @@ class TrainingPipeline(object):
                     self.optimizer.zero_grad()
                     # Send the entire batch to the GPU as one to increase efficiency.
                     input_data = input_data.to(self.device)
-                    gt_outputs.append(gt_output)
                     gt_output = gt_output.to(self.device)
                     output = self.model(input_data)
-                    outputs.append(output)
                     output = output.to(self.device)
                     loss = self.get_loss_func(output, gt_output)
                     loss.backward()
                     self.optimizer.step()
+
+                    # Make sure that saving outputs don't end up with gradient tracking.
+                    gt_outputs.append(gt_output.detach().clone())
+                    outputs.append(output.detach().clone())
                     losses.append(float(loss))
 
                 if batch_idx % self.log_interval == 0:
-                    primary_metric = self.calculate_primary_metric(
-                        epoch, output, gt_output)
-                    total_primary_metrics.append(primary_metric)
-                    self.print_epoch_details(epoch, batch_idx, self.batch_size_train,
-                                             self.train_dataset, loss, primary_metric,
-                                             iteration_perf.elapsed,
-                                             next_to_last_epoch=False, train=True)
+                    with torch.no_grad():
+                        primary_metric = self.calculate_primary_metric(
+                            epoch, output, gt_output)
+                        total_primary_metrics.append(primary_metric)
+                        self.print_epoch_details(epoch, batch_idx, self.batch_size_train,
+                                                 self.train_dataset, loss, primary_metric,
+                                                 iteration_perf.elapsed,
+                                                 next_to_last_epoch=False, train=True)
 
-        self.print_epoch_details(epoch, batch_idx, self.batch_size_train, self.train_dataset,
-                                 np.mean(losses), primary_metric, epoch_perf.elapsed,
-                                 next_to_last_epoch=True, train=True)
+        with torch.no_grad():
+            self.print_epoch_details(epoch, batch_idx, self.batch_size_train,
+                                     self.train_dataset, np.mean(losses), primary_metric,
+                                     epoch_perf.elapsed, next_to_last_epoch=True, train=True)
 
-        # Generate extra metrics useful for debugging and analysis.
-        if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
-            self.generate_supporting_metrics(optional_debug_data, output, input_data,
-                                             gt_output, epoch, train=True)
+            # Generate extra metrics useful for debugging and analysis.
+            # TODO: We are incorrectly doing this on the final batch; fix.
+            if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
+                self.generate_supporting_metrics(optional_debug_data, output, input_data,
+                                                 gt_output, epoch, train=True)
 
-        if (epoch % self.save_interval == 0) or final_epoch:
-            self.save_training_results(epoch)
-            self.save_predictions(epoch, gt_outputs, outputs, train=True)
+            if (epoch % self.save_interval == 0) or final_epoch:
+                self.save_training_results(epoch)
+                self.save_predictions(epoch, gt_outputs, outputs, train=True)
 
-        return np.mean(losses), np.mean(total_primary_metrics)
+            return np.mean(losses), np.mean(total_primary_metrics)
 
     def test(self, epoch, next_to_last_epoch=False, final_epoch=False):
         _logger.info("\n\nTesting epoch {}\n".format(epoch))
@@ -193,6 +198,8 @@ class TrainingPipeline(object):
                                      losses), primary_metric,
                                  epoch_perf.elapsed,
                                  next_to_last_epoch=True, train=False)
+
+        # TODO: We are incorrectly doing this on the final batch; fix.
         # Generate extra metrics useful for debugging and analysis.
         if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
             self.generate_supporting_metrics(optional_debug_data, output,
@@ -279,17 +286,22 @@ class TrainingPipeline(object):
         """
         if train:
             predictions_filename = os.path.join(
-                self.results_path, '{}_train_predictions.csv'.format(
+                self.results_path, '{}_train_predictions.npy'.format(
                 format_graph_prefix(epoch, self.exp_name)))
         else:
             predictions_filename = os.path.join(
-                self.results_path, '{}_test_predictions.csv'.format(
+                self.results_path, '{}_test_predictions.npy'.format(
                 format_graph_prefix(epoch, self.exp_name)))
         _logger.info('Saving ground truths and predictions to {}...'.
                      format(predictions_filename))
-        df = pd.DataFrame(zip(gt_outputs,  outputs),
-                          columns=['True', 'Predicted'])
-        df.to_csv(predictions_filename, index=False)
+        
+        gt_outputs_np = torch.cat(gt_outputs).detach().cpu().numpy()
+        outputs_np = torch.cat(outputs).detach().cpu().numpy()
+        # stacked factors will have shape (len_dataset, len_channels, 2)
+        # In the last column, the first element is the ground truth, the 
+        # second element is the predicted
+        stacked_factors = np.dstack((gt_outputs_np, outputs_np))
+        np.save(predictions_filename, stacked_factors)
 
     def print_final_details(self, total_perf, train_losses, test_losses,
                             train_primary_metrics, test_primary_metrics):
