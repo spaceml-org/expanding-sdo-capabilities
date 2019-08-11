@@ -269,7 +269,7 @@ def parse_args(args):
         dest='loss',
         type=str,
         default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) or mse. ')
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default), mse, L1. ')
 
     args = vars(p.parse_args(args))
 

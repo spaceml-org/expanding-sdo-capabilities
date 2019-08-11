@@ -160,6 +160,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
             # TODO ssim can be lower than 1, to investigate if the sign matters
             # but we cannot have a flipping sign into the loss function
             return (1 - abs(ssim_loss(output, gt_output)))
+        elif self.loss == 'L1':
+            L1_loss = nn.SmoothL1Loss()
+            return L1_loss(output, gt_output)
         else:
             _logger.error('Required loss not implemented')
 
@@ -218,10 +221,11 @@ class VirtualTelescopePipeline(TrainingPipeline):
         pix_sim = pixel_sim(output[index][0], gt_output[index][0])
         _logger.info('Structural similarity for single sample: {}'.format(struc_sim))
         _logger.info('Pixel similarity for single sample: {}'.format(pix_sim))
-        # TODO: Can also include the filtering components.
+        
+        # TODO: The metric below produces huge values, fix
         # Note: lower values are better for the psd metric here.
-        psd_1Dpred = azimuthal_average(compute_2Dpsd(output[index, 0, :, :]))
-        psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
-        psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
-        _logger.info('PSD metric for single sample: {}'.format(psd_metric))
+        #psd_1Dpred = azimuthal_average(compute_2Dpsd(output[index, 0, :, :]))
+        #psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
+        #psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
+        #_logger.info('PSD metric for single sample: {}'.format(psd_metric))
         
