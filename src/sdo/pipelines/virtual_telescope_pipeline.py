@@ -160,7 +160,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
             # TODO ssim can be lower than 1, to investigate if the sign matters
             # but we cannot have a flipping sign into the loss function
             return (1 - abs(ssim_loss(output, gt_output)))
-        elif self.loss == 'L1':
+        elif self.loss == 'smoothL1':
             L1_loss = nn.SmoothL1Loss()
             return L1_loss(output, gt_output)
         else:
