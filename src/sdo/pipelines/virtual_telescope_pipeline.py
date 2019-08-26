@@ -93,7 +93,12 @@ class VirtualTelescopePipeline(TrainingPipeline):
             # here to reference that class, preferably in sdo.models.*, such as
             # sdo.models.Autocalibration2.
             raise Exception('Unknown model version: {}'.format(model_version))
-
+        
+        if torch.cuda.device_count() > 1:
+            _logger.info("{} GPUs are available".format(torch.cuda.device_count()))
+            model = nn.DataParallel(model)
+            # in order to use DataParallel "module must have its parameters and buffers on device cuda:0"
+            device = torch.device('cuda', 0)
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
                                      lr=optimizer_lr)
