@@ -16,6 +16,11 @@ from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_graph_prefix
 from sdo.models.autocalibration1 import Autocalibration1
 from sdo.models.autocalibration2 import Autocalibration2
+from sdo.models.autocalibration3 import Autocalibration3
+from sdo.models.autocalibration4 import Autocalibration4
+from sdo.models.autocalibration5 import Autocalibration5
+from sdo.models.autocalibration6 import Autocalibration6
+from sdo.models.autocalibration7 import Autocalibration7
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.metrics.plotting import plot_regression
@@ -30,7 +35,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha):
+                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, noise_image,
+                 threshold_black, threshold_black_value, flip_test_images):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.wavelengths = wavelengths
@@ -53,6 +59,11 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           normalization=0, scaling=scaling,
                                           test_ratio=test_ratio,
                                           min_alpha=min_alpha,
+                                          scaled_height=scaled_height,
+                                          scaled_width=scaled_width,
+                                          noise_image=noise_image,
+                                          threshold_black=threshold_black,
+                                          threshold_black_value=threshold_black_value,
                                           shuffle=True)
 
         _logger.info('\nSetting up testing dataset:')
@@ -65,6 +76,12 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          subsample=subsample,
                                          normalization=0, scaling=scaling,
                                          test_ratio=test_ratio, min_alpha=min_alpha,
+                                         scaled_height=scaled_height,
+                                         scaled_width=scaled_width,
+                                         noise_image=noise_image,
+                                         threshold_black=threshold_black,
+                                         threshold_black_value=threshold_black_value,
+                                         flip_test_images=flip_test_images,
                                          shuffle=True, test=True)
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
@@ -76,9 +93,42 @@ class AutocalibrationPipeline(TrainingPipeline):
             model = Autocalibration1(input_shape=[self.num_channels, scaled_height,
                                                   scaled_width], output_dim=self.num_channels)
         elif model_version == 2:
+            # This model allows the dimension of all the parameters to be increased by
+            # 'increase_dim'
             model = Autocalibration2(input_shape=[self.num_channels, scaled_height,
                                                   scaled_width], output_dim=self.num_channels,
                                      increase_dim=2)
+        elif model_version == 3:
+            # Uses a leaky relu instead of a sigmoid as its final activation function.
+            model = Autocalibration3(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels)
+        elif model_version == 4:
+            # Scales free parameters by the size of the resolution, as well as uses
+            # a leaky relu at the end.
+            model = Autocalibration4(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels,
+                                     scaled_resolution=scaled_height)
+        elif model_version == 5:
+            # Add more convolutional layers.
+            model = Autocalibration5(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels,
+                                     scaled_resolution=scaled_height)
+        elif model_version == 6:
+            # How simple can we get our network to be and still have single
+            # channel input perform well?
+            model = Autocalibration6(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels)
+        elif model_version == 7:
+            # How simple can we get our network to be and still have single
+            # channel input perform well?
+            model = Autocalibration7(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels,
+                                     device=device)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -170,8 +220,12 @@ class AutocalibrationPipeline(TrainingPipeline):
         # Generate some extra metric details that are specific to autocalibration.
         _logger.info('\n\nDetails with sample from final batch:')
 
-        sample = orig_img[0].cpu().numpy()
-        sample_dimmed = input_data[0].cpu().numpy()
+        _logger.info('\noutput[:3]: {}'.format(output[:3]))
+        _logger.info('\ngt_output[:3]: {}'.format(gt_output[:3]))
+
+        rand_idx = np.random.randint(len(input_data))
+        sample = orig_img[rand_idx].cpu().numpy()
+        sample_dimmed = input_data[rand_idx].cpu().numpy()
 
         scale_min = 0
         # Make sure that our visualization aren't too affected by very large outliers.
@@ -184,7 +238,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         pos = 0
         for i, (channel_orig, channel_dimmed) in enumerate(zip(sample, sample_dimmed)):
             pos += 1
-            pred_channel_dim_factor = float(output[0, i])
+            pred_channel_dim_factor = float(output[rand_idx, i])
             # Reconstructed means we want to apply some transformation to the dimmed image
             # to get back the original undimmed image.
             reconstructed_channel = channel_dimmed / pred_channel_dim_factor
@@ -193,7 +247,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             fig.subplots_adjust(top=3.0)
             ax1.set_title(
                 'Channel: {} (col 1: original, col 2: dimmed, col 3: reconstructed, col 4: difference)\n'
-                'Dimming (true): {}, dimming (predicted): {}'.format(i+1, gt_output[0, i],
+                'Dimming (true): {}, dimming (predicted): {}'.format(i+1, gt_output[rand_idx, i],
                                                                      pred_channel_dim_factor))
             ax1.axis('off')
             ax1.imshow(channel_orig, norm=None, cmap='hot', vmin=scale_min, vmax=scale_max)
@@ -223,13 +277,12 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.close()
         _logger.info('Debug sample saved to {}'.format(img_file))
 
-        # TODO move dimming values figure below into a plotting function if we still need it
-        # or decide to remove it
+        # TODO move dimming values figure below into a plotting function
         fig = plt.figure()
-        dim_factors_numpy = gt_output[0].view(-1).cpu().numpy()
+        dim_factors_numpy = gt_output[rand_idx].view(-1).cpu().numpy()
         plt.scatter(range(1, self.num_channels + 1), dim_factors_numpy,
                     label='Dimming factors (true)')
-        output_numpy = output[0].detach().view(-1).cpu().numpy()
+        output_numpy = output[rand_idx].detach().view(-1).cpu().numpy()
         plt.scatter(range(1, self.num_channels + 1), output_numpy,
                     label='Dimming factors (predicted)')
         title = 'training dimming factors' if train else 'testing dimming factors'
@@ -260,9 +313,9 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         # Pearson correlation values last batch
         pr_coeff = []
-        for i, channel in enumerate(self.wavelengths):
+        for c in range(self.num_channels):
             pr_coeff.append(stats.pearsonr(
-                output_numpy[i], gt_output_numpy[i])[0])
+                output_numpy[:, c], gt_output_numpy[:, c])[0])
         df_pr_coeff = pd.DataFrame(
             dict(zip(self.wavelengths, pr_coeff)), index=[0])
         _logger.info('\n\nPearson coefficient values by channel \n {}'
