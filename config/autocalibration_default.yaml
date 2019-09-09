@@ -1,5 +1,4 @@
 pipeline-name: AutocalibrationPipeline
-model-version: 1
 results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
 min-alpha: 0.01
 log-minimal: True
@@ -34,4 +33,9 @@ h-step: 6
 mnt-step: 1
 day-step: 1
 tolerance: 0.05
-
+# Note: Thresholding the black values leads to better results; the value
+# 0.09 was also chosen experimentally based on what blocked out most of
+# the 'noise' in the black background outside of the solar disk.
+threshold-black: True
+threshold-black-value: 0.09
+flip-image: True
