@@ -24,6 +24,7 @@ from sklearn.metrics import mean_squared_error
 from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
 from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
 from sdo.models.vt_basic_encoder import VT_BasicEncoder
+from sdo.models.vt_unet_generator import VT_UnetGenerator
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
@@ -83,6 +84,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
         elif model_version == 2:
             model = VT_BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
                                                  scaled_width])
+        elif model_version == 3:
+            model = VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
+                                     scaled_width], num_filter=64, LR_neg_slope=0.2)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -156,6 +160,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
             # TODO ssim can be lower than 1, to investigate if the sign matters
             # but we cannot have a flipping sign into the loss function
             return (1 - abs(ssim_loss(output, gt_output)))
+        elif self.loss == 'smoothL1':
+            L1_loss = nn.SmoothL1Loss()
+            return L1_loss(output, gt_output)
         else:
             _logger.error('Required loss not implemented')
 
@@ -214,10 +221,11 @@ class VirtualTelescopePipeline(TrainingPipeline):
         pix_sim = pixel_sim(output[index][0], gt_output[index][0])
         _logger.info('Structural similarity for single sample: {}'.format(struc_sim))
         _logger.info('Pixel similarity for single sample: {}'.format(pix_sim))
-        # TODO: Can also include the filtering components.
+        
+        # TODO: The metric below produces huge values, fix
         # Note: lower values are better for the psd metric here.
-        psd_1Dpred = azimuthal_average(compute_2Dpsd(output[index, 0, :, :]))
-        psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
-        psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
-        _logger.info('PSD metric for single sample: {}'.format(psd_metric))
+        #psd_1Dpred = azimuthal_average(compute_2Dpsd(output[index, 0, :, :]))
+        #psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
+        #psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
+        #_logger.info('PSD metric for single sample: {}'.format(psd_metric))
         

@@ -294,7 +294,7 @@ class TrainingPipeline(object):
                 format_graph_prefix(epoch, self.exp_name)))
         _logger.info('Saving ground truths and predictions to {}...'.
                      format(predictions_filename))
-        
+    
         gt_outputs_np = torch.cat(gt_outputs).detach().cpu().numpy()
         outputs_np = torch.cat(outputs).detach().cpu().numpy()
         # stacked factors will have shape (len_dataset, len_channels, 2)
@@ -374,6 +374,7 @@ class TrainingPipeline(object):
                     plot_primary_metric(epoch, train_primary_metrics, test_primary_metrics,
                                         self.results_path, self.exp_name,
                                         self.get_primary_metric_name())
-
-        self.print_final_details(total_perf, train_losses, test_losses,
+                if (epoch % self.save_interval == 0) or last_epoch:
+                    # We want to save at regular intervals the best values so far
+                    self.print_final_details(total_perf, train_losses, test_losses,
                                  train_primary_metrics, test_primary_metrics)

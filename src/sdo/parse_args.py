@@ -1,3 +1,7 @@
+"""
+Provides a common pipeline for running and restarting training/testing experiments.
+"""
+
 import logging
 import os
 import pprint
@@ -11,9 +15,6 @@ from sdo import __version__
 _logger = logging.getLogger(__name__)
 
 
-"""
-Provides a common pipeline for running and restarting training/testing experiments.
-"""
 def parse_args(args):
     """Parse command line parameters
 
@@ -269,7 +270,7 @@ def parse_args(args):
         dest='loss',
         type=str,
         default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) or mse. ')
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) mse, smoothL1.')
     p.add_argument(
         '--noise-image',
         dest='noise_image',
