@@ -13,10 +13,10 @@ _logger = logging.getLogger(__name__)
 # 128x128 and 256x256?
 class Autocalibration6(nn.Module):
     def __init__(self, input_shape, output_dim):
-        super().__init__()
-        if (len(input_shape) != 3):
+        super.__init__()
+        if len(input_shape) != 3:
             raise ValueError('Expecting an input_shape representing dimensions CxHxW')
-        self._input_channels = input_shape[0]
+        self()._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
 
         # Note: Two convolutional layers are needed to get results.

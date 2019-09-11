@@ -1,18 +1,9 @@
-from collections import namedtuple, defaultdict
-import math
-import random
-import os
-import shutil
 import torch
-import torchvision as tv
-import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import sys
+
 from functools import reduce
 import operator
-
 
 
 def prod(iterable):

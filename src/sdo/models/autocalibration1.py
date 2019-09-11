@@ -12,8 +12,8 @@ _logger = logging.getLogger(__name__)
 # TODO: Put all the autocalibration model versions into a single file.
 class Autocalibration1(nn.Module):
     def __init__(self, input_shape, output_dim):
-        super().__init__()
-        if (len(input_shape) != 3):
+        super.__init__()
+        if len(input_shape) != 3:
             raise ValueError('Expecting an input_shape representing dimensions CxHxW')
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
