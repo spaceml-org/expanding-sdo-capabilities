@@ -104,7 +104,11 @@ def main(args):
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
           tolerance=args.tolerance,
-          min_alpha=args.min_alpha)
+          min_alpha=args.min_alpha,
+          noise_image=args.noise_image,
+          threshold_black=args.threshold_black,
+          threshold_black_value=args.threshold_black_value,
+          flip_test_images=args.flip_test_images)
     elif args.pipeline_name == 'VirtualTelescopePipeline':
         pipeline = VirtualTelescopePipeline(
           exp_name=args.experiment_name,

@@ -42,8 +42,17 @@ def plot_loss(epoch, train_losses, test_losses, results_path, exp_name):
     Plot both training and testing losses on the same graph.
     """
     fig = plt.figure()
+
     plt.plot(train_losses, label='Training Loss')
+    # Prevent large unscaled ReLU values at the very start of training
+    # from 'dominating' on the loss y-axis.
+    plt.gca().set_ylim([min(0.0, min(train_losses)),
+                        max(train_losses, 0.8)])
+
     plt.plot(test_losses, label='Testing Loss')
+    plt.gca().set_ylim([min(0.0, min(test_losses)),
+                        max(test_losses, 0.8)])
+
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training/testing loss after {} epochs'.format(epoch))

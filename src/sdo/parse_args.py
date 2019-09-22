@@ -1,3 +1,7 @@
+"""
+Provides a common pipeline for running and restarting training/testing experiments.
+"""
+
 import logging
 import os
 import pprint
@@ -11,9 +15,6 @@ from sdo import __version__
 _logger = logging.getLogger(__name__)
 
 
-"""
-Provides a common pipeline for running and restarting training/testing experiments.
-"""
 def parse_args(args):
     """Parse command line parameters
 
@@ -269,7 +270,38 @@ def parse_args(args):
         dest='loss',
         type=str,
         default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default), mse, smoothL1. ')
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) mse, smoothL1.')
+    p.add_argument(
+        '--noise-image',
+        dest='noise_image',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If true, then we randomly generate noise for all of our images rather than use SDO data')
+    p.add_argument(
+        '--threshold-black',
+        dest='threshold_black',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, any value less than threshold-black-value will be converted to 0')
+    p.add_argument(
+        '--threshold-black-value',
+        dest='threshold_black_value',
+        type=float,
+        default=0.09,
+        help='Values equal to or smaller than this will be thresholded to black')
+    p.add_argument(
+        '--flip-image',
+        dest='flip_test_images',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, during inference of our testing data we flip the image')
+>>>>>>> master
 
     args = vars(p.parse_args(args))
 
