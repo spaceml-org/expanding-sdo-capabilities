@@ -301,7 +301,6 @@ def parse_args(args):
         const=True,
         default=False,
         help='If True, during inference of our testing data we flip the image')
->>>>>>> master
 
     args = vars(p.parse_args(args))
 
