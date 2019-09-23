@@ -1,5 +1,8 @@
 """
-Modified from https://github.com/GunhoChoi/Kind-PyTorch-Tutorial/blob/master/12_Semantic_Segmentation/UNet.py
+This is almost the same of vt_unet_generator.py. The only difference is the convolutional block used in every 
+phase. The block here contains an activation function after the second convolutional layer. One good reason
+to include this activation function is making sure the concatenation step include all values went through the
+same activation function.
 """
 import logging
 import torch
@@ -7,12 +10,13 @@ import torch.nn as nn
 
 from sdo.models.unet_basic_blocks import (maxpool,
                                           conv_block_2,
+                                          conv_block_2_sym,
                                           conv_trans_block)
 
 _logger = logging.getLogger(__name__)
 
 
-class VT_UnetGenerator(nn.Module):
+class VT_UnetGenerator2(nn.Module):
 
     def __init__(self, input_shape=[3, 128, 128], num_filter=64, LR_neg_slope=0.2):
         super(VT_UnetGenerator, self).__init__()
@@ -23,34 +27,34 @@ class VT_UnetGenerator(nn.Module):
 
         _logger.info("\n------Initiating U-Net------\n")
         # contracting phase
-        self.down_1 = conv_block_2(self.in_dim, self.num_filter, act_fn)
+        self.down_1 = conv_block_2_sym(self.in_dim, self.num_filter, act_fn)
         self.pool_1 = maxpool()
-        self.down_2 = conv_block_2(
+        self.down_2 = conv_block_2_sym(
             self.num_filter*1, self.num_filter*2, act_fn)
         self.pool_2 = maxpool()
-        self.down_3 = conv_block_2(
+        self.down_3 = conv_block_2_sym(
             self.num_filter*2, self.num_filter*4, act_fn)
         self.pool_3 = maxpool()
-        self.down_4 = conv_block_2(
+        self.down_4 = conv_block_2_sym(
             self.num_filter*4, self.num_filter*8, act_fn)
         self.pool_4 = maxpool()
 
-        self.bridge = conv_block_2(
+        self.bridge = conv_block_2_sym(
             self.num_filter*8, self.num_filter*16, act_fn)
 
         # expansion phase
         self.trans_1 = conv_trans_block(
             self.num_filter*16, self.num_filter*8, act_fn)
-        self.up_1 = conv_block_2(self.num_filter*16, self.num_filter*8, act_fn)
+        self.up_1 = conv_block_2_sym(self.num_filter*16, self.num_filter*8, act_fn)
         self.trans_2 = conv_trans_block(
             self.num_filter*8, self.num_filter*4, act_fn)
-        self.up_2 = conv_block_2(self.num_filter*8, self.num_filter*4, act_fn)
+        self.up_2 = conv_block_2_sym(self.num_filter*8, self.num_filter*4, act_fn)
         self.trans_3 = conv_trans_block(
             self.num_filter*4, self.num_filter*2, act_fn)
-        self.up_3 = conv_block_2(self.num_filter*4, self.num_filter*2, act_fn)
+        self.up_3 = conv_block_2_sym(self.num_filter*4, self.num_filter*2, act_fn)
         self.trans_4 = conv_trans_block(
             self.num_filter*2, self.num_filter*1, act_fn)
-        self.up_4 = conv_block_2(self.num_filter*2, self.num_filter*1, act_fn)
+        self.up_4 = conv_block_2_sym(self.num_filter*2, self.num_filter*1, act_fn)
 
         self.out = nn.Sequential(
             nn.Conv2d(self.num_filter, self.out_dim, kernel_size=3, stride=1, padding=1),

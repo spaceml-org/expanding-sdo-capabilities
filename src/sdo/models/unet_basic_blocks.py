@@ -30,7 +30,7 @@ def conv_trans_block(in_dim, out_dim, act_fn):
     in the expansion phase, in combination with the pooled layer from the
     contraction phase"""
     model = nn.Sequential(nn.ConvTranspose2d(
-        in_dim,out_dim, kernel_size=3, stride=2, padding=1, output_padding=1),
+        in_dim, out_dim, kernel_size=3, stride=2, padding=1, output_padding=1),
         act_fn)
     return model
 
@@ -39,4 +39,17 @@ def maxpool():
     """this is used for downsampling in the contraction phase"""
     pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
     return pool
+
+
+def conv_block_2_sym(in_dim, out_dim, act_fn):
+    """Sequence of 2 convolution layers where both the layers are followed by the 
+    activation function, this is used for down-sampling in the contraction phase in 
+    model 4"""
+    model = nn.Sequential(
+        nn.Conv2d(in_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        act_fn,
+        nn.Conv2d(out_dim, out_dim, kernel_size=3, stride=1, padding=1),
+        act_fn
+    )
+    return model
 
