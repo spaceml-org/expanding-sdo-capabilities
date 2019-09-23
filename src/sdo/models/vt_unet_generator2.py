@@ -19,7 +19,7 @@ _logger = logging.getLogger(__name__)
 class VT_UnetGenerator2(nn.Module):
 
     def __init__(self, input_shape=[3, 128, 128], num_filter=64, LR_neg_slope=0.2):
-        super(VT_UnetGenerator, self).__init__()
+        super(VT_UnetGenerator2, self).__init__()
         self.in_dim = input_shape[0]
         self.out_dim = 1
         self.num_filter = num_filter
