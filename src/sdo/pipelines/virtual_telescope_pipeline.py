@@ -93,8 +93,8 @@ class VirtualTelescopePipeline(TrainingPipeline):
             model = VT_UnetGenerator2(input_shape=[self.num_channels - 1, scaled_height,
                                      scaled_width], num_filter=64, LR_neg_slope=0.2)
         elif model_version == 5:
-            model = linearRegression(input_shape=[self.num_channels - 1, scaled_height, scaled_width], 
-                              output_shape=[1, scaled_height, scaled_width])
+            model = linearRegression(input_shape=[self.num_channels - 1, scaled_height,
+                                                  scaled_width])
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
