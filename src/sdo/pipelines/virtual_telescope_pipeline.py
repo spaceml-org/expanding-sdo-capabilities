@@ -22,9 +22,11 @@ from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
 from sdo.metrics.ssim_metric import SSIM, ssim
 from sklearn.metrics import mean_squared_error
 from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
-from sdo.models.vt_encoder_decoder import VT_EncoderDecoder
-from sdo.models.vt_basic_encoder import VT_BasicEncoder
-from sdo.models.vt_unet_generator import VT_UnetGenerator
+from sdo.models.vt_models import (
+    VT_EncoderDecoder,
+    VT_BasicEncoder,
+    VT_UnetGenerator,
+    )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
@@ -77,22 +79,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
         test_loader = create_dataloader(test_dataset, batch_size_test,
                                         dataloader_workers, train=False)
 
-        if model_version == 1:
-            # TODO add hidden_dim to the pipeline parameters
-            model = VT_EncoderDecoder(input_shape=[self.num_channels - 1, scaled_height,
-                                                   scaled_width], hidden_dim=512)
-        elif model_version == 2:
-            model = VT_BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
-                                                 scaled_width])
-        elif model_version == 3:
-            model = VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
-                                     scaled_width], num_filter=64, LR_neg_slope=0.2)
-        else:
-            # Note: For other model_versions, simply instantiate whatever class
-            # you want to test your experiment for. You will have to update the code
-            # here to reference that class, preferably in sdo.models.*, such as
-            # sdo.models.Autocalibration2.
-            raise Exception('Unknown model version: {}'.format(model_version))
+        model = create_model(model_version, scaled_height, scaled_width)
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
@@ -119,6 +106,27 @@ class VirtualTelescopePipeline(TrainingPipeline):
             saved_optimizer_path=saved_optimizer_path,
             start_epoch_at=start_epoch_at,
             scaling=scaling)
+
+    def create_model(self, model_version, scaled_height, scaled_width):
+        """
+        Create the right model version for this experiment.
+        """
+        if model_version == 1:
+            # TODO add hidden_dim to the pipeline parameters
+            return VT_EncoderDecoder(input_shape=[self.num_channels - 1, scaled_height,
+                                                  scaled_width], hidden_dim=512)
+        elif model_version == 2:
+            return VT_BasicEncoder(input_shape=[self.num_channels - 1, scaled_height,
+                                                scaled_width])
+        elif model_version == 3:
+            return VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
+                                    scaled_width], num_filter=64, LR_neg_slope=0.2)
+        else:
+            # Note: For other model_versions, simply instantiate whatever class
+            # you want to test your experiment for. You will have to update the code
+            # here to reference that class, preferably in sdo.models.*, such as
+            # sdo.models.Autocalibration2.
+            raise Exception('Unknown model version: {}'.format(model_version))
 
     def show_sample(self, loader):
         """ Show some samples for debugging purposes before training/testing. """
