@@ -35,7 +35,7 @@ def sdoml_inventory(dir='/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm'):
         hours[i]= p[4]
         minutes[i] = p[5]
         index[i] = (((int(p[1])*12 + int(p[2]))*31 + int(p[3]))*24 + int(p[4]))*60 + int(p[5])
-        if i % 1000000 ==0:
+        if i % 1000000 == 0:
             print("Done",i)
     df = pd.DataFrame()
     df['year'] = years
@@ -51,7 +51,7 @@ def sdoml_inventory(dir='/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm'):
     df.to_pickle('/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm/inventory.pkl')
 
 
- def parse_name(file):
+def parse_name(file):
     """
     Purpose: Parse SDOML filename
     """
