@@ -22,6 +22,9 @@ from sdo.models.autocalibration_models import (
   Autocalibration5,
   Autocalibration6,
   Autocalibration7,
+  Autocalibration8,
+  Autocalibration9,
+  Autocalibration10,
   )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
@@ -37,8 +40,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                  batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
-                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, noise_image,
-                 threshold_black, threshold_black_value, flip_test_images):
+                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
+                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.wavelengths = wavelengths
@@ -61,6 +64,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                           normalization=0, scaling=scaling,
                                           test_ratio=test_ratio,
                                           min_alpha=min_alpha,
+                                          max_alpha=max_alpha,
                                           scaled_height=scaled_height,
                                           scaled_width=scaled_width,
                                           noise_image=noise_image,
@@ -77,7 +81,9 @@ class AutocalibrationPipeline(TrainingPipeline):
                                          resolution=actual_resolution,
                                          subsample=subsample,
                                          normalization=0, scaling=scaling,
-                                         test_ratio=test_ratio, min_alpha=min_alpha,
+                                         test_ratio=test_ratio,
+                                         min_alpha=min_alpha,
+                                         max_alpha=max_alpha,
                                          scaled_height=scaled_height,
                                          scaled_width=scaled_width,
                                          noise_image=noise_image,
@@ -91,7 +97,8 @@ class AutocalibrationPipeline(TrainingPipeline):
         test_loader = create_dataloader(test_dataset, batch_size_test,
                                         dataloader_workers, train=False)
 
-        model = self.create_model(model_version, scaled_height, scaled_width, device)
+        model = self.create_model(model_version, scaled_height, scaled_width, device,
+                                  sigmoid_scale)
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
@@ -119,7 +126,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             start_epoch_at=start_epoch_at,
             scaling=scaling)
 
-    def create_model(self, model_version, scaled_height, scaled_width, device):
+    def create_model(self, model_version, scaled_height, scaled_width, device, sigmoid_scale):
         """
         Create the right model version for this experiment.
         """
@@ -163,6 +170,24 @@ class AutocalibrationPipeline(TrainingPipeline):
                                                  scaled_width],
                                     output_dim=self.num_channels,
                                     device=device)
+        elif model_version == 8:
+            # Take Autocalibration6 and replace the final sigmoid with a simple,
+            # plain vanilla ReLU to deal with regressed brightnesses > 1.0.
+            return Autocalibration8(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                    output_dim=self.num_channels)
+        elif model_version == 9:
+            # Keep sigmoid activation function but scale its value.
+            return Autocalibration9(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                    output_dim=self.num_channels,
+                                    sigmoid_scale=sigmoid_scale)
+        elif model_version == 10:
+            # Same as Autocalibration6, but use a ReLU6 activation function as
+            # the final function replacing the sigmoid to get a clipped relu value.
+            return Autocalibration10(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                     output_dim=self.num_channels)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code

@@ -105,10 +105,12 @@ def main(args):
           optimizer_lr=args.optimizer_lr,
           tolerance=args.autocal_tolerance,
           min_alpha=args.autocal_min_alpha,
+          max_alpha=args.autocal_max_alpha,
           noise_image=args.autocal_noise_image,
           threshold_black=args.autocal_threshold_black,
           threshold_black_value=args.autocal_threshold_black_value,
-          flip_test_images=args.autocal_flip_test_images)
+          flip_test_images=args.autocal_flip_test_images,
+          sigmoid_scale=args.autocal_sigmoid_scale)
     elif args.pipeline_name == 'VirtualTelescopePipeline':
         pipeline = VirtualTelescopePipeline(
           exp_name=args.experiment_name,

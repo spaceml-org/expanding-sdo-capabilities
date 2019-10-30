@@ -297,7 +297,13 @@ def parse_autocal_args(p):
         dest='autocal_min_alpha',
         type=float,
         default=0.01,
-        help='Smaller degradation factor that can be randomly generated. The maximum is currently fixed to 1.')
+        help='The smallest degradation factor that can be randomly generated.')
+    p.add_argument(
+        '--autocal-max-alpha',
+        dest='autocal_max_alpha',
+        type=float,
+        default=1.0,
+        help='The largest degradation factor that can be randomly generated.')
     p.add_argument(
         '--autocal-noise-image',
         dest='autocal_noise_image',
@@ -328,6 +334,12 @@ def parse_autocal_args(p):
         const=True,
         default=False,
         help='If True, during inference of our testing data we flip the image')
+    p.add_argument(
+        '--autocal-sigmoid-scale',
+        dest='autocal_sigmoid_scale',
+        type=float,
+        default=1.0,
+        help='A value by which we will scale the sigmoid function')
 
 
 def parse_vt_args(p):

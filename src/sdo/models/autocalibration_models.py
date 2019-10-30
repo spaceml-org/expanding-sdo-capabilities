@@ -366,3 +366,150 @@ class Autocalibration7(nn.Module):
         x = torch.nn.LeakyReLU()(x)
 
         return x
+
+
+class Autocalibration8(nn.Module):
+    """
+    Same as Autocalibration6, but use a plain vanilla ReLU as the final activation function
+    rather than a sigmoid.
+    """
+    def __init__(self, input_shape, output_dim):
+        super(Autocalibration8, self).__init__()
+        if len(input_shape) != 3:
+            raise ValueError('Expecting an input_shape representing dimensions CxHxW')
+        self._input_channels = input_shape[0]
+        _logger.info('input_channels: {}'.format(self._input_channels))
+
+        # Note: Two convolutional layers are needed to get results.
+        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
+        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
+        # banks (32) however
+        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
+        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
+        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
+        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
+        _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
+
+        self._fc = nn.Linear(self._cnn_output_dim, output_dim)
+        
+    def _cnn(self, x):
+        x = self._conv2d1(x)
+        x = torch.relu(x)
+        x = self._conv2d1_maxpool(x)
+
+        x = self._conv2d2(x)
+        x = torch.relu(x)
+        x = self._conv2d2_maxpool(x)
+
+        return x
+    
+    def forward(self, x):
+        batch_dim = x.shape[0]
+        x = self._cnn(x).view(batch_dim, -1)
+        x = self._fc(x)
+        x = torch.relu(x)
+        return x
+
+
+class Autocalibration9(nn.Module):
+    """
+    Building off of the Autocalibration6 model, introduces a sigmoid scale
+    value that can scale the final sigmoid activation function.
+    """
+    def __init__(self, input_shape, output_dim, sigmoid_scale):
+        super(Autocalibration9, self).__init__()
+        if len(input_shape) != 3:
+            raise ValueError('Expecting an input_shape representing dimensions CxHxW')
+        self._input_channels = input_shape[0]
+        self._sigmoid_scale = sigmoid_scale
+        _logger.info('input_channels: {}'.format(self._input_channels))
+
+        # Note: Two convolutional layers are needed to get results.
+        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
+        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
+        # banks (32) however
+        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
+        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
+        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
+        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
+        _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
+
+        self._fc = nn.Linear(self._cnn_output_dim, output_dim)
+        
+    def _cnn(self, x):
+        x = self._conv2d1(x)
+        x = torch.relu(x)
+        x = self._conv2d1_maxpool(x)
+
+        x = self._conv2d2(x)
+        x = torch.relu(x)
+        x = self._conv2d2_maxpool(x)
+
+        return x
+    
+    def forward(self, x):
+        batch_dim = x.shape[0]
+        x = self._cnn(x).view(batch_dim, -1)
+        x = self._fc(x)
+        x = self._sigmoid_scale * torch.sigmoid(x)
+        return x
+
+
+class Autocalibration10(nn.Module):
+    """
+    Same as Autocalibration6, but use a ReLU6 activation function as the final function
+    replacing the sigmoid to get a clipped relu value.
+    """
+    def __init__(self, input_shape, output_dim):
+        super(Autocalibration10, self).__init__()
+        if len(input_shape) != 3:
+            raise ValueError('Expecting an input_shape representing dimensions CxHxW')
+        self._input_channels = input_shape[0]
+        _logger.info('input_channels: {}'.format(self._input_channels))
+
+        # Note: Two convolutional layers are needed to get results.
+        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
+        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
+        # banks (32) however
+        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
+        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
+        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
+        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
+        _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
+
+        self._fc = nn.Linear(self._cnn_output_dim, output_dim)
+
+        self._relu6 = torch.nn.ReLU6() 
+        
+    def _cnn(self, x):
+        x = self._conv2d1(x)
+        x = torch.relu(x)
+        x = self._conv2d1_maxpool(x)
+
+        x = self._conv2d2(x)
+        x = torch.relu(x)
+        x = self._conv2d2_maxpool(x)
+
+        return x
+    
+    def forward(self, x):
+        batch_dim = x.shape[0]
+        x = self._cnn(x).view(batch_dim, -1)
+        x = self._fc(x)
+        x = self._relu6(x)
+        return x

@@ -32,6 +32,7 @@ h-step: 6
 mnt-step: 1
 day-step: 1
 autocal-min-alpha: 0.01
+autocal-max-alpha: 1.0
 autocal-tolerance: 0.05
 # Note: Thresholding the black values leads to better results; the value
 # 0.09 was also chosen experimentally based on what blocked out most of

@@ -16,13 +16,14 @@ _logger = logging.getLogger(__name__)
 
 
 class DimmedSDO_Dataset(SDO_Dataset):
-    def __init__(self, num_channels, min_alpha,
+    def __init__(self, num_channels, min_alpha, max_alpha,
                  scaled_height, scaled_width, noise_image=False,
                  threshold_black=False, threshold_black_value=0,
                  flip_test_images=False, *args, **kwargs):
         super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
         self.min_alpha = min_alpha
+        self.max_alpha = max_alpha
         self.noise_image = noise_image
         self.scaled_height = scaled_height
         self.scaled_width = scaled_height
@@ -56,7 +57,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
 
         dim_factor = torch.zeros(self.num_channels)
         while any(dim_factor < self.min_alpha):
-            dim_factor = torch.rand(self.num_channels)
+            dim_factor = self.max_alpha * torch.rand(self.num_channels)
 
         for c in range(self.num_channels):
             dimmed_img[c] = dimmed_img[c] * dim_factor[c]
