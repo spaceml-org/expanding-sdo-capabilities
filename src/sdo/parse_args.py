@@ -29,6 +29,8 @@ def parse_args(args):
     p = configargparse.ArgParser(config_file_parser_class=YAMLConfigFileParser,
                                  default_config_files=['./configs/*.conf'],
                                  description='Training/testing pipeline')
+
+    # Arguments that are common across all subprojects.
     p.add_argument(
         '--version',
         action='version',
@@ -242,14 +244,6 @@ def parse_args(args):
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
-        '--tolerance',
-        dest='tolerance',
-        type=float,
-        default=0.05,
-        help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
-             'If the difference is above this value the prediction is considered unsuccessful.'
-             'This value affects the computation of the primary metric (frequency of binary success).')
-    p.add_argument(
         '--optimizer-weight-decay',
         type=float,
         default=0,
@@ -259,48 +253,10 @@ def parse_args(args):
         type=float,
         default=1e-3,
         help='The learning rate to use for whatever optimizer might be used; current default Torchs Adam default')
-    p.add_argument(
-        '--min-alpha',
-        dest='min_alpha',
-        type=float,
-        default=0.01,
-        help='Smaller degradation factor that can be randomly generated. The maximum is currently fixed to 1.')
-    p.add_argument(
-        '--loss',
-        dest='loss',
-        type=str,
-        default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) mse, smoothL1.')
-    p.add_argument(
-        '--noise-image',
-        dest='noise_image',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If true, then we randomly generate noise for all of our images rather than use SDO data')
-    p.add_argument(
-        '--threshold-black',
-        dest='threshold_black',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If True, any value less than threshold-black-value will be converted to 0')
-    p.add_argument(
-        '--threshold-black-value',
-        dest='threshold_black_value',
-        type=float,
-        default=0.09,
-        help='Values equal to or smaller than this will be thresholded to black')
-    p.add_argument(
-        '--flip-image',
-        dest='flip_test_images',
-        type=str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='If True, during inference of our testing data we flip the image')
+
+    # Parse arguments that are specific to each of the sub-projects.
+    parse_autocal_args(p)
+    parse_vt_args(p)
 
     args = vars(p.parse_args(args))
 
@@ -322,6 +278,80 @@ def parse_args(args):
     # to configure it, so we just print to standard out these details.
     print('\nParsed configuration:\n\n{}'.format(pprint.pformat(args, indent=2)))
     return configargparse.Namespace(**args)
+
+
+def parse_autocal_args(p):
+    """
+    Parse arguments that are only for autocal.
+    """
+    p.add_argument(
+        '--autocal-tolerance',
+        dest='autocal_tolerance',
+        type=float,
+        default=0.05,
+        help='Maximum absolute difference between predicted and ground truth value of the dimming factors.'
+             'If the difference is above this value the prediction is considered unsuccessful.'
+             'This value affects the computation of the primary metric (frequency of binary success).')
+    p.add_argument(
+        '--autocal-min-alpha',
+        dest='autocal_min_alpha',
+        type=float,
+        default=0.01,
+        help='The smallest degradation factor that can be randomly generated.')
+    p.add_argument(
+        '--autocal-max-alpha',
+        dest='autocal_max_alpha',
+        type=float,
+        default=1.0,
+        help='The largest degradation factor that can be randomly generated.')
+    p.add_argument(
+        '--autocal-noise-image',
+        dest='autocal_noise_image',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If true, then we randomly generate noise for all of our images rather than use SDO data')
+    p.add_argument(
+        '--autocal-threshold-black',
+        dest='autocal_threshold_black',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, any value less than threshold-black-value will be converted to 0')
+    p.add_argument(
+        '--autocal-threshold-black-value',
+        dest='autocal_threshold_black_value',
+        type=float,
+        default=0.09,
+        help='Values equal to or smaller than this will be thresholded to black')
+    p.add_argument(
+        '--autocal-flip-image',
+        dest='autocal_flip_test_images',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, during inference of our testing data we flip the image')
+    p.add_argument(
+        '--autocal-sigmoid-scale',
+        dest='autocal_sigmoid_scale',
+        type=float,
+        default=1.0,
+        help='A value by which we will scale the sigmoid function')
+
+
+def parse_vt_args(p):
+    """
+    Parse arguments that are only for virtual telescope.
+    """
+    p.add_argument(
+        '--vt-loss',
+        dest='vt_loss',
+        type=str,
+        default='ssim',
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) mse, smoothL1.')
 
 
 def str2bool(v):
