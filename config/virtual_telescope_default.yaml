@@ -1,6 +1,6 @@
 pipeline-name: VirtualTelescopePipeline
 model-version: 1
-results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results_vt
+results-path: /fdl_sdo_data/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE
 log-minimal: True
 batch-size-train: 128
 batch-size-test: 128

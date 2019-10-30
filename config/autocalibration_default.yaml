@@ -1,5 +1,5 @@
 pipeline-name: AutocalibrationPipeline
-results-path: /gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/experiments_results
+results-path: /fdl_sdo_data/EXPERIMENT_RESULTS/AUTOCAL
 log-minimal: True
 scaling: True
 batch-size-train: 64
