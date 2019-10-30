@@ -26,6 +26,8 @@ from sdo.models.vt_models import (
     VT_EncoderDecoder,
     VT_BasicEncoder,
     VT_UnetGenerator,
+    VT_UnetGenerator2,
+    linearRegression,
     )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
@@ -79,7 +81,13 @@ class VirtualTelescopePipeline(TrainingPipeline):
         test_loader = create_dataloader(test_dataset, batch_size_test,
                                         dataloader_workers, train=False)
 
-        model = create_model(model_version, scaled_height, scaled_width)
+        model = self.create_model(model_version, scaled_height, scaled_width)
+        
+        if torch.cuda.device_count() > 1:
+            _logger.info("{} GPUs are available".format(torch.cuda.device_count()))
+            model = nn.DataParallel(model)
+            # in order to use DataParallel "module must have its parameters and buffers on device cuda:0"
+            device = torch.device('cuda', 0)
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
@@ -120,12 +128,18 @@ class VirtualTelescopePipeline(TrainingPipeline):
                                                 scaled_width])
         elif model_version == 3:
             return VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
-                                    scaled_width], num_filter=64, LR_neg_slope=0.2)
+                                                scaled_width], num_filter=64, LR_neg_slope=0.2)
+        elif model_version == 4:
+            return VT_UnetGenerator2(input_shape=[self.num_channels - 1, scaled_height,
+                                                  scaled_width], num_filter=64, LR_neg_slope=0.2)
+        elif model_version == 5:
+            return linearRegression(input_shape=[self.num_channels - 1, scaled_height,
+                                                 scaled_width])
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
             # here to reference that class, preferably in sdo.models.*, such as
-            # sdo.models.Autocalibration2.
+            # sdo.models.VT_model2.
             raise Exception('Unknown model version: {}'.format(model_version))
 
     def show_sample(self, loader):

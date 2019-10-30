@@ -47,11 +47,11 @@ def plot_loss(epoch, train_losses, test_losses, results_path, exp_name):
     # Prevent large unscaled ReLU values at the very start of training
     # from 'dominating' on the loss y-axis.
     plt.gca().set_ylim([min(0.0, min(train_losses)),
-                        max(0.8, max(train_losses))])
+                        min(0.8, max(train_losses))])
 
     plt.plot(test_losses, label='Testing Loss')
     plt.gca().set_ylim([min(0.0, min(test_losses)),
-                        max(0.8, max(test_losses))])
+                        min(0.8, max(test_losses))])
 
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
