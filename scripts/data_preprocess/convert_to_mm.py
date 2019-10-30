@@ -2,7 +2,8 @@
 
 """
 Converts the SDO dataset to numpy memory mapped objects, so that PyTorch dataloaders do
-much less work when fetching data to speed up training.
+much less work when fetching data to speed up training. To run this script faster, it
+is recommended that you start a machine with 12 virtual cores.
 
 To use, simply call this script, which already has the years to convert inside of it:
 
