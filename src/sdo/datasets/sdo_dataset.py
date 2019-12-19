@@ -12,7 +12,6 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from sdo.global_vars import DATA_BASEDIR, INVENTORY
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
@@ -29,6 +28,8 @@ class SDO_Dataset(Dataset):
 
     def __init__(
         self,
+        data_basedir,
+        data_inventory,
         instr=["AIA", "AIA", "HMI"],
         channels=["0171", "0193", "bz"],
         yr_range=[2010, 2018],
@@ -38,18 +39,19 @@ class SDO_Dataset(Dataset):
         min_step=60,
         resolution=512,
         subsample=1,
-        base_dir=DATA_BASEDIR,
         test=False,
         test_ratio=0.3,
         shuffle=False,
         normalization=0,
         scaling=True,
         holdout=False,
-        inventory=INVENTORY
     ):
         """
-
         Args:
+            data_basedir (str): path to locate training/testing data.
+            data_inventory (str): path to a pre-computed inventory file that contains
+                a dataframe of existing files. If False(or not valid) the file search is done
+                by folder and it is much slower.
             channels (list string): channels to be selected
             instr (list string): instrument to which each channel corresponds to. 
                                  It has to be of the same size of channels.
@@ -73,13 +75,10 @@ class SDO_Dataset(Dataset):
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
-            inventory (str): path to an pre-computed inventory file that contains a dataframe of existing
-                files. If False(or not valid) the file search is done by folder and it is much slower.
-
         """
         assert day_step > 0 and h_step > 0 and min_step > 0
 
-        self.dir = base_dir
+        self.data_basedir = data_basedir
         self.instr = instr
         self.channels = channels
         self.resolution = resolution
@@ -95,12 +94,12 @@ class SDO_Dataset(Dataset):
         self.normalization = normalization
         self.scaling = scaling
         self.holdout = holdout
-        if path.isfile(inventory):
-            self.inventory = inventory
+        if path.isfile(data_inventory):
+            self.data_inventory = data_inventory
         else:
             _logger.warning("A valid inventory file has NOT be passed"
                             "If this is not expected check the path.")
-            self.inventory = False
+            self.data_inventory = False
         # TODO self.timestamps is not used in get_item
         self.files, self.timestamps = self.create_list_files()
 
@@ -131,7 +130,8 @@ class SDO_Dataset(Dataset):
              correspondant timestamps.
 
         """
-        _logger.info('Loading SDOML from "%s"' % self.dir)
+        _logger.info('Loading SDOML from "%s"' % self.data_basedir)
+        _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
         indexes = ['year', 'month', 'day', 'hour', 'min']
         yrs = np.arange(self.yr_range[0], self.yr_range[1]+1)
         months = self.find_months()
@@ -147,8 +147,8 @@ class SDO_Dataset(Dataset):
         _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in (minus)))
         _logger.info("Max number of timestamps: %d" % tot_timestamps)
 
-        if self.inventory:
-            df = pd.read_pickle(self.inventory)
+        if self.data_inventory:
+            df = pd.read_pickle(self.data_inventory)
             cond0 = df['channel'].isin(self.channels)
             cond1 = df['year'].isin(yrs)
             cond2 = df['month'].isin(months)
@@ -173,7 +173,7 @@ class SDO_Dataset(Dataset):
             discarded_tm = n_sel_timestamps - len(timestamps)
         else:
             _logger.warning(
-                'A valid inventory file has not be passed, be prepared to wait.')
+                'A valid inventory file has not been passed in, be prepared to wait.')
             files = []
             timestamps = []
             discarded_tm = 0
@@ -186,9 +186,9 @@ class SDO_Dataset(Dataset):
                                 # of parameters result is -1
                                 result = sdo_find(y, month, d, h, minu,
                                                   initial_size=self.resolution,
+                                                  basedir=self.data_basedir,
                                                   instrs=self.instr,
                                                   channels=self.channels,
-                                                  basedir=self.dir,
                                                   )
                             if result != -1:
                                 files.append(result)

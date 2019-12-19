@@ -1,20 +1,16 @@
 import logging
+from math import sqrt
 import os
 
+from contexttimer import Timer
 import matplotlib.pyplot as plt
-
 import numpy as np
-from math import sqrt
-
+import pandas
+import scipy.stats as stats
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-import seaborn as sns
-
-import scipy.stats as stats
-
-import pandas
 
 from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
 from sdo.io import format_graph_prefix
@@ -39,8 +35,9 @@ _logger = logging.getLogger(__name__)
 
 class VirtualTelescopePipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
-                 scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
-                 batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
+                 scaled_width, device, data_basedir, data_inventory, instruments,
+                 wavelengths, subsample, batch_size_train, batch_size_test,
+                 test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers,
                  scaling, optimizer_weight_decay, optimizer_lr, loss):
@@ -53,28 +50,42 @@ class VirtualTelescopePipeline(TrainingPipeline):
         _logger.info('Instruments: {}'.format(instruments))
 
         _logger.info('\nSetting up training dataset:')
-        train_dataset = VirtualTelescopeSDO_Dataset(
-                                    num_channels=self.num_channels,
-                                    instr=instruments,
-                                    channels=wavelengths, yr_range=yr_range,
-                                    mnt_step=mnt_step, day_step=day_step,
-                                    h_step=h_step, min_step=min_step,
-                                    resolution=actual_resolution,
-                                    subsample=subsample,
-                                    normalization=0, scaling=scaling,
-                                    test_ratio=test_ratio)
+        with Timer() as train_dataset_perf:
+            train_dataset = VirtualTelescopeSDO_Dataset(
+                                        data_basedir=data_basedir,
+                                        data_inventory=data_inventory,
+                                        num_channels=self.num_channels,
+                                        instr=instruments,
+                                        channels=wavelengths, yr_range=yr_range,
+                                        mnt_step=mnt_step, day_step=day_step,
+                                        h_step=h_step, min_step=min_step,
+                                        resolution=actual_resolution,
+                                        subsample=subsample,
+                                        normalization=0, scaling=scaling,
+                                        test_ratio=test_ratio)
+        _logger.info('Total time to load training dataset: {:.1f} s'.format(
+          train_dataset_perf.elapsed))
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = VirtualTelescopeSDO_Dataset(
-                                   num_channels=self.num_channels,
-                                   instr=instruments,
-                                   channels=wavelengths, yr_range=yr_range,
-                                   mnt_step=mnt_step, day_step=day_step,
-                                   h_step=h_step, min_step=min_step,
-                                   resolution=actual_resolution,
-                                   subsample=subsample,
-                                   normalization=0, scaling=scaling,
-                                   test_ratio=test_ratio, test=True)
+        with Timer() as test_dataset_perf:
+            test_dataset = VirtualTelescopeSDO_Dataset(
+                                       data_basedir=data_basedir,
+                                       data_inventory=data_inventory,
+                                       inventory=inventory,
+                                       num_channels=self.num_channels,
+                                       instr=instruments,
+                                       channels=wavelengths, yr_range=yr_range,
+                                       mnt_step=mnt_step, day_step=day_step,
+                                       h_step=h_step, min_step=min_step,
+                                       resolution=actual_resolution,
+                                       subsample=subsample,
+                                       normalization=0, scaling=scaling,
+                                       test_ratio=test_ratio, test=True)
+        _logger.info('Total time to load testing dataset: {:.1f} s'.format(
+          test_dataset_perf.elapsed))
+
+        _logger.info('\nTotal time to load both train & test dataset: {:.1f} s\n'.format(
+          train_dataset_perf.elapsed + test_dataset_perf.elapsed))
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
                                          dataloader_workers, train=True)

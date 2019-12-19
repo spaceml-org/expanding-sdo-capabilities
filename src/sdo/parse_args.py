@@ -10,6 +10,10 @@ import configargparse
 from configargparse import YAMLConfigFileParser
 
 from sdo import __version__
+from sdo.global_vars import (
+    DATA_BASEDIR,
+    DATA_INVENTORY,
+    )
 
 
 _logger = logging.getLogger(__name__)
@@ -108,6 +112,20 @@ def parse_args(args):
         type=int,
         default=100,
         help='Batch size for testing')
+    p.add_argument(
+        '--data-basedir',
+        dest='data_basedir',
+        type=str,
+        default=DATA_BASEDIR,
+        help='Path to load training/testing data')
+    p.add_argument(
+        '--data-inventory',
+        dest='data_inventory',
+        type=str,
+        default=DATA_INVENTORY,
+        help='Path to a pre-computed inventory file that contains '
+             'a dataframe of existing files. If False (or not valid) '
+             'the file search is done by folder and is much slower')
     p.add_argument(
         '--test-ratio',
         dest='test_ratio',

@@ -7,8 +7,12 @@ from numpy import zeros, load
 from numpy import sqrt
 from scipy.misc import bytescale
 import logging
-from sdo.global_vars import (DATA_BASEDIR, DATA_FILENAME_TEMPLATE,
-                             B_CHANNELS, UV_CHANNELS)
+from sdo.global_vars import (
+    DATA_FILENAME_TEMPLATE,
+    B_CHANNELS,
+    UV_CHANNELS,
+    )
+
 
 BUNIT = 2000.0  # units of 2 kGauss
 AUNIT = 100.0  # units of 100 DN/s/pixel
@@ -20,8 +24,8 @@ AUNIT_BYCH = {'1600': 500.0, '1700': 7000.0, '0094': 10.0, '0131': 80.0, '0171':
 _logger = logging.getLogger(__name__)
 
 
-def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
-             subsample=1, basedir=DATA_BASEDIR):
+def sdo_read(year, month, day, hour, minu, basedir, instr='AIA', channel='0094',
+             subsample=1):
     """
     Purpose: Find an SDOML file, and return image if it exists.
     Parameters:
@@ -29,6 +33,7 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
     hour - between 0 and 23
     minu - between 0 and 59 (note AIA data is at 6 min cadence, 
             HMI at 12 min cadence)
+    basedir - directory where the SDO data set is stored.
     instr - 'AIA' or 'HMI'
     channel - 
        if instr=='AIA', channel should be one of '0094', '0131', 
@@ -36,7 +41,6 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
        if instr=='HMI', channel should be one of 'bx', 'by', 'bz' 
        (last is the line-of-sight component of the magnetic field)
     subsample - return image with every subsample-th pixel in both dimensions
-    basedir - directory where the SDO data set is stored.
 
     Returns: np.array. Returns -1 if file is not found.
     """
@@ -49,8 +53,8 @@ def sdo_read(year, month, day, hour, minu, instr='AIA', channel='0094',
     return -1
 
 
-def sdo_find(year, month, day, hour, minu, initial_size, instrs=['AIA', 'AIA', 'HMI'],
-             channels=['0171', '0193', 'bx'], subsample=1, basedir=DATA_BASEDIR,
+def sdo_find(year, month, day, hour, minu, initial_size, basedir,
+             instrs=['AIA', 'AIA', 'HMI'], channels=['0171', '0193', 'bx'], subsample=1,
              return_images=False):
     """
     Purpose: Find filenames of multiple channels of the SDOML dataset with the same 
@@ -60,6 +64,7 @@ def sdo_find(year, month, day, hour, minu, initial_size, instrs=['AIA', 'AIA', '
     year / month / day - a date between May 17 2010 to 12/31/2018
     hour - between 0 and 23
     minu - between 0 and 59 (note AIA data is at 6 min cadence, HMI at 12 min cadence)
+    basedir - directory where the SDO data set is stored.
     initial_size - Unscaled resolution of images.
     instr - 'AIA' or 'HMI'
     channel - 
@@ -68,7 +73,6 @@ def sdo_find(year, month, day, hour, minu, initial_size, instrs=['AIA', 'AIA', '
        if instr=='HMI', channel should be one of 'bx', 'by', 'bz' 
            (last is the line-of-sight component of the magnetic field)
     subsample - return image with every subsample-th pixel in both dimensions
-    basedir - directory where the SDO data set is stored.
     return_images (bool). If False it returns the list of files. If True
          images are returned.
 

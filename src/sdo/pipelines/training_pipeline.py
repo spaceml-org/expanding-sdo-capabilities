@@ -149,13 +149,20 @@ class TrainingPipeline(object):
 
             # Generate extra metrics useful for debugging and analysis.
             # TODO: We are incorrectly doing this on the final batch; fix.
+            # TODO: We seem to be doing this an interval too soon redundantly
             if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
-                self.generate_supporting_metrics(optional_debug_data, output, input_data,
-                                                 gt_output, epoch, train=True)
+                with Timer() as generate_support_perf:
+                    self.generate_supporting_metrics(optional_debug_data, output, input_data,
+                                                     gt_output, epoch, train=True)
+                _logger.info('\nTotal time to generate supporting training metrics: {:.1f} s'.format(
+                    generate_support_perf.elapsed))
 
             if (epoch % self.save_interval == 0) or final_epoch:
-                self.save_training_results(epoch)
-                self.save_predictions(epoch, gt_outputs, outputs, train=True)
+                with Timer() as saving_results_perf:
+                    self.save_training_results(epoch)
+                    self.save_predictions(epoch, gt_outputs, outputs, train=True)
+                _logger.info('\nTotal time to save training results: {:.1f} s'.format(
+                    saving_results_perf.elapsed))
 
             return np.mean(losses), np.mean(total_primary_metrics)
 
@@ -201,6 +208,7 @@ class TrainingPipeline(object):
 
         # TODO: We are incorrectly doing this on the final batch; fix.
         # Generate extra metrics useful for debugging and analysis.
+        # TODO: We seem to be doing this an interval too soon redundantly
         if (epoch % self.additional_metrics_interval == 0) or next_to_last_epoch:
             self.generate_supporting_metrics(optional_debug_data, output,
                                              input_data, gt_output,

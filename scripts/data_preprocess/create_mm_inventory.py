@@ -11,8 +11,13 @@ import glob
 import pandas as pd
 import numpy as np
 
+from sdo.global_vars import (
+    DATA_BASEDIR,
+    DATA_INVENTORY,
+    )
 
-def sdoml_inventory(dir='/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm'):
+
+def sdoml_inventory(dir=DATA_BASEDIR, inv=DATA_INVENTORY):
     """
     Purpose: Create inventory file (pandas df) of SDOML files on local disk
     """
@@ -48,7 +53,7 @@ def sdoml_inventory(dir='/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm'):
     df['file'] = files
     df = df.sort_values('index')
     df = df.set_index('index')
-    df.to_pickle('/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOMLmm/inventory.pkl')
+    df.to_pickle(inv)
 
 
 def parse_name(file):
