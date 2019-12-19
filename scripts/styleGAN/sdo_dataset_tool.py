@@ -3,12 +3,13 @@ import os
 import sys
 import glob
 import argparse
+
 import numpy as np
 import tensorflow as tf
 import PIL.Image
+from scipy.misc import bytescale
 
 from sdo.io import sdo_find, sdo_bytescale
-from scipy.misc import bytescale
 from dataset_tool import TFRecordExporter, error
 
 
@@ -26,9 +27,9 @@ def create_from_sdo(tfrecord_dir, image_dir, shuffle=True):
                     result = sdo_find(
                         y, m, d, h, 0,
                         initial_size=initial_size,
+                        basedir=image_dir,
                         instrs=instrs,
-                        channels=channels,
-                        basedir=image_dir)
+                        channels=channels,)
                     if result != -1:
                         files.append(result)
     print(files)

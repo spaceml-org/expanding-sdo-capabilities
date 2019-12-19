@@ -1,12 +1,10 @@
-
 import logging
 import os
 
+from contexttimer import Timer
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -36,8 +34,9 @@ _logger = logging.getLogger(__name__)
 
 class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
-                 scaled_width, device, instruments, wavelengths, subsample, batch_size_train,
-                 batch_size_test, test_ratio, log_interval, results_path, num_epochs, save_interval,
+                 scaled_width, device, data_basedir, data_inventory, instruments,
+                 wavelengths, subsample, batch_size_train, batch_size_test,
+                 test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
                  optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
@@ -54,43 +53,56 @@ class AutocalibrationPipeline(TrainingPipeline):
         _logger.info('Instruments: {}'.format(instruments))
 
         _logger.info('\nSetting up training dataset:')
-        train_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
-                                          instr=instruments,
-                                          channels=wavelengths, yr_range=yr_range,
-                                          mnt_step=mnt_step, day_step=day_step,
-                                          h_step=h_step, min_step=min_step,
-                                          resolution=actual_resolution,
-                                          subsample=subsample,
-                                          normalization=0, scaling=scaling,
-                                          test_ratio=test_ratio,
-                                          min_alpha=min_alpha,
-                                          max_alpha=max_alpha,
-                                          scaled_height=scaled_height,
-                                          scaled_width=scaled_width,
-                                          noise_image=noise_image,
-                                          threshold_black=threshold_black,
-                                          threshold_black_value=threshold_black_value,
-                                          shuffle=True)
+        with Timer() as train_dataset_perf:
+          train_dataset = DimmedSDO_Dataset(data_basedir=data_basedir,
+                                            data_inventory=data_inventory,
+                                            num_channels=self.num_channels,
+                                            instr=instruments,
+                                            channels=wavelengths, yr_range=yr_range,
+                                            mnt_step=mnt_step, day_step=day_step,
+                                            h_step=h_step, min_step=min_step,
+                                            resolution=actual_resolution,
+                                            subsample=subsample,
+                                            normalization=0, scaling=scaling,
+                                            test_ratio=test_ratio,
+                                            min_alpha=min_alpha,
+                                            max_alpha=max_alpha,
+                                            scaled_height=scaled_height,
+                                            scaled_width=scaled_width,
+                                            noise_image=noise_image,
+                                            threshold_black=threshold_black,
+                                            threshold_black_value=threshold_black_value,
+                                            shuffle=True)
+        _logger.info('Total time to load training dataset: {:.1f} s'.format(
+          train_dataset_perf.elapsed))
 
         _logger.info('\nSetting up testing dataset:')
-        test_dataset = DimmedSDO_Dataset(num_channels=self.num_channels,
-                                         instr=instruments,
-                                         channels=wavelengths, yr_range=yr_range,
-                                         mnt_step=mnt_step, day_step=day_step,
-                                         h_step=h_step, min_step=min_step,
-                                         resolution=actual_resolution,
-                                         subsample=subsample,
-                                         normalization=0, scaling=scaling,
-                                         test_ratio=test_ratio,
-                                         min_alpha=min_alpha,
-                                         max_alpha=max_alpha,
-                                         scaled_height=scaled_height,
-                                         scaled_width=scaled_width,
-                                         noise_image=noise_image,
-                                         threshold_black=threshold_black,
-                                         threshold_black_value=threshold_black_value,
-                                         flip_test_images=flip_test_images,
-                                         shuffle=True, test=True)
+        with Timer() as test_dataset_perf:
+          test_dataset = DimmedSDO_Dataset(data_basedir=data_basedir,
+                                           data_inventory=data_inventory,
+                                           num_channels=self.num_channels,
+                                           instr=instruments,
+                                           channels=wavelengths, yr_range=yr_range,
+                                           mnt_step=mnt_step, day_step=day_step,
+                                           h_step=h_step, min_step=min_step,
+                                           resolution=actual_resolution,
+                                           subsample=subsample,
+                                           normalization=0, scaling=scaling,
+                                           test_ratio=test_ratio,
+                                           min_alpha=min_alpha,
+                                           max_alpha=max_alpha,
+                                           scaled_height=scaled_height,
+                                           scaled_width=scaled_width,
+                                           noise_image=noise_image,
+                                           threshold_black=threshold_black,
+                                           threshold_black_value=threshold_black_value,
+                                           flip_test_images=flip_test_images,
+                                           shuffle=True, test=True)
+        _logger.info('Total time to load testing dataset: {:.1f} s'.format(
+          test_dataset_perf.elapsed))
+
+        _logger.info('\nTotal time to load both train & test dataset: {:.1f} s\n'.format(
+          train_dataset_perf.elapsed + test_dataset_perf.elapsed))
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
                                          dataloader_workers, train=True)
