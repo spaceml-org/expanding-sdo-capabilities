@@ -1,28 +1,35 @@
 from collections import namedtuple, defaultdict
+import logging
 import math
 import random
 import os
 import shutil
+import sdo
+import sys
+from PIL import Image
+
 import torch
 import torchvision as tv
 import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 from torchvision.utils import save_image
+
 from scipy import fftpack
 import numpy as np
 import scipy
 from sklearn.metrics import mean_squared_error
-from PIL import Image 
-import sdo
-import logging
-import sys
+
 from sdo.sdo_dataset import SDO_Dataset
-from torch.utils.data import DataLoader
 from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
 from sdo.models.encoder_decoder import VT_EncoderDecoder
+from sdo.global_vars import (
+    DATA_BASEDIR,
+    )
 
-output_path = '/gpfs/gpfs_gl4_16mb/b9p111/b9p111ar/results_VT/'
+
+output_path = os.path.join(DATA_BASEDIR, 'results_VT')
 #just a way to get nice logging messages from the sdo package
 logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S")

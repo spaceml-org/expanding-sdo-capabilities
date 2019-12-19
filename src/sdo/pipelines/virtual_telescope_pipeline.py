@@ -71,7 +71,6 @@ class VirtualTelescopePipeline(TrainingPipeline):
             test_dataset = VirtualTelescopeSDO_Dataset(
                                        data_basedir=data_basedir,
                                        data_inventory=data_inventory,
-                                       inventory=inventory,
                                        num_channels=self.num_channels,
                                        instr=instruments,
                                        channels=wavelengths, yr_range=yr_range,

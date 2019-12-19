@@ -22,7 +22,7 @@ import os
 import numpy as np
 
 import sdo.io
-
+from sdo.global_vars import DATA_BASEDIR
 
 
 def convert_files2mm(details, resolution=512):
@@ -50,8 +50,9 @@ if __name__ == '__main__':
         for m in range(1, 13):
             tasks = []
             for d in range(1, 32):
-                files = glob.glob('/gpfs/gpfs_gl4_16mb/b9p111/fdl_sw/SDOML/{0:04d}/{1:02d}/{2:02d}/*npz'.format(y, 
-m, d))
+                data_path = os.path.join(
+                    DATA_BASEDIR, "{0:04d}/{1:02d}/{2:02d}/*npz".format(y, m, d))
+                files = glob.glob(data_path)
                 tasks.append((y, m, d, files))
 
             # TODO: Determine num of vcores on machines dynamically.
