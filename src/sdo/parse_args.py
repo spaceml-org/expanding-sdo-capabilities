@@ -250,6 +250,7 @@ def parse_args(args):
         '--dataloader-workers',
         dest='dataloader_workers',
         type=int,
+        # TODO: We should default this to the num of vCores - 1.
         default=6,
         help='The number of workers to use when preparing data for feeding into the deep net')
     p.add_argument(
