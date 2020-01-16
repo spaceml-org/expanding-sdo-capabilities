@@ -98,15 +98,23 @@ def pass_seed_to_worker(worker_id):
     set_seed(seed)
 
 
-def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
+# REMOVE!!!
+from sdo.pytorch_utilities import pass_seed_to_worker
+
+def create_dataloader(dataset, num_dataloader_workers, train):
+    # TODO: Move getting the number of dataloader workers over to parse_args.
     assert num_dataloader_workers <= (multiprocessing.cpu_count() - 1), \
         'There are not enough CPU cores ({}) for requested dataloader ' \
         'workers ({})'.format(num_dataloader_workers, (multiprocessing.cpu_count() - 1))
 
     _logger.info('Using {} workers for the {} pytorch DataLoader'.format(
         num_dataloader_workers, 'training' if train else 'testing'))
-    loader = DataLoader(dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=num_dataloader_workers,
+    loader = DataLoader(dataset,
+                        # We already shuffle things in the SDO_Dataset itself.
+                        shuffle=False,
+                        # Batches are generated in parallel in the SDO_Dataset itself.
+                        batch_size=1,
+                        num_workers=num_dataloader_workers,
                         # Ensure workers spawn with the right newly
                         # incremented random seed.
                         worker_init_fn=pass_seed_to_worker,
