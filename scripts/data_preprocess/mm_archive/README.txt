@@ -1,0 +1,1 @@
+We no longer used *.mm memory mapped files for our data on Google Cloud as all SDO training data is now remote on Google Cloud Storage buckets, which memory mapped files don't map to well. These scripts are retained though for future needs in case memory mapped formats are useful again.
