@@ -231,7 +231,7 @@ def process_timestamp(process_idx, channels, bucket, replace, max_retries=5, wai
         for retry in range(max_retries):
             try:
                 img_data = bucket.blob(channel_path).download_as_string()
-                img = np.load(BytesIO(img_data))['x']
+                img = np.load(BytesIO(img_data), allow_pickle=True)['x']
                 return (channel_name, img)
             except Exception as e:
                 safeprint('Consumer {}: ERROR in download_channel thread for {}: {}, waiting {} seconds for retry {}'
