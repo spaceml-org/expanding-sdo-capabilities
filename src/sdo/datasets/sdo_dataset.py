@@ -1,11 +1,15 @@
 """
 In this module we define a PyTorch SDO dataset.
 """
+import bz2
 from math import ceil
 import logging
 from io import BytesIO
 from os import path
+import pickle
 import random
+import re
+import time
 from threading import Thread
 
 from google.cloud import storage
@@ -22,18 +26,26 @@ from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
 
-
 _logger = logging.getLogger(__name__)
 
 
+# TODO!!! Have this also still work with NAS file paths.
+# TODO!!! Benchmark how well this works with the new combined timestamp files.
 class SDO_Dataset(Dataset):
-    """ Custom Dataset class compatible with torch.utils.data.DataLoader.
+    """
+    Custom Dataset class compatible with torch.utils.data.DataLoader.
     It can be used to flexibly load a train or test dataset from the SDO local folder,
     asking for a specific range of years and a specific frequency in months, days, hours,
-    minutes. Scaling is applied by default, normalization can be optionally applied. """
+    minutes. Scaling is applied by default, normalization can be optionally applied.
+
+    Note that the GCP storage bucket portion depends on the scripts combine_channels.py
+    and create_inventory.py having been run before to pre-optimize loading all the channels
+    per timestep.
+    """
 
     def __init__(
         self,
+        gcp_project,
         gcp_bucket_name,
         inventory_path,
         batch_size=1,
@@ -55,8 +67,10 @@ class SDO_Dataset(Dataset):
     ):
         """
         Args:
-            gcp_bucket_name (str): Google Cloud Provider bucket name where data files are located.
-            data_inventory (str|bool): path on GCP to a pre-computed inventory file that contains
+            gcp_project (str): Google Cloud Provider project name, such as 'space-weather-sdo'.
+            gcp_bucket_name (str): Google Cloud Provider bucket name where data files are located,
+                such as 'fdl-sdo-data'.
+            inventory_path (str|bool): path on GCP to a pre-computed inventory file that contains
                 a dataframe of existing files. If False (or not valid) the file search is done
                 by folder and it is much slower.
             batch_size (int): Batch size of results returned from __getitem__; we download the data
@@ -87,6 +101,7 @@ class SDO_Dataset(Dataset):
         """
         assert day_step > 0 and h_step > 0 and min_step > 0
 
+        self.gcp_project = gcp_project
         self.gcp_bucket_name = gcp_bucket_name
         self.batch_size = batch_size
         self.instr = instr
@@ -113,18 +128,6 @@ class SDO_Dataset(Dataset):
 
         # TODO self.timestamps is not used in get_item
         self.files, self.timestamps = self.create_list_files()
-
-    def connect_gcp(self):
-        """
-        Connect to the Google Cloud Provider storage bucket. Note
-        that the environment variable GOOGLE_APPLICATION_CREDENTIALS must
-        be set to the path to a GCP JSON config file before this is run,
-        such as:
-        export GOOGLE_APPLICATION_CREDENTIALS=~/expanding-sdo-capabilities/config/space_weather_sdo.json
-        """
-        self.client = storage.Client()
-        self.bucket = self.client.get_bucket(self.gcp_bucket_name)
-        _logger.info('Connected to GCP storage bucket {}'.format(self.gcp_bucket_name))
 
     def find_months(self):
         "select months for training and test based on test ratio"
@@ -153,9 +156,9 @@ class SDO_Dataset(Dataset):
              correspondant timestamps.
 
         """
-        self.connect_gcp()
         _logger.info('Loading SDOML from GCP bucket "%s"' % self.gcp_bucket_name)
         _logger.info('Loading SDOML inventory file from "%s"' % self.inventory_path)
+        client, bucket = connect_gcp(self.gcp_project, self.gcp_bucket_name)
         indexes = ['year', 'month', 'day', 'hour', 'min']
         yrs = np.arange(self.yr_range[0], self.yr_range[1]+1)
         months = self.find_months()
@@ -172,7 +175,7 @@ class SDO_Dataset(Dataset):
         _logger.info("Max number of timestamps: %d" % tot_timestamps)
 
         if self.inventory_path:
-            inventory_data = self.bucket.blob(self.inventory_path).download_as_string()
+            inventory_data = bucket.blob(self.inventory_path).download_as_string()
             df = pd.read_pickle(BytesIO(inventory_data), compression='gzip')
             cond0 = df['channel'].isin(self.channels)
             cond1 = df['year'].isin(yrs)
@@ -243,8 +246,6 @@ class SDO_Dataset(Dataset):
         """
         Download all of the items in our batch in parallel.
         """
-        print('__getitem__, batch_index: {}'.format(batch_index))
-
         start_idx = batch_index * self.batch_size
         last_batch = batch_index == (len(self) - 1)
         if last_batch:
@@ -252,22 +253,20 @@ class SDO_Dataset(Dataset):
         else:
             end_idx = start_idx + (self.batch_size - 1)
 
-        print('batch_size: {}, start_idx: {}, end_idx: {}, last_batch: {}'.format(self.batch_size, start_idx, end_idx, last_batch))
+        #print('batch_size: {}, start_idx: {}, end_idx: {}, last_batch: {}'.format(self.batch_size, start_idx,
+        #                                                                          end_idx, last_batch))
         item_paths = self.files[start_idx:end_idx+1]
 
-        # GCP storage clients aren't thread safe across multi-process calls.
-        # TODO: See if we can save this in thread-local storage or something
-        # so we don't have to keep re-creating it.
-        self.connect_gcp()
-
+        # TODO!!! Have these threads stay around and each keep their own GCP connection long-lived.
         threads = [None] * self.batch_size
         results = [None] * self.batch_size
         for i in range(self.batch_size):
             threads[i] = Thread(target=download_item,
                                 args=(results, i, item_paths[i],
+                                      self.gcp_project, self.gcp_bucket_name,
                                       self.resolution, self.subsample,
-                                      self.channels, self.bucket,
-                                      self.scaling, self.normalization))
+                                      self.channels, self.scaling,
+                                      self.normalization))
             threads[i].start()
 
         # Wait for all the threads to finish downloading and transforming their
@@ -282,23 +281,23 @@ class SDO_Dataset(Dataset):
 
 # This runs in a thread, so we place it outside of the class to make it clear
 # what data it can interact with.
-def download_item(item_results, item_idx, item_paths, resolution, subsample, channels,
-                  bucket, scaling, normalization):
+def download_item(item_results, item_idx, item_paths, gcp_project, gcp_bucket_name, resolution,
+                  subsample, channels, scaling, normalization):
     """
     This function will return a single row of the dataset, where each image has 
-    been scaled and normalized if requested in the class initialization. Internally
-    it creates its own threads to load each channel of the requested item.
+    been scaled and normalized if requested in the class initialization.
     Args:
         item_results (List[numpy]): List of numpy images with the results to make it
                                     easy to return results to the parent thread.
         item_idx (int): Where to place the results for this thread inside item_results.
         item_paths (str[]): GCP paths for each of the channels for this item.
+        gcp_project (str): GCP project containing the GCP bucket.
+        gcp_bucket_name (str): Path to the GCP bucket to work with.
         resolution (int): original resolution.
         subsample (int): if 1 resolution of the final images will be as the original. 
                          If > 1 the image is downsampled. i.e. if resolution=512 and 
                          subsample=4, the images will be 128*128
         channels (list string): channels to be selected
-        bucket (google.cloud.storage.Bucket): GCP bucket to work with.
         scaling (bool): if True pixel values are scaled by the expected max value in active regions
                         (see sdo.io.sdo_scale)
         normalization (int): if 0 normalization is not applied, if > 0 a normalization
@@ -307,55 +306,69 @@ def download_item(item_results, item_idx, item_paths, resolution, subsample, cha
 
     Returns: numpy array.
     """
+    wait_time_s = 1
+    # Continue forever until we get our data.
+    # UNCOMMENT!!!
+    #while True:
+    filename = get_combined_path(item_paths[0])
+    try:
+        client, bucket = connect_gcp(gcp_project, gcp_bucket_name)        
+        blob = bucket.get_blob(filename) # REVISIT!!!
+        if not blob:
+            # TODO!!! Make this cleaner.
+            print('No blob for {}'.format(filename))
+            return
+        # TODO!!! This is failing, figure out why.
+        all_channels = pickle.loads(bz2.decompress(blob.download_as_string()))
+        print("all_channels: {}".format(all_channels))
 
-    # Method to run inside download threads.
-    def download_channel(channel_results, c, bucket, channel_path, subsample, scaling, channel,
-                         normalization):
-        """ Runs on a thread, downloading a single channel for some data item. """
-        img_data = bucket.blob(channel_path).download_as_string()
-        img = np.load(BytesIO(img_data))['x']
-        if subsample > 1:
-            # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
-            img = img[::subsample, ::subsample]
-        if scaling:
-            # divide by roughly the mean of the channel
-            img = sdo_scale(img, channel)
-        if normalization > 0:
-            if normalization == 1:
-                img = minmax_normalization(img)
-            else:
-                _logger.error("This type of normalization is not implemented."
-                              "Original image is returned")
+        n_channels = len(channels)
+        size = int(resolution / subsample)
+        # the original images are NOT bytescaled
+        # we directly convert to 32 because the pytorch tensor will need to be 32
+        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
 
-        channel_results[c] = img
+        for c, channel_name in enumerate(channels):
+            assert channel_name in all_channels, '{} not in the combined timestamps!'.format(channel_name)
+            img_data = all_channels[channel_name]
+            print('channel_name: {}, value: {}'.format(channel_name, img_data)) # REMOVE!!!
+            img = np.load(BytesIO(img_data), allow_pickle=True)['x']
+            if subsample > 1:
+                # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
+                img = img[::subsample, ::subsample]
+            if scaling:
+                # divide by roughly the mean of the channel
+                img = sdo_scale(img, channel)
+            if normalization > 0:
+                if normalization == 1:
+                    img = minmax_normalization(img)
+                else:
+                    _logger.error("This type of normalization is not implemented."
+                                  "Original image is returned")
+            item[c] = img
 
-    # Code controlling spawned threads.
-    size = int(resolution / subsample)
-    n_channels = len(channels)
-    # the original images are NOT bytescaled
-    # we directly convert to 32 because the pytorch tensor will need to be 32
-    item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
+        item_results[item_idx] = item
+        return
+    except Exception as e:
+        _logger.error("Exception for {}: {}".format(filename, e))
+        # UNCOMMENT!!!
+#         time.sleep(wait_time_s * random.random())
+#         wait_time_s *= 2
 
-    # Download the different channels in parallel from GCP.
-    threads = [None] * n_channels
-    channel_results = [None] * n_channels
-    for c in range(n_channels):
-        channel_path = item_paths[c]
-        threads[c] = Thread(target=download_channel,
-                            args=(channel_results, c, bucket,
-                                  channel_path, subsample,
-                                  scaling, channels[c],
-                                  normalization))
-        threads[c].start()
 
-    # Wait for all the channel threads to finish downloading and transforming their
-    # results.
-    for c in range(n_channels):
-        threads[c].join()
+def get_combined_path(channel_path):
+    """
+    Given a path to a channel, generates an *_all.pklz version of that path pointing
+    to the combined channels file.
+    """
+    return re.sub(r'_[^._]*?\.npz', '_all.pklz', channel_path)
 
-    # Combine all the channels together.
-    for c in range(n_channels):        
-        item[c, :, :] = channel_results[c]
 
-    item_results[item_idx] = item
-    
+def connect_gcp(gcp_project, gcp_bucket_name):
+    """
+    Connect to the Google Cloud Provider storage bucket.
+    """
+    client = storage.Client(gcp_project)
+    bucket = client.get_bucket(gcp_bucket_name)
+    _logger.info('Connected to GCP storage bucket {}'.format(gcp_bucket_name))
+    return client, bucket
