@@ -132,7 +132,7 @@ def enumerate_timestamp_channels(df, year, max_iter):
     for _, timestamp_group in df[df['year'] == year].groupby(indexes):
         channels = [
             {'channel': row['channel'], 'file': row['file']}
-            for _, row in timestamp_group.iterrows()
+            for _, row in timestamp_group.iterrows() if '.pklz' not in row['file']
         ]
         yield channels
         
