@@ -98,9 +98,6 @@ def pass_seed_to_worker(worker_id):
     set_seed(seed)
 
 
-# REMOVE!!!
-from sdo.pytorch_utilities import pass_seed_to_worker
-
 def create_dataloader(dataset, num_dataloader_workers, train):
     # TODO: Move getting the number of dataloader workers over to parse_args.
     assert num_dataloader_workers <= (multiprocessing.cpu_count() - 1), \
