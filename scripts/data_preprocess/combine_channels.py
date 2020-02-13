@@ -197,7 +197,7 @@ def producer(df, work_queue, year, max_iter):
         work_queue.put('DONE')
 
         
-def consumer(process_idx, work_queue, replace):
+def consumer(process_idx, work_queue, replace, hide_if_exists):
     """
     Note: this method runs in its own process.
     """
@@ -212,17 +212,20 @@ def consumer(process_idx, work_queue, replace):
         
         chunks = msg
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(chunks)) as executor:
-            executor.map(lambda chunk: process_timestamp(process_idx, chunk, bucket, replace), chunks)
+            executor.map(lambda chunk: process_timestamp(process_idx, chunk, bucket, replace, hide_if_exists),
+                         chunks)
 
         
-def process_timestamp(process_idx, channels, bucket, replace, max_retries=5, wait_time_s=5):
+def process_timestamp(process_idx, channels, bucket, replace, hide_if_exists,
+                      max_retries=5, wait_time_s=5):
     """
     For each timestamp, download all of its channels in parallel then combine them into a single
     file we can re-upload back to GCP.
 
     Note: this runs in its own thread, managed by the consumer() method.
     """    
-    def download_channel(process_idx, channel_name, channel_path, bucket, max_retries=5, wait_time_s=5):
+    def download_channel(process_idx, channel_name, channel_path, bucket, hide_if_exists,
+                         max_retries=5, wait_time_s=5):
         """
         Download an individual timestamps channel.
         
@@ -245,12 +248,14 @@ def process_timestamp(process_idx, channels, bucket, replace, max_retries=5, wai
         try:
             combined_path = get_combined_path(channels[0]['file'])
             if not replace and already_exists(combined_path, bucket):
-                safeprint('Consumer {}: File already exists {}'.format(process_idx, combined_path))
+                if not hide_if_exists:
+                    safeprint('Consumer {}: File already exists {}'.format(process_idx, combined_path))
                 return
 
             num_workers = len(channels)
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(channels)) as executor:
-                runme = lambda channel: download_channel(process_idx, channel['channel'], channel['file'], bucket)
+                runme = lambda channel: download_channel(process_idx, channel['channel'], channel['file'], bucket,
+                                                         hide_if_exists)
                 results = executor.map(runme, channels)
 
                 # Ensure we always sort the list of channels consistently by the channel name.
@@ -292,6 +297,12 @@ def main():
                         type=bool,
                         default=False,
                         help='If True, will replace pre-existing pre-processed files')
+    # TODO!!! Just make this the default as its less noisy, or don't print anything.
+    parser.add_argument('--hide-if-exists',
+                        dest='hide_if_exists',
+                        type=bool,
+                        default=False,
+                        help='Debugging tool on whether to print out if a file is already present')
 
     args = parser.parse_args()
     safeprint('Processing for year {}'.format(args.year))
@@ -310,7 +321,7 @@ def main():
     consumers = [None] * NUM_CONSUMERS
     for idx in range(NUM_CONSUMERS):
         safeprint('Spawning {} consumer...'.format(idx))
-        c = mp.Process(target=consumer, args=(idx, work_queue, args.replace))
+        c = mp.Process(target=consumer, args=(idx, work_queue, args.replace, args.hide_if_exists))
         c.daemon = False
         c.start()
         safeprint('Spawned {} consumer'.format(idx))
