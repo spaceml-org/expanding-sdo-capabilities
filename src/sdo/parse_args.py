@@ -90,7 +90,7 @@ def parse_args(args):
         '--results-path',
         dest='results_path',
         required=True,
-        help='Where to store generated logs, models, etc., relative to --artifacts-root-path',
+        help='Where to store generated logs, models, etc.',
         )
     p.add_argument(
         '--num-epochs',
