@@ -1,6 +1,6 @@
 pipeline-name: VirtualTelescopePipeline
 model-version: 1
-results-path: /fdl_sdo_data/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE
+results-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE
 log-minimal: True
 batch-size-train: 128
 batch-size-test: 128

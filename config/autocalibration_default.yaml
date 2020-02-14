@@ -1,5 +1,5 @@
 pipeline-name: AutocalibrationPipeline
-results-path: /fdl_sdo_data/EXPERIMENT_RESULTS/AUTOCAL
+results-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/AUTOCAL
 log-minimal: True
 scaling: True
 batch-size-train: 64
