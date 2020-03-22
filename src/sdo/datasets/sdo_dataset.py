@@ -134,7 +134,7 @@ class SDO_Dataset(Dataset):
         _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
         indexes = ['year', 'month', 'day', 'hour', 'min']
         yrs = np.arange(self.yr_range[0], self.yr_range[1]+1)
-        months = np.arange(1, 13, self.mnt_step) #self.find_months()
+        months = self.find_months()
         days = np.arange(1, 32, self.day_step)
         hours = np.arange(0, 24, self.h_step)
         minus = np.arange(0, 60, self.min_step)
@@ -151,13 +151,12 @@ class SDO_Dataset(Dataset):
             df = pd.read_pickle(self.data_inventory)
             cond0 = df['channel'].isin(self.channels)
             cond1 = df['year'].isin(yrs)
-            cond2 = df['month'].astype(float).isin(months)
-            cond3 = df['day'].astype(float).isin(days)
+            cond2 = df['month'].isin(months)
+            cond3 = df['day'].isin(days)
             cond4 = df['hour'].isin(hours)
             cond5 = df['min'].isin(minus)
 
             sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
-            print(sel_df.size)
             n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
             _logger.info("Timestamps found in the inventory: %d (%.2f)" % 
                          (n_sel_timestamps, float(n_sel_timestamps)/tot_timestamps))
@@ -236,9 +235,9 @@ class SDO_Dataset(Dataset):
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
         item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
-        file = np.zeros(shape=(n_channels), dtype=str)
         for c in range(n_channels):
-            img = np.load(self.files[index][c])['x']
+            img = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
+                            dtype=np.float32)
             if self.subsample > 1:
                 # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
                 img = img[::self.subsample, ::self.subsample]
@@ -248,9 +247,8 @@ class SDO_Dataset(Dataset):
             if self.normalization > 0:
                 img = self.normalize_by_img(img, self.normalization)
         
-            item[c, :, :] = img  
-            file[c] = self.files[index][c]
+            item[c, :, :] = img
    
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return to_tensor(item, dtype=torch.float), file
+        return to_tensor(item, dtype=torch.float)
