@@ -106,7 +106,7 @@ def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
     _logger.info('Using {} workers for the {} pytorch DataLoader'.format(
         num_dataloader_workers, 'training' if train else 'testing'))
     loader = DataLoader(dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=num_dataloader_workers,
+                        shuffle=False, num_workers=num_dataloader_workers,
                         # Ensure workers spawn with the right newly
                         # incremented random seed.
                         worker_init_fn=pass_seed_to_worker,
