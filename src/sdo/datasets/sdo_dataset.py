@@ -107,7 +107,7 @@ class SDO_Dataset(Dataset):
         "select months for training and test based on test ratio"
         # November and December are kept as holdout
         if not self.holdout:
-            months = np.arange(1, 1, self.mnt_step)
+            months = np.arange(1, 11, self.mnt_step)
             if self.test:
                 n_months = int(len(months) * self.test_ratio)
                 months = months[-n_months:]
@@ -157,6 +157,7 @@ class SDO_Dataset(Dataset):
             cond5 = df['min'].isin(minus)
 
             sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
+            print(sel_df.size)
             n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
             _logger.info("Timestamps found in the inventory: %d (%.2f)" % 
                          (n_sel_timestamps, float(n_sel_timestamps)/tot_timestamps))
@@ -235,7 +236,7 @@ class SDO_Dataset(Dataset):
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
         item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
-        dates = []
+        file = np.zeros(shape=(n_channels), dtype=str)
         for c in range(n_channels):
             img = np.load(self.files[index][c])['x']
             if self.subsample > 1:
@@ -248,8 +249,8 @@ class SDO_Dataset(Dataset):
                 img = self.normalize_by_img(img, self.normalization)
         
             item[c, :, :] = img  
-            dates.append(self.files[index][0][-22:-14])
+            file[c] = self.files[index][c]
    
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return to_tensor(item, dtype=torch.float), dates
+        return to_tensor(item, dtype=torch.float), file
