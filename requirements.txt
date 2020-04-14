@@ -57,7 +57,6 @@ Keras==2.1.6
 Keras-Applications==1.0.6
 Keras-Preprocessing==1.0.5
 kiwisolver==1.1.0
-#librmm-cffi==0.7.0
 llvmlite==0.28.0
 lmdb==0.94
 Markdown==3.1.1
