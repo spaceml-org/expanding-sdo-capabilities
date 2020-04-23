@@ -10,16 +10,15 @@ import torch
 
 from sdo.datasets.mock_data import create_noise_image
 from sdo.datasets.sdo_dataset import SDO_Dataset
-
+from sdo.pytorch_utilities import to_tensor
 
 _logger = logging.getLogger(__name__)
-
 
 class DimmedSDO_Dataset(SDO_Dataset):
     def __init__(self, num_channels, min_alpha, max_alpha,
                  scaled_height, scaled_width, noise_image=False,
                  threshold_black=False, threshold_black_value=0,
-                 flip_test_images=False, *args, **kwargs):
+                 flip_test_images=False, apodize=False, *args, **kwargs):
         super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
         self.min_alpha = min_alpha
@@ -30,7 +29,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
         self.threshold_black = threshold_black
         self.threshold_black_value = threshold_black_value
         self.flip_test_images = flip_test_images
-
+        
         if self.noise_image:
             _logger.info('WARNING: We are generating random noise images!')
 

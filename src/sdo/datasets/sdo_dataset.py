@@ -11,14 +11,24 @@ import pandas as pd
 
 import torch
 from torch.utils.data import Dataset
+from torch import from_numpy
 
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
 
-
 _logger = logging.getLogger(__name__)
 
+def load_channel(param):
+    file = param[0]
+    subsample = param[1]
+    #channel = param[0]
+    #sample  = param[1]
+    #file= '/Users/cheung/AIA/SDOML_uncorrected/2014/AIA20140101_0006_{0:04d}.mm'.format(channel)
+    shape = (int(512/subsample), int(512/subsample))
+    b = np.zeros(shape=shape,dtype=np.float32)
+    b[:,:] = (np.memmap(file, shape=(512,512),dtype=np.float32))[::subsample,::subsample]
+    return b
 
 class SDO_Dataset(Dataset):
     """ Custom Dataset class compatible with torch.utils.data.DataLoader.
@@ -44,6 +54,7 @@ class SDO_Dataset(Dataset):
         shuffle=False,
         normalization=0,
         scaling=True,
+        apodize=False,
         holdout=False,
     ):
         """
@@ -93,6 +104,7 @@ class SDO_Dataset(Dataset):
         self.test_ratio = test_ratio
         self.normalization = normalization
         self.scaling = scaling
+        self.apodize = apodize
         self.holdout = holdout
         if path.isfile(data_inventory):
             self.data_inventory = data_inventory
@@ -108,16 +120,22 @@ class SDO_Dataset(Dataset):
         # November and December are kept as holdout
         if not self.holdout:
             months = np.arange(1, 11, self.mnt_step)
+
             if self.test:
-                n_months = int(len(months) * self.test_ratio)
-                months = months[-n_months:]
+                #n_months = int(len(months) * self.test_ratio)
+                #months = months[-n_months:]
+                #months = np.array([6,7,8,9],dtype=np.int)
+                months = np.arange(1,13,dtype=np.int) #Gunesh test
                 _logger.info('Testing on months "%s"' % months)
             else:
-                n_months = int(len(months) * (1 - self.test_ratio))
-                months = months[:n_months]
+                #n_months = int(len(months) * (1 - self.test_ratio))
+                #months = months[:n_months]
+                #months = np.array([1,2,3,4], dtype=np.int) 
+                months = np.arange(1,13,dtype=np.int)  #Gunesh test
                 _logger.info('Training on months "%s"' % months)
         else:
-            n_months = [11, 12]
+            #n_months = [11, 12]
+            n_months = [10,11,12]
         return months
 
     def create_list_files(self):
@@ -170,6 +188,29 @@ class SDO_Dataset(Dataset):
             s_files = sel_df.sort_values('channel').groupby(indexes)['file'].apply(list)
             files = s_files.values.tolist()
             timestamps = s_files.index.tolist()
+
+            # For Gunesh test only 
+            np.random.seed(0)
+            randind = np.arange(len(files),dtype=np.int)
+            np.random.shuffle(randind)
+            print(files[0])
+            print(timestamps[0])
+            #files = np.array(files)
+            #timestamps = np.array(timestamps)
+            files2 = []
+            timestamps2 = []
+            if self.test:
+                for c in range(int(self.test_ratio*len(files))):
+                    files2.append(files[randind[c]])
+                    timestamps2.append(timestamps[randind[c]])
+            else:
+                for c in range(int(self.test_ratio*len(files))+1, len(files)):
+                    files2.append(files[randind[c]])
+                    timestamps2.append(timestamps[randind[c]])
+            files = files2
+            timestamps = timestamps2
+            #end hack for Gunesh test
+
             discarded_tm = n_sel_timestamps - len(timestamps)
         else:
             _logger.warning(
@@ -235,20 +276,33 @@ class SDO_Dataset(Dataset):
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
         item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
+
+        img = np.zeros(shape=(size, size),dtype=np.float32)
         for c in range(n_channels):
-            img = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
-                            dtype=np.float32)
-            if self.subsample > 1:
-                # Use numpy trick to essentially downsample the full resolution image by 'subsample'.
-                img = img[::self.subsample, ::self.subsample]
+            temp= np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            img[:,:] = temp[::self.subsample,::self.subsample]
+            temp._mmap.close()
             if self.scaling:
                 # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
             if self.normalization > 0:
                 img = self.normalize_by_img(img, self.normalization)
-        
+
             item[c, :, :] = img
-   
+
+
+        if self.apodize:
+            # Set off limb pixel values to zero
+            x = np.arange((img.shape[0]),dtype=np.float) - img.shape[0]/2+0.5
+            y = np.arange((img.shape[1]),dtype=np.float) - img.shape[1]/2+0.5
+            xgrid = np.ones(shape=(orig_img.shape[1],1))@x.reshape((1,x.shape[0]))
+            ygrid = y.reshape((y.shape[0],1))@np.ones(shape=(1,orig_img.shape[0]))
+            dist = np.sqrt(xgrid*xgrid + ygrid*ygrid)
+            mask = np.ones(shape=dist.shape, dtype=np.float)
+            mask = np.where(dist < 200./self.subsample, mask, 0.0) #Radius of sun at 1 AU is 200*4.8 arcsec                                         
+            for c in range(self.num_channels):
+                item[c,:,:] = item[c,:,:]*mask
+
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
         return to_tensor(item, dtype=torch.float)
