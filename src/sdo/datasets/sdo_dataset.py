@@ -19,16 +19,6 @@ from sdo.ds_utility import minmax_normalization
 
 _logger = logging.getLogger(__name__)
 
-def load_channel(param):
-    file = param[0]
-    subsample = param[1]
-    #channel = param[0]
-    #sample  = param[1]
-    #file= '/Users/cheung/AIA/SDOML_uncorrected/2014/AIA20140101_0006_{0:04d}.mm'.format(channel)
-    shape = (int(512/subsample), int(512/subsample))
-    b = np.zeros(shape=shape,dtype=np.float32)
-    b[:,:] = (np.memmap(file, shape=(512,512),dtype=np.float32))[::subsample,::subsample]
-    return b
 
 class SDO_Dataset(Dataset):
     """ Custom Dataset class compatible with torch.utils.data.DataLoader.
