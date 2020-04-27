@@ -282,7 +282,6 @@ class SDO_Dataset(Dataset):
 
 
         if self.apodize:
-            print("Apodize")
             # Set off limb pixel values to zero
             x = np.arange((img.shape[0]),dtype=np.float) - img.shape[0]/2+0.5
             y = np.arange((img.shape[1]),dtype=np.float) - img.shape[1]/2+0.5
