@@ -291,7 +291,7 @@ class SDO_Dataset(Dataset):
             dist = np.sqrt(xgrid*xgrid + ygrid*ygrid)
             mask = np.ones(shape=dist.shape, dtype=np.float)
             mask = np.where(dist < 200./self.subsample, mask, 0.0) #Radius of sun at 1 AU is 200*4.8 arcsec                                         
-            for c in range(self.num_channels):
+            for c in range(len(self.channels)):
                 item[c,:,:] = item[c,:,:]*mask
 
         # Note: For efficiency reasons, don't send each item to the GPU;
