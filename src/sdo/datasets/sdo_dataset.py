@@ -282,11 +282,12 @@ class SDO_Dataset(Dataset):
 
 
         if self.apodize:
+            print("Apodize")
             # Set off limb pixel values to zero
             x = np.arange((img.shape[0]),dtype=np.float) - img.shape[0]/2+0.5
             y = np.arange((img.shape[1]),dtype=np.float) - img.shape[1]/2+0.5
-            xgrid = np.ones(shape=(orig_img.shape[1],1))@x.reshape((1,x.shape[0]))
-            ygrid = y.reshape((y.shape[0],1))@np.ones(shape=(1,orig_img.shape[0]))
+            xgrid = np.ones(shape=(img.shape[1],1))@x.reshape((1,x.shape[0]))
+            ygrid = y.reshape((y.shape[0],1))@np.ones(shape=(1,img.shape[0]))
             dist = np.sqrt(xgrid*xgrid + ygrid*ygrid)
             mask = np.ones(shape=dist.shape, dtype=np.float)
             mask = np.where(dist < 200./self.subsample, mask, 0.0) #Radius of sun at 1 AU is 200*4.8 arcsec                                         
