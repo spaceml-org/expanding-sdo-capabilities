@@ -52,6 +52,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             self.num_channels))
         _logger.info('Wavelengths: {}'.format(wavelengths))
         _logger.info('Instruments: {}'.format(instruments))
+        _logger.info('Apodize: {}'.format(apodize))
 
         _logger.info('\nSetting up training dataset:')
         with Timer() as train_dataset_perf:
@@ -203,6 +204,12 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
                                      output_dim=self.num_channels)
+        elif model_version == 106:
+            # How simple can we get our network to be and still have single                                                                                                                                                        
+            # channel input perform well?                                                                                                                                                                                          
+            return Autocalibration6(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                    output_dim=self.num_channels)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
