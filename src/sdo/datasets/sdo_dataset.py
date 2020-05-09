@@ -271,7 +271,7 @@ class SDO_Dataset(Dataset):
         for c in range(n_channels):
             temp= np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
             img[:,:] = temp[::self.subsample,::self.subsample]
-            temp._mmap.close()
+            #temp._mmap.close()
             if self.scaling:
                 # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
