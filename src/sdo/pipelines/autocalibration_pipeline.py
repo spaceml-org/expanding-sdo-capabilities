@@ -38,7 +38,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                  wavelengths, subsample, batch_size_train, batch_size_test,
                  test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
-                 start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling,
+                 start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling, apodize,
                  optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
                  threshold_black, threshold_black_value, flip_test_images, sigmoid_scale):
         self.num_channels = len(wavelengths)
@@ -46,11 +46,13 @@ class AutocalibrationPipeline(TrainingPipeline):
         self.wavelengths = wavelengths
         self.tolerance = tolerance
         self.scaling = scaling
+        self.apodize = apodize
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
         _logger.info('Wavelengths: {}'.format(wavelengths))
         _logger.info('Instruments: {}'.format(instruments))
+        _logger.info('Apodize: {}'.format(apodize))
 
         _logger.info('\nSetting up training dataset:')
         with Timer() as train_dataset_perf:
@@ -63,7 +65,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                                             h_step=h_step, min_step=min_step,
                                             resolution=actual_resolution,
                                             subsample=subsample,
-                                            normalization=0, scaling=scaling,
+                                            normalization=0, scaling=scaling, 
+                                            apodize=apodize,
                                             test_ratio=test_ratio,
                                             min_alpha=min_alpha,
                                             max_alpha=max_alpha,
@@ -88,6 +91,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                            resolution=actual_resolution,
                                            subsample=subsample,
                                            normalization=0, scaling=scaling,
+                                           apodize=apodize,
                                            test_ratio=test_ratio,
                                            min_alpha=min_alpha,
                                            max_alpha=max_alpha,
@@ -200,6 +204,12 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
                                      output_dim=self.num_channels)
+        elif model_version == 106:
+            # How simple can we get our network to be and still have single                                                                                                                                                        
+            # channel input perform well?                                                                                                                                                                                          
+            return Autocalibration6(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                    output_dim=self.num_channels)
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code

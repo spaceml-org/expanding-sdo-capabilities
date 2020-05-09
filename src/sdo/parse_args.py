@@ -263,6 +263,14 @@ def parse_args(args):
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
+        '--apodize',
+        dest='apodize',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='If True, set off limb values of images to zero. Default is False')
+    p.add_argument(
         '--optimizer-weight-decay',
         type=float,
         default=0,
