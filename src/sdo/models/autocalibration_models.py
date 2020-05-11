@@ -297,7 +297,7 @@ class Autocalibration106(nn.Module):
     How simple can we get our network to be and still perform well at                                                                                                                                   128x128 and 256x256?                                                                                                                                                                                """
 
     def __init__(self, input_shape, output_dim):
-        super(Autocalibration6, self).__init__()
+        super(Autocalibration106, self).__init__()
         if len(input_shape) != 3:
             raise ValueError('Expecting an input_shape representing dimensions CxHxW')
         self._input_channels = input_shape[0]
@@ -307,12 +307,12 @@ class Autocalibration106(nn.Module):
 
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
         #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)                                                                                                                              
-        self._conv2d1_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=self._input_channels, filt_size=3, stride=3)]
+        self._conv2d1_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=64, filt_size=3, stride=3)]
 
         #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)                                                                                                                                                
  
         self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
-        self._conv2d2_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=self._input_channels, filt_size=3, stride=3)] 
+        self._conv2d2_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=128, filt_size=3, stride=3)] 
 
         self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
         _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
@@ -321,14 +321,22 @@ class Autocalibration106(nn.Module):
 
     def _cnn(self, x):
         x = self._conv2d1(x)
+        #_logger.info("0:", x.shape)
         x = torch.relu(x)
+        #_logger.info("1:", x.shape)
         x = self._conv2d1_maxpool[0](x)
+        #_logger.info("2:", x.shape)
         x = self._conv2d1_maxpool[1](x)
+        #_logger.info("3:", x.shape)
 
         x = self._conv2d2(x)
+        #_logger.info("4:", x.shape)
         x = torch.relu(x)
+        #_logger.info("5:", x.shape)
         x = self._conv2d2_maxpool[0](x)
+        #_logger.info("6:", x.shape)
         x = self._conv2d2_maxpool[1](x)
+        #_logger.info("7:", x.shape)
 
         return x
 

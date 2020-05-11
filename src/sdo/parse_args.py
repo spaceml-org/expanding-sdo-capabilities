@@ -368,7 +368,6 @@ def parse_autocal_args(p):
         default=1.0,
         help='A value by which we will scale the sigmoid function')
 
-
 def parse_vt_args(p):
     """
     Parse arguments that are only for virtual telescope.
