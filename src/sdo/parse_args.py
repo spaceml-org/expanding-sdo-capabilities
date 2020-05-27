@@ -367,6 +367,12 @@ def parse_autocal_args(p):
         type=float,
         default=1.0,
         help='A value by which we will scale the sigmoid function')
+    p.add_argument(
+        '--kernel-size',
+        dest='kernel_size',
+        type=int,
+        default=3,
+        help='Kernel size for convolutional layers in Autocalibration6 model')
 
 def parse_vt_args(p):
     """

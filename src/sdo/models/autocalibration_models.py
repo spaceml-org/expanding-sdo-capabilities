@@ -250,24 +250,25 @@ class Autocalibration6(nn.Module):
     How simple can we get our network to be and still perform well at
     128x128 and 256x256?
     """
-    def __init__(self, input_shape, output_dim):
+    def __init__(self, input_shape, output_dim, kernel_size):
         super(Autocalibration6, self).__init__()
         if len(input_shape) != 3:
             raise ValueError('Expecting an input_shape representing dimensions CxHxW')
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
+        _logger.info('kernel_size: {}'.format(kernel_size))
 
         # Note: Two convolutional layers are needed to get results.
         # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
         # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
         # banks (32) however
-        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
+        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=kernel_size)
         #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
-        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
+        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=kernel_size)
 
         #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
-        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
-        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
+        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=kernel_size)
+        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=kernel_size)
 
         self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
         _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
