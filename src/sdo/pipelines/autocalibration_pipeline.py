@@ -24,6 +24,7 @@ from sdo.models.autocalibration_models import (
   Autocalibration9,
   Autocalibration10,
   Autocalibration106,
+  Autocalibration16
   )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
@@ -206,6 +207,13 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
                                      output_dim=self.num_channels)
+        elif model_version == 16:
+            # How simple can we get our network to be and still have single                                                                                                                    
+            # channel input perform well?                                                                                                                                                   
+            return Autocalibration16(input_shape=[self.num_channels, scaled_height,
+                                                 scaled_width],
+                                    output_dim=self.num_channels, kernel_size=self.kernel_size)
+
         elif model_version == 106:
             # How simple can we get our network to be and still have single                                                             
             # channel input perform well?                                                                                                 
