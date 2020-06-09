@@ -18,7 +18,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
     def __init__(self, num_channels, min_alpha, max_alpha,
                  scaled_height, scaled_width, noise_image=False,
                  threshold_black=False, threshold_black_value=0,
-                 flip_test_images=False, apodize=False, *args, **kwargs):
+                 flip_test_images=False, *args, **kwargs):
         super(DimmedSDO_Dataset, self).__init__(*args, **kwargs)
         self.num_channels = num_channels
         self.min_alpha = min_alpha

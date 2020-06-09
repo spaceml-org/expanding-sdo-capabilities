@@ -19,7 +19,7 @@ AUNIT = 100.0  # units of 100 DN/s/pixel
 # the following units have been chosen looking at Fig3 of Galvez et all, 
 # they represent the approximate mean of the channels across the full time period
 AUNIT_BYCH = {'1600': 500.0, '1700': 7000.0, '0094': 10.0, '0131': 80.0, '0171': 2000.0,
-               '0193': 3000.0, '0211': 1000.0, '0304': 500.0, '0335': 80.0}
+               '0193': 1500.0, '0211': 500.0, '0304': 500.0, '0335': 80.0}
 
 _logger = logging.getLogger(__name__)
 

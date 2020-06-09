@@ -96,6 +96,9 @@ class SDO_Dataset(Dataset):
         self.scaling = scaling
         self.apodize = apodize
         self.holdout = holdout
+        
+        _logger.info("apodize={}".format(self.apodize) )
+        
         if path.isfile(data_inventory):
             self.data_inventory = data_inventory
         else:
