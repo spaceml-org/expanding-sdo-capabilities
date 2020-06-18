@@ -359,6 +359,12 @@ def parse_autocal_args(p):
         type=float,
         default=1.0,
         help='A value by which we will scale the sigmoid function')
+    p.add_argument(
+        '--cal-loss',
+        dest='loss',
+        type=str,
+        default='mse',
+        help='Loss function to be used for the auto-calibration. Accepted values: mse(default), hsced.')
 
 
 def parse_vt_args(p):
@@ -367,10 +373,10 @@ def parse_vt_args(p):
     """
     p.add_argument(
         '--vt-loss',
-        dest='vt_loss',
+        dest='loss',
         type=str,
         default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default) mse, smoothL1.')
+        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default), rmse, smoothL1.')
 
 
 def str2bool(v):

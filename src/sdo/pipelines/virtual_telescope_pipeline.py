@@ -184,7 +184,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
 
     def get_loss_func(self, output, gt_output):
         """ Return the loss function this pipeline is using. """
-        if self.loss == 'mse':
+        if self.loss == 'rmse':
             mse_loss = nn.MSELoss()
             return torch.sqrt(mse_loss(output, gt_output))
         elif self.loss == 'ssim':
