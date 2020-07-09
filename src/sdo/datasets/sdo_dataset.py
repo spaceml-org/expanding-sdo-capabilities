@@ -110,20 +110,16 @@ class SDO_Dataset(Dataset):
         # November and December are kept as holdout
         if not self.holdout:
             months = np.arange(1, 11, self.mnt_step)
-
             if self.test:
                 n_months = int(len(months) * self.test_ratio)
                 months = months[-n_months:]
-                months = np.array([6,7,8,9],dtype=np.int)
                 _logger.info('Testing on months "%s"' % months)
             else:
                 n_months = int(len(months) * (1 - self.test_ratio))
                 months = months[:n_months]
-                months = np.array([1,2,3,4], dtype=np.int)
                 _logger.info('Training on months "%s"' % months)
         else:
-            #n_months = [11, 12]
-            n_months = [10,11,12]
+            n_months = [11, 12]
         return months
 
     def create_list_files(self):
