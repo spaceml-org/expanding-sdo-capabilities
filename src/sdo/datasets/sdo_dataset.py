@@ -113,23 +113,18 @@ class SDO_Dataset(Dataset):
         # November and December are kept as holdout
         if not self.holdout:
             months = np.arange(1, 11, self.mnt_step)
-
             if self.test:
-                #n_months = int(len(months) * self.test_ratio)
-                #months = months[-n_months:]
-                #months = np.array([6,7,8,9],dtype=np.int)
-                months = np.arange(1,13,dtype=np.int) #Gunesh test
+                n_months = int(len(months) * self.test_ratio)
+                months = months[-n_months:]
                 _logger.info('Testing on months "%s"' % months)
             else:
-                #n_months = int(len(months) * (1 - self.test_ratio))
-                #months = months[:n_months]
-                #months = np.array([1,2,3,4], dtype=np.int) 
-                months = np.arange(1,13,dtype=np.int)  #Gunesh test
+                n_months = int(len(months) * (1 - self.test_ratio))
+                months = months[:n_months]
                 _logger.info('Training on months "%s"' % months)
         else:
-            #n_months = [11, 12]
-            n_months = [10,11,12]
+            n_months = [11, 12]
         return months
+
 
     def create_list_files(self):
         """
@@ -181,29 +176,6 @@ class SDO_Dataset(Dataset):
             s_files = sel_df.sort_values('channel').groupby(indexes)['file'].apply(list)
             files = s_files.values.tolist()
             timestamps = s_files.index.tolist()
-
-            # For Gunesh test only 
-            np.random.seed(0)
-            randind = np.arange(len(files),dtype=np.int)
-            np.random.shuffle(randind)
-            print(files[0])
-            print(timestamps[0])
-            #files = np.array(files)
-            #timestamps = np.array(timestamps)
-            files2 = []
-            timestamps2 = []
-            if self.test:
-                for c in range(int(self.test_ratio*len(files))):
-                    files2.append(files[randind[c]])
-                    timestamps2.append(timestamps[randind[c]])
-            else:
-                for c in range(int(self.test_ratio*len(files))+1, len(files)):
-                    files2.append(files[randind[c]])
-                    timestamps2.append(timestamps[randind[c]])
-            files = files2
-            timestamps = timestamps2
-            #end hack for Gunesh test
-
             discarded_tm = n_sel_timestamps - len(timestamps)
         else:
             _logger.warning(
