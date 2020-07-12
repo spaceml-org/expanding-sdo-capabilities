@@ -24,7 +24,6 @@ from sdo.models.autocalibration_models import (
   Autocalibration9,
   Autocalibration10,
   Autocalibration106,
-  Autocalibration16
   )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
@@ -42,14 +41,13 @@ class AutocalibrationPipeline(TrainingPipeline):
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling, apodize,
                  optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
-                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale, kernel_size):
+                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.wavelengths = wavelengths
         self.tolerance = tolerance
         self.scaling = scaling
         self.apodize = apodize
-        self.kernel_size = kernel_size
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -181,7 +179,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             # channel input perform well?
             return Autocalibration6(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
-                                    output_dim=self.num_channels, kernel_size=self.kernel_size)
+                                    output_dim=self.num_channels)
         elif model_version == 7:
             # How simple can we get our network to be and still have single
             # channel input perform well?
@@ -207,13 +205,6 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
                                      output_dim=self.num_channels)
-        elif model_version == 16:
-            # How simple can we get our network to be and still have single                                                                                                                    
-            # channel input perform well?                                                                                                                                                   
-            return Autocalibration16(input_shape=[self.num_channels, scaled_height,
-                                                 scaled_width],
-                                    output_dim=self.num_channels, kernel_size=self.kernel_size)
-
         elif model_version == 106:
             # How simple can we get our network to be and still have single                                                             
             # channel input perform well?                                                                                                 
