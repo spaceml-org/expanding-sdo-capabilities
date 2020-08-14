@@ -103,6 +103,7 @@ def main(args):
           min_step=args.min_step,
           dataloader_workers=args.dataloader_workers,
           scaling=args.scaling,
+          apodize=args.apodize,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
           tolerance=args.autocal_tolerance,
