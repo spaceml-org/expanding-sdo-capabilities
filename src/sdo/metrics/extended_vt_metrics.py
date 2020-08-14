@@ -9,8 +9,6 @@ from skimage.measure import compare_ssim
 from skimage.transform import resize
 
 from scipy.stats import wasserstein_distance
-from scipy.misc import imsave
-from scipy.ndimage import imread
 
 #import cv2
 

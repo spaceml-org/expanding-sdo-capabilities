@@ -1,13 +1,11 @@
 import logging
 import os
-
 from contexttimer import Timer
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import scipy.stats as stats
 
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
@@ -23,11 +21,14 @@ from sdo.models.autocalibration_models import (
   Autocalibration8,
   Autocalibration9,
   Autocalibration10,
-  Autocalibration106,
+  Autocalibration11,
+  Autocalibration12,
+  Autocalibration13,
   )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.metrics.plotting import plot_regression
+from sdo.metrics.hsced_loss import HeteroscedasticLoss
 
 
 _logger = logging.getLogger(__name__)
@@ -41,12 +42,13 @@ class AutocalibrationPipeline(TrainingPipeline):
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers, scaling, apodize,
                  optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
-                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale):
+                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale, loss):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.wavelengths = wavelengths
         self.tolerance = tolerance
         self.scaling = scaling
+        self.loss = loss
         self.apodize = apodize
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
@@ -66,7 +68,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                             h_step=h_step, min_step=min_step,
                                             resolution=actual_resolution,
                                             subsample=subsample,
-                                            normalization=0, scaling=scaling, 
+                                            normalization=0, scaling=scaling,
                                             apodize=apodize,
                                             test_ratio=test_ratio,
                                             min_alpha=min_alpha,
@@ -205,12 +207,24 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
                                      output_dim=self.num_channels)
-        elif model_version == 106:
-            # How simple can we get our network to be and still have single                                                             
-            # channel input perform well?                                                                                                 
-            return Autocalibration106(input_shape=[self.num_channels, scaled_height,
-                                                 scaled_width],
-                                    output_dim=self.num_channels)
+        elif model_version == 11:
+            # Same as Autocalibration6, it implements heteroscedastic regression.
+            return Autocalibration11(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels)
+        elif model_version == 12:
+            # Same as Autocalibration11, but mean and logvar go through a different
+            # fully connected layer
+            return Autocalibration12(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels)
+        elif model_version == 13:
+            # Same as Autocalibration12, but ELU with alpha=0.1 used as activation
+            # for log_var
+            return Autocalibration13(input_shape=[self.num_channels, scaled_height,
+                                                  scaled_width],
+                                     output_dim=self.num_channels)
+
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
@@ -245,7 +259,18 @@ class AutocalibrationPipeline(TrainingPipeline):
         """ Return the loss function this pipeline is using. """
         # Both the output and gt_output should be a vector num_channels wide, where each vector entry is the
         # brightness dimming factor.
-        return nn.MSELoss()(output, gt_output)
+        if self.loss == 'mse':
+            return nn.MSELoss()(output, gt_output)
+        elif self.loss == 'hsced':
+            # the NN outputs the mean and the log_var when running a heteroscedastic regression
+            if output.shape[0] == 2:
+                return HeteroscedasticLoss()(output, gt_output)
+            else:
+                _logger.error('Heteroscedastic regression requires to output two values'
+                              'for each channel (mean, log_var). Look at Autocalibration11 for an'
+                              'example of model compatible with this loss.')
+        else:
+            _logger.error('Required loss not implemented')
 
     def calculate_primary_metric(self, epoch, output, gt_output):
         """
@@ -254,6 +279,10 @@ class AutocalibrationPipeline(TrainingPipeline):
         correct if the real and predicted value differ equal less than the tolerance. 
         The mean over the batch and the channels is returned as single metric value.
         """
+        # the NN outputs the mean and the log_var when running a heteroscedastic regression
+        # but only the mean is relevant for this primary metric
+        if output.shape[0] == 2:
+            output = output[0]
         diff = torch.abs(output - gt_output)
         batch_size = diff.shape[0]
         n_tensor_elements = batch_size * self.num_channels
@@ -270,6 +299,13 @@ class AutocalibrationPipeline(TrainingPipeline):
     def generate_supporting_metrics(self, orig_img, output, input_data, gt_output, epoch,
                                     train):
         """ Print debugging details on the final batch per epoch during training or testing. """
+        # the NN outputs the mean and the log_var when running a heteroscedastic regression
+        # but only the mean is relevant for the following metrics
+        if output.shape[0] == 2:
+            log_var = output[1]
+            output = output[0]
+        else:
+            log_var = None
         super(AutocalibrationPipeline, self).generate_supporting_metrics(
             orig_img, output, input_data, gt_output, epoch, train)
 
@@ -339,7 +375,13 @@ class AutocalibrationPipeline(TrainingPipeline):
         plt.scatter(range(1, self.num_channels + 1), dim_factors_numpy,
                     label='Dimming factors (true)')
         output_numpy = output[rand_idx].detach().view(-1).cpu().numpy()
-        plt.scatter(range(1, self.num_channels + 1), output_numpy,
+        if log_var is not None:
+            log_var_numpy = log_var[rand_idx].detach().view(-1).cpu().numpy()
+            sigma_numpy = np.sqrt(np.exp(log_var_numpy))
+            plt.errorbar(range(1, self.num_channels + 1), output_numpy,
+                         yerr=sigma_numpy, label='Dimming factors (predicted)')
+        else:
+            plt.scatter(range(1, self.num_channels + 1), output_numpy,
                     label='Dimming factors (predicted)')
         title = 'training dimming factors' if train else 'testing dimming factors'
         plt.title(title)

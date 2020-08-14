@@ -113,7 +113,8 @@ def main(args):
           threshold_black=args.autocal_threshold_black,
           threshold_black_value=args.autocal_threshold_black_value,
           flip_test_images=args.autocal_flip_test_images,
-          sigmoid_scale=args.autocal_sigmoid_scale)
+          sigmoid_scale=args.autocal_sigmoid_scale,
+          loss=args.loss)
     elif args.pipeline_name == 'VirtualTelescopePipeline':
         pipeline = VirtualTelescopePipeline(
           exp_name=args.experiment_name,
@@ -148,7 +149,7 @@ def main(args):
           scaling=args.scaling,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
-          loss=args.vt_loss)
+          loss=args.loss)
     else:
         raise Exception('Unknown pipeline: {}'.format(args.pipeline_name))
 
