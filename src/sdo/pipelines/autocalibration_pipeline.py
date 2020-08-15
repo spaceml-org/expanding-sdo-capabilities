@@ -205,7 +205,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             # the final function replacing the sigmoid to get a clipped relu value.
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
-                                     output_dim=self.num_channels
+                                     output_dim=self.num_channels)
         elif model_version == 11:
             # Same as Autocalibration6, it implements heteroscedastic regression.
             return Autocalibration11(input_shape=[self.num_channels, scaled_height,
