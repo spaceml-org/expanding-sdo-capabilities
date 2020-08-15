@@ -237,7 +237,7 @@ class SDO_Dataset(Dataset):
         n_channels = len(self.channels)
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
-        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32
+        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
         img = np.zeros(shape=(size, size), dtype=np.float32)
         for c in range(n_channels):
             temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
