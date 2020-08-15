@@ -9,7 +9,6 @@ from sdo.activations import positive_elu, PositiveELU
 
 _logger = logging.getLogger(__name__)
 
-
 class Autocalibration1(nn.Module):
     """
     Two CNN layers and two fully connected layers.
