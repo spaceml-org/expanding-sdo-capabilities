@@ -5,7 +5,6 @@ from os import path
 import numpy as np
 from numpy import zeros, load
 from numpy import sqrt
-from scipy.misc import bytescale
 import logging
 from sdo.global_vars import (
     DATA_FILENAME_TEMPLATE,
@@ -13,6 +12,8 @@ from sdo.global_vars import (
     UV_CHANNELS,
     )
 
+def bytescale(c, cmin=0, cmax=255): 
+    return np.clip( (c - cmin)/(cmin-cmax)*255, 0, 255).astype(np.uint8)
 
 BUNIT = 2000.0  # units of 2 kGauss
 AUNIT = 100.0  # units of 100 DN/s/pixel

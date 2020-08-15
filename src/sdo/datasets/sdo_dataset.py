@@ -4,15 +4,10 @@ In this module we define a pytorch SDO dataset
 import logging
 from os import path
 import random
-
 import numpy as np
-
 import pandas as pd
-
 import torch
 from torch.utils.data import Dataset
-from torch import from_numpy
-
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
@@ -54,7 +49,7 @@ class SDO_Dataset(Dataset):
                 a dataframe of existing files. If False(or not valid) the file search is done
                 by folder and it is much slower.
             channels (list string): channels to be selected
-            instr (list string): instrument to which each channel corresponds to. 
+            instr (list string): instrument to which each channel corresponds to.
                                  It has to be of the same size of channels.
             yr_range (list int): range of years to be selected
             mnt_step (int): month frequency
@@ -67,15 +62,16 @@ class SDO_Dataset(Dataset):
             test_ratio (float): percentage of data to be used for testing. Training ratio is 1-test_ratio.
             shuffle (bool): if True, the dataset will be shuffled. Keep it False if you want to return
                             a time-ordered dataset.
-            subsample (int): if 1 resolution of the final images will be as the original. 
-                             If > 1 the image is downsampled. i.e. if resolution=512 and 
+            subsample (int): if 1 resolution of the final images will be as the original.
+                             If > 1 the image is downsampled. i.e. if resolution=512 and
                              subsample=4, the images will be 128*128
             normalization (int): if 0 normalization is not applied, if > 0 a normalization
-                                 by image is applied (only one type of normalization implemented 
+                                 by image is applied (only one type of normalization implemented
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
+            apodize (bool): if True it masks the Sun’s limb. Remove anything farther than 1 solar radii from the center.
         """
         assert day_step > 0 and h_step > 0 and min_step > 0
 
@@ -96,9 +92,10 @@ class SDO_Dataset(Dataset):
         self.scaling = scaling
         self.apodize = apodize
         self.holdout = holdout
-        
-        _logger.info("apodize={}".format(self.apodize) )
-        
+
+
+        _logger.info("apodize={}".format(self.apodize))
+
         if path.isfile(data_inventory):
             self.data_inventory = data_inventory
         else:
@@ -139,7 +136,7 @@ class SDO_Dataset(Dataset):
         _logger.info('Loading SDOML from "%s"' % self.data_basedir)
         _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
         indexes = ['year', 'month', 'day', 'hour', 'min']
-        yrs = np.arange(self.yr_range[0], self.yr_range[1]+1)
+        yrs = np.arange(self.yr_range[0], self.yr_range[1] + 1)
         months = self.find_months()
         days = np.arange(1, 32, self.day_step)
         hours = np.arange(0, 24, self.h_step)
@@ -164,8 +161,8 @@ class SDO_Dataset(Dataset):
 
             sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
             n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
-            _logger.info("Timestamps found in the inventory: %d (%.2f)" % 
-                         (n_sel_timestamps, float(n_sel_timestamps)/tot_timestamps))
+            _logger.info("Timestamps found in the inventory: %d (%.2f)" %
+                         (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))
             grouped_df = sel_df.groupby(indexes).size()
             # we select only timestamp that have files for all the channels
             grouped_df = grouped_df[grouped_df == len(self.channels)].to_frame()
@@ -205,10 +202,10 @@ class SDO_Dataset(Dataset):
         if len(files) == 0:
             _logger.error("No input images found")
         else:
-            _logger.info("N timestamps discarded because channel is missing = %d (%.5f)" % 
-                         (discarded_tm, float(discarded_tm)/n_sel_timestamps))
+            _logger.info("N timestamps discarded because channel is missing = %d (%.5f)" %
+                         (discarded_tm, float(discarded_tm) / n_sel_timestamps))
             _logger.info("Selected timestamps = %d" % len(files))
-            _logger.info("N images = %d" % (len(files)*len(self.channels)))
+            _logger.info("N images = %d" % (len(files) * len(self.channels)))
             if self.shuffle:
                 _logger.warning(
                     "Shuffling is being applied, this will alter the time sequence.")
@@ -240,33 +237,30 @@ class SDO_Dataset(Dataset):
         n_channels = len(self.channels)
         # the original images are NOT bytescaled
         # we directly convert to 32 because the pytorch tensor will need to be 32
-        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32)
-
-        img = np.zeros(shape=(size, size),dtype=np.float32)
+        item = np.zeros(shape=(n_channels, size, size), dtype=np.float32
+        img = np.zeros(shape=(size, size), dtype=np.float32)
         for c in range(n_channels):
-            temp= np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
-            img[:,:] = temp[::self.subsample,::self.subsample]
-            #temp._mmap.close()
+            temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            img[:, :] = temp[::self.subsample, ::self.subsample]
             if self.scaling:
                 # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
             if self.normalization > 0:
-                img = self.normalize_by_img(img, self.normalization)
-
+                img = self.normalize_by_img(img, self.normalization)           
             item[c, :, :] = img
-
 
         if self.apodize:
             # Set off limb pixel values to zero
-            x = np.arange((img.shape[0]),dtype=np.float) - img.shape[0]/2+0.5
-            y = np.arange((img.shape[1]),dtype=np.float) - img.shape[1]/2+0.5
-            xgrid = np.ones(shape=(img.shape[1],1))@x.reshape((1,x.shape[0]))
-            ygrid = y.reshape((y.shape[0],1))@np.ones(shape=(1,img.shape[0]))
-            dist = np.sqrt(xgrid*xgrid + ygrid*ygrid)
+            x = np.arange((img.shape[0]), dtype=np.float) - img.shape[0] / 2 + 0.5
+            y = np.arange((img.shape[1]), dtype=np.float) - img.shape[1] / 2 + 0.5
+            xgrid = np.ones(shape=(img.shape[1], 1)) @ x.reshape((1, x.shape[0]))
+            ygrid = y.reshape((y.shape[0], 1)) @ np.ones(shape=(1, img.shape[0]))
+            dist = np.sqrt(xgrid * xgrid + ygrid * ygrid)
             mask = np.ones(shape=dist.shape, dtype=np.float)
-            mask = np.where(dist < 200./self.subsample, mask, 0.0) #Radius of sun at 1 AU is 200*4.8 arcsec                                         
+            mask = np.where(dist < 200. / self.subsample, mask,
+                            0.0)  # Radius of sun at 1 AU is 200*4.8 arcsec
             for c in range(len(self.channels)):
-                item[c,:,:] = item[c,:,:]*mask
+                item[c, :, :] = item[c, :, :] * mask
 
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.

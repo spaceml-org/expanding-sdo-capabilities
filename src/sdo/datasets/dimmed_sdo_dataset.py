@@ -3,14 +3,10 @@ A version of the SDO dataset that can synthetically dim its brightness
 to aid training.
 """
 import logging
-
-import numpy as np
-
 import torch
-
 from sdo.datasets.mock_data import create_noise_image
 from sdo.datasets.sdo_dataset import SDO_Dataset
-from sdo.pytorch_utilities import to_tensor
+
 
 _logger = logging.getLogger(__name__)
 

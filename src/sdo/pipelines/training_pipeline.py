@@ -3,13 +3,10 @@ import math
 import logging
 import os
 
-import matplotlib.pyplot as plt
-
 from contexttimer import Timer
+from operator import itemgetter 
 
 import numpy as np
-
-import pandas as pd
 
 import torch
 
@@ -302,14 +299,28 @@ class TrainingPipeline(object):
                 format_graph_prefix(epoch, self.exp_name)))
         _logger.info('Saving ground truths and predictions to {}...'.
                      format(predictions_filename))
-    
+        # the NN outputs the mean and the log_var when running a heteroscedastic regression
         gt_outputs_np = torch.cat(gt_outputs).detach().cpu().numpy()
-        outputs_np = torch.cat(outputs).detach().cpu().numpy()
-        # stacked factors will have shape (len_dataset, len_channels, 2)
-        # In the last column, the first element is the ground truth, the 
-        # second element is the predicted
-        stacked_factors = np.dstack((gt_outputs_np, outputs_np))
-        np.save(predictions_filename, stacked_factors)
+        # TODO make this if more robust, checking the shape could lead to errors
+        # in case we are running other models with 2 batches per epoch.
+        if len(outputs[0]) == 2:
+            mean_outputs = list( map(itemgetter(0), outputs)) 
+            log_var_outputs = list( map(itemgetter(1), outputs))
+            log_var_np = torch.cat(log_var_outputs).detach().cpu().numpy()
+            outputs_np = torch.cat(mean_outputs).detach().cpu().numpy()
+            # stacked factors will have shape (len_dataset, len_channels, 3)
+            # In the last column, the first element is the ground truth, the 
+            # second element is the predicted, the third element is the log of
+            # the variance
+            stacked_factors = np.dstack((gt_outputs_np, outputs_np, log_var_np))
+            np.save(predictions_filename, stacked_factors)
+        else:   
+            outputs_np = torch.cat(outputs).detach().cpu().numpy()
+            # stacked factors will have shape (len_dataset, len_channels, 2)
+            # In the last column, the first element is the ground truth, the 
+            # second element is the predicted
+            stacked_factors = np.dstack((gt_outputs_np, outputs_np))
+            np.save(predictions_filename, stacked_factors)
 
     def print_final_details(self, total_perf, train_losses, test_losses,
                             train_primary_metrics, test_primary_metrics):
