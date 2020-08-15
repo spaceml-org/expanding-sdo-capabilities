@@ -2,10 +2,8 @@
 Torch architecture models for autocalibration.
 """
 import logging
-
 import torch
 import torch.nn as nn
-
 from sdo.activations import positive_elu, PositiveELU
 
 

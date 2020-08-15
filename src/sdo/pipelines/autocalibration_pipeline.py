@@ -47,10 +47,7 @@ class AutocalibrationPipeline(TrainingPipeline):
         self.wavelengths = wavelengths
         self.tolerance = tolerance
         self.scaling = scaling
-<<<<<<< HEAD
-=======
         self.loss = loss
->>>>>>> master
         self.apodize = apodize
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
@@ -70,11 +67,7 @@ class AutocalibrationPipeline(TrainingPipeline):
                                             h_step=h_step, min_step=min_step,
                                             resolution=actual_resolution,
                                             subsample=subsample,
-<<<<<<< HEAD
-                                            normalization=0, scaling=scaling, 
-=======
                                             normalization=0, scaling=scaling,
->>>>>>> master
                                             apodize=apodize,
                                             test_ratio=test_ratio,
                                             min_alpha=min_alpha,
@@ -212,15 +205,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             # the final function replacing the sigmoid to get a clipped relu value.
             return Autocalibration10(input_shape=[self.num_channels, scaled_height,
                                                  scaled_width],
-                                     output_dim=self.num_channels)
-<<<<<<< HEAD
-        elif model_version == 106:
-            # How simple can we get our network to be and still have single                                                             
-            # channel input perform well?                                                                                                 
-            return Autocalibration106(input_shape=[self.num_channels, scaled_height,
-                                                 scaled_width],
-                                    output_dim=self.num_channels)
-=======
+                                     output_dim=self.num_channels
         elif model_version == 11:
             # Same as Autocalibration6, it implements heteroscedastic regression.
             return Autocalibration11(input_shape=[self.num_channels, scaled_height,
@@ -238,8 +223,6 @@ class AutocalibrationPipeline(TrainingPipeline):
             return Autocalibration13(input_shape=[self.num_channels, scaled_height,
                                                   scaled_width],
                                      output_dim=self.num_channels)
-
->>>>>>> master
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
