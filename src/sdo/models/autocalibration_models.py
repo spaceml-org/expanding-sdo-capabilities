@@ -293,62 +293,7 @@ class Autocalibration6(nn.Module):
         x = self._fc(x)
         x = torch.sigmoid(x)
         return x
-
-class Autocalibration106(nn.Module):
-    """                                                                                                                                                                                                 Shift invariant (Zhang et al. 2019) version of Autocalibration6
-    How simple can we get our network to be and still perform well at                                                                                                                                   128x128 and 256x256?                                                                                                                                                                                """
-
-    def __init__(self, input_shape, output_dim):
-        super(Autocalibration106, self).__init__()
-        if len(input_shape) != 3:
-            raise ValueError('Expecting an input_shape representing dimensions CxHxW')
-        self._input_channels = input_shape[0]
-        _logger.info('input_channels: {}'.format(self._input_channels))
-
-        # Note: Two convolutional layers are needed to get results.                                                                                                                                
-
-        self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
-        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)                                                                                                                              
-        self._conv2d1_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=64, filt_size=3, stride=3)]
-
-        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)                                                                                                                                                
- 
-        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
-        self._conv2d2_maxpool = [nn.MaxPool2d(kernel_size=3, stride=1),Downsample(channels=128, filt_size=3, stride=3)] 
-
-        self._cnn_output_dim = self._cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
-        _logger.info('cnn_output_dim: {}'.format(self._cnn_output_dim))
-        _logger.info('Shift invariant version of model 6')
-        self._fc = nn.Linear(self._cnn_output_dim, output_dim)
-
-    def _cnn(self, x):
-        x = self._conv2d1(x)
-        #_logger.info("0:", x.shape)
-        x = torch.relu(x)
-        #_logger.info("1:", x.shape)
-        x = self._conv2d1_maxpool[0](x)
-        #_logger.info("2:", x.shape)
-        x = self._conv2d1_maxpool[1](x)
-        #_logger.info("3:", x.shape)
-
-        x = self._conv2d2(x)
-        #_logger.info("4:", x.shape)
-        x = torch.relu(x)
-        #_logger.info("5:", x.shape)
-        x = self._conv2d2_maxpool[0](x)
-        #_logger.info("6:", x.shape)
-        x = self._conv2d2_maxpool[1](x)
-        #_logger.info("7:", x.shape)
-
-        return x
-
-    def forward(self, x):
-        batch_dim = x.shape[0]
-        x = self._cnn(x).view(batch_dim, -1)
-        x = self._fc(x)
-        x = torch.sigmoid(x)
-        return x
-
+    
  
 class Autocalibration7(nn.Module):
     """
