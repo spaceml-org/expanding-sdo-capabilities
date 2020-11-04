@@ -110,6 +110,7 @@ class TrainingPipeline(object):
             total_primary_metrics = []
             gt_outputs = []
             outputs = []
+            l_optional_data =[]
             for batch_idx, (input_data,
                             gt_output,
                             optional_debug_data) in enumerate(self.train_loader):
@@ -128,6 +129,7 @@ class TrainingPipeline(object):
                     gt_outputs.append(gt_output.detach().clone())
                     outputs.append(output.detach().clone())
                     losses.append(float(loss))
+                    l_optional_data.append(optional_debug_data)
 
                 if batch_idx % self.log_interval == 0:
                     with torch.no_grad():
@@ -157,7 +159,7 @@ class TrainingPipeline(object):
             if (epoch % self.save_interval == 0) or final_epoch:
                 with Timer() as saving_results_perf:
                     self.save_training_results(epoch)
-                    self.save_predictions(epoch, gt_outputs, outputs, train=True)
+                    self.save_predictions(epoch, gt_outputs, outputs, l_optional_data, train=True)
                 _logger.info('\nTotal time to save training results: {:.1f} s'.format(
                     saving_results_perf.elapsed))
 
@@ -173,6 +175,7 @@ class TrainingPipeline(object):
             times = []
             gt_outputs = []
             outputs = []
+            l_optional_data =[]
             correct = 0
             for batch_idx, (input_data,
                             gt_output,
@@ -187,6 +190,7 @@ class TrainingPipeline(object):
                     output = output.to(self.device)
                     loss = self.get_loss_func(output, gt_output)
                     losses.append(float(loss))
+                    l_optional_data.append(optional_debug_data)
 
                 if batch_idx % self.log_interval == 0:
                     primary_metric = self.calculate_primary_metric(
@@ -213,7 +217,7 @@ class TrainingPipeline(object):
 
         if (epoch % self.save_interval == 0) or final_epoch:
             self.save_training_results(epoch)
-            self.save_predictions(epoch, gt_outputs, outputs, train=False)
+            self.save_predictions(epoch, gt_outputs, outputs, l_optional_data, train=False)
         return np.mean(losses), np.mean(total_primary_metrics)
 
     def print_epoch_details(self, epoch, batch_idx, batch_size, dataset, loss,
@@ -283,7 +287,7 @@ class TrainingPipeline(object):
         _logger.info('Saving optimizer to {}...'.format(optimizer_filename))
         torch.save(self.optimizer.state_dict(), optimizer_filename)
 
-    def save_predictions(self, epoch, gt_outputs, outputs, train=True):
+    def save_predictions(self, epoch, gt_outputs, outputs, l_optional_debug_data, train=True):
         """
         This method saves the ground truth and the predictions for
         post-modelling analysis. It is called at least once for training
@@ -297,10 +301,9 @@ class TrainingPipeline(object):
             predictions_filename = os.path.join(
                 self.results_path, '{}_test_predictions.npy'.format(
                 format_graph_prefix(epoch, self.exp_name)))
-        _logger.info('Saving ground truths and predictions to {}...'.
-                     format(predictions_filename))
         # the NN outputs the mean and the log_var when running a heteroscedastic regression
         gt_outputs_np = torch.cat(gt_outputs).detach().cpu().numpy()
+        optional_debug_data_np = torch.cat(l_optional_debug_data).detach().cpu().numpy()
         # TODO make this if more robust, checking the shape could lead to errors
         # in case we are running other models with 2 batches per epoch.
         if len(outputs[0]) == 2:
@@ -308,19 +311,20 @@ class TrainingPipeline(object):
             log_var_outputs = list( map(itemgetter(1), outputs))
             log_var_np = torch.cat(log_var_outputs).detach().cpu().numpy()
             outputs_np = torch.cat(mean_outputs).detach().cpu().numpy()
-            # stacked factors will have shape (len_dataset, len_channels, 3)
+            # for autocal stacked factors will have shape (len_dataset, len_channels, 3)
             # In the last column, the first element is the ground truth, the 
             # second element is the predicted, the third element is the log of
-            # the variance
+            # the variance.
             stacked_factors = np.dstack((gt_outputs_np, outputs_np, log_var_np))
-            np.save(predictions_filename, stacked_factors)
         else:   
             outputs_np = torch.cat(outputs).detach().cpu().numpy()
-            # stacked factors will have shape (len_dataset, len_channels, 2)
+            # for autocal stacked factors will have shape (len_dataset, len_channels, 2)
             # In the last column, the first element is the ground truth, the 
-            # second element is the predicted
+            # second element is the predicted.  See save_predictions in virtual telescope 
+            # pipeline for dimensions there
             stacked_factors = np.dstack((gt_outputs_np, outputs_np))
-            np.save(predictions_filename, stacked_factors)
+        # optional_debug_data_np has not been stacked here to not alter the autocal output
+        return predictions_filename, stacked_factors, optional_debug_data_np
 
     def print_final_details(self, total_perf, train_losses, test_losses,
                             train_primary_metrics, test_primary_metrics):

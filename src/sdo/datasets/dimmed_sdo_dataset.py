@@ -32,7 +32,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
     def __getitem__(self, idx):
         # Note: If scaling==True, then orig_img is already scaled when
         # fetched from the superclass.
-        orig_img = super(DimmedSDO_Dataset, self).__getitem__(idx)
+        orig_img = super(DimmedSDO_Dataset, self).__getitem__(idx)[0]
 
         if self.threshold_black:
             orig_img[orig_img <= self.threshold_black_value] = 0

@@ -154,7 +154,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
 
     def show_sample(self, loader):
         """ Show some samples for debugging purposes before training/testing. """
-        input_data, gt_output, _ = loader.dataset[0]
+        input_data, gt_output, timestamp = loader.dataset[0]
 
         # Print each of the input channels on their own line.
         fig = plt.figure()
@@ -164,7 +164,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
 
             ax = fig.add_subplot(self.num_channels, 1, pos)
             fig.subplots_adjust(top=3.0)
-            ax.set_title('Input Channel {}'.format(i + 1))
+            ax.set_title('Input Channel {} at time {}'.format((i + 1), timestamp))
             ax.axis('off')
             ax.imshow(input_data[i].detach().numpy(), vmin=0, vmax=1)
 
@@ -228,24 +228,27 @@ class VirtualTelescopePipeline(TrainingPipeline):
         input_data = input_data.detach().cpu().numpy()
         output = output.detach().cpu().numpy()
         gt_output = gt_output.detach().cpu().numpy()
+        # np array of shape array([[year, month, day, hour, min]])
+        timestamp = optional_debug_data.numpy()
 
-        
         # the following plots and metrics will be computed on one single batch index
         index = 0
         img_file = os.path.join(self.results_path, '{}_debug_sample_{}.png'.format(
-            format_graph_prefix(epoch, self.exp_name),' train' if train else 'test'))
-        plot_vt_sample(self.num_channels, input_data, output, gt_output, img_file, 
+            format_graph_prefix(epoch, self.exp_name), ' train' if train else 'test'))
+        plot_vt_sample(self.num_channels, input_data, output, gt_output, img_file, timestamp,
                        index=index)
         _logger.info('Debug sample saved to {}'.format(img_file))
         
         img_file = os.path.join(self.results_path, '{}_2dhist_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
-        plot_2d_hist(gt_output[index][0], output[index][0], img_file)
+        # output has shape (3, 1, H, W)
+        # timestamp has shape (3, 5)
+        plot_2d_hist(gt_output[index][0], output[index][0], img_file, timestamp[index])
         _logger.info('2D histogram saved to {}'.format(img_file))
         
         img_file = os.path.join(self.results_path, '{}_diff_hist_map_{}.png'.format(
             format_graph_prefix(epoch, self.exp_name), 'train' if train else 'test'))
-        plot_difference(gt_output[index][0], output[index][0], img_file)
+        plot_difference(gt_output[index][0], output[index][0], img_file, timestamp[index])
         
         # Get the similarity values between the predicted and ground truth outputs.
         # TODO: Do all these operations on the GPU with Torch, not the CPU via Numpy.
@@ -260,4 +263,33 @@ class VirtualTelescopePipeline(TrainingPipeline):
         #psd_1Dtruth = azimuthal_average(compute_2Dpsd(gt_output[index, 0, :, :]))
         #psd_metric = mean_squared_error(psd_1Dtruth, psd_1Dpred)
         #_logger.info('PSD metric for single sample: {}'.format(psd_metric))
+
+    def save_predictions(self, epoch, gt_outputs, outputs, l_optional_data, train=True):
+        """
+        This method saves the ground truth and the predictions for
+        post-modelling analysis, including the timestamps. It is called at
+        least once for training and once for test.
+        """
+        predictions_filename, stacked_factors, timestamps_np = \
+            super(VirtualTelescopePipeline, self).save_predictions(
+            epoch, gt_outputs, outputs, l_optional_data, train)
+        # stacked factors have shape (len_dataset, 1, 2*size_image, size_image)
+        # timestamps have shape  (len_dataset, 5)
+        # In the third column, the first half are the ground truth image, the second half
+        # the predicted ones. This format is maintened for retro-compatibility
+        _logger.info('Saving ground truths and predictions to {}...'.
+                     format(predictions_filename))
+        np.save(predictions_filename, stacked_factors)
+        
+        # reverse stack
+        n_timestamps, _, _, size = stacked_factors.shape
+        gt_outputs_np = stacked_factors.reshape(n_timestamps, 2, size, size)[:, 0, :, :]
+        outputs_np = stacked_factors.reshape(n_timestamps, 2, size, size)[:, 1, :, :]
+        
+        # save binary file that contains also the timestamps
+        time_predictions_filename = predictions_filename.split('.')[0] + '_timestamps.npz' 
+        _logger.info('Saving timestamped ground truths and predictions to {}...'.
+                     format(time_predictions_filename))
+        np.savez(time_predictions_filename, gt_img=gt_outputs_np, img=outputs_np, 
+                 ts=timestamps_np)
         

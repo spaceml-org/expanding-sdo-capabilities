@@ -13,8 +13,10 @@ class VirtualTelescopeSDO_Dataset(SDO_Dataset):
         self.num_channels = num_channels
 
     def __getitem__(self, idx):
-        data = super(VirtualTelescopeSDO_Dataset, self).__getitem__(idx)
+        data_with_timestamps = super(VirtualTelescopeSDO_Dataset, self).__getitem__(idx)
         # Note: Shape is (num_channels, height, width)
+        data = data_with_timestamps[0]
+        timestamp = data_with_timestamps[1]
 
         assert data.shape[0] == self.num_channels, \
             'orig data has incorrect size: {}'.format(data.shape[0])
@@ -33,6 +35,4 @@ class VirtualTelescopeSDO_Dataset(SDO_Dataset):
             'input img shape has incorrect size: {}'.format(img.shape[0])
         assert truth.shape[0] == 1, \
             'truth output shape has incorrect size: {}'.format(truth.shape[0])
-
-        optional_debug_data = torch.Tensor()
-        return (img, truth, optional_debug_data)
+        return img, truth, timestamp

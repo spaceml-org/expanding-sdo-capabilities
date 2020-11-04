@@ -101,7 +101,6 @@ class SDO_Dataset(Dataset):
             _logger.warning("A valid inventory file has NOT be passed"
                             "If this is not expected check the path.")
             self.data_inventory = False
-        # TODO self.timestamps is not used in get_item
         self.files, self.timestamps = self.create_list_files()
 
     def find_months(self):
@@ -177,6 +176,7 @@ class SDO_Dataset(Dataset):
                 'A valid inventory file has not been passed in, be prepared to wait.')
             files = []
             timestamps = []
+            n_sel_timestamps = 0
             discarded_tm = 0
             for y in yrs:
                 for month in months:
@@ -191,6 +191,7 @@ class SDO_Dataset(Dataset):
                                                   instrs=self.instr,
                                                   channels=self.channels,
                                                   )
+                                n_sel_timestamps += n_sel_timestamps
                             if result != -1:
                                 files.append(result)
                                 timestamp = (y, month, d, h, minu)
@@ -207,7 +208,15 @@ class SDO_Dataset(Dataset):
             if self.shuffle:
                 _logger.warning(
                     "Shuffling is being applied, this will alter the time sequence.")
-                random.shuffle(files)
+                indices = np.arange(len(files))
+                random.shuffle(indices)
+                tmp_files = []
+                tmp_timestamps = []
+                for i in indices:
+                    tmp_files.append(files[i])
+                    tmp_timestamps.append(timestamps[i])
+                files = tmp_files
+                timestamps = tmp_timestamps
         return files, timestamps
 
     def normalize_by_img(self, img, norm_type):
@@ -261,6 +270,9 @@ class SDO_Dataset(Dataset):
             for c in range(len(self.channels)):
                 item[c, :, :] = item[c, :, :] * mask
 
+        timestamps = self.timestamps[index]
+        output = [to_tensor(item, dtype=torch.float), to_tensor(timestamps)]
+   
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return to_tensor(item, dtype=torch.float)
+        return output

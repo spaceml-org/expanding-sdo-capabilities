@@ -4,7 +4,7 @@
 notebooks/.ipynb_checkpoints/
 data/
 training_results/
-src/sdo.egg-info
+src/sdo.egg-info/*
 *.pyc
 *.pyo
 __pycache__/

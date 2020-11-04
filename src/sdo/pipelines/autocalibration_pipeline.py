@@ -420,3 +420,15 @@ class AutocalibrationPipeline(TrainingPipeline):
                      .format(df_pr_coeff))
         _logger.info('Mean Pearson coefficient {}'.format(np.mean(pr_coeff)))
         _logger.info('\n')
+
+    def save_predictions(self, epoch, gt_outputs, outputs, optional_debug_data, train=True):
+        """
+        This method saves the ground truth and the predictions for
+        post-modelling analysis,. It is called at
+        least once for training and once for test.
+        """
+        predictions_filename, stacked_factors, _ = super(AutocalibrationPipeline, self).save_predictions(
+            epoch, gt_outputs, outputs, optional_debug_data, train=train)
+        _logger.info('Saving ground truths and predictions to {}...'.
+                     format(predictions_filename))
+        np.save(predictions_filename, stacked_factors)
