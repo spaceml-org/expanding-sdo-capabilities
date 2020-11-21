@@ -385,6 +385,13 @@ def parse_vt_args(p):
         default='ssim',
         help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default), rmse, smoothL1.')
 
+    p.add_argument(
+        '--u-depth',
+        dest='unet_depth',
+        type=int,
+        default=4,
+        help='Depth of the UNet network. If the model is not UNet the argument is ignored.')
+
 
 def str2bool(v):
     """

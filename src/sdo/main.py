@@ -149,7 +149,8 @@ def main(args):
           scaling=args.scaling,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
-          loss=args.loss)
+          loss=args.loss,
+          unet_depth=args.unet_depth)
     else:
         raise Exception('Unknown pipeline: {}'.format(args.pipeline_name))
 

@@ -5,25 +5,21 @@ import os
 from contexttimer import Timer
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas
-import scipy.stats as stats
-import seaborn as sns
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
 from sdo.io import format_graph_prefix
-from sdo.metrics.azimuth_metric import azimuthal_average, compute_2Dpsd
 from sdo.metrics.ssim_metric import SSIM, ssim
-from sklearn.metrics import mean_squared_error
 from sdo.metrics.extended_vt_metrics import structural_sim, pixel_sim
-from sdo.models.vt_models import (
+from sdo.models.vt_models.vt_encoders import (
     VT_EncoderDecoder,
-    VT_BasicEncoder,
+    VT_BasicEncoder
+)
+from sdo.models.vt_models.vt_linear import linearRegression
+from sdo.models.vt_models.vt_unet import (
     VT_UnetGenerator,
-    VT_UnetGenerator2,
-    linearRegression,
+    VT_UnetGenerator2
     )
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
@@ -40,9 +36,13 @@ class VirtualTelescopePipeline(TrainingPipeline):
                  test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers,
-                 scaling, optimizer_weight_decay, optimizer_lr, loss):
+                 scaling, optimizer_weight_decay, optimizer_lr, loss, unet_depth):
         self.num_channels = len(wavelengths)
         self.loss = loss
+        if model_version != 3:
+            _logger.warning('Unet depth is only implemented in model 3, this parameter will be ignored.')
+        else:
+            self.unet_depth = unet_depth
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))
@@ -138,13 +138,15 @@ class VirtualTelescopePipeline(TrainingPipeline):
                                                 scaled_width])
         elif model_version == 3:
             return VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
-                                                scaled_width], num_filter=64, LR_neg_slope=0.2)
+                                                 scaled_width], num_filter=64, LR_neg_slope=0.2, 
+                                                 depth=self.unet_depth)
         elif model_version == 4:
             return VT_UnetGenerator2(input_shape=[self.num_channels - 1, scaled_height,
                                                   scaled_width], num_filter=64, LR_neg_slope=0.2)
         elif model_version == 5:
             return linearRegression(input_shape=[self.num_channels - 1, scaled_height,
                                                  scaled_width])
+
         else:
             # Note: For other model_versions, simply instantiate whatever class
             # you want to test your experiment for. You will have to update the code
