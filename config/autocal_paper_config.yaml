@@ -1,0 +1,68 @@
+# This file contains all the inputs necessary to reproduce the results published at Dos Santos et al. 2021 (https://arxiv.org/abs/2012.14023).
+# Update the paths to your local dataset. A description and default values of each input here can be fund at /src/sdo/parse_arg.py.
+# Any change in any of these parameters may not produce the same results of the reference paper.
+
+actual_resolution: 512
+additional_metrics_interval: 100
+apodize: true
+autocal_flip_test_images: true
+autocal_max_alpha: 1.0
+autocal_min_alpha: 0.01
+autocal_noise_image: false
+autocal_sigmoid_scale: 1.0
+autocal_threshold_black: false
+autocal_threshold_black_value: 0.09
+autocal_tolerance: 0.05
+batch_size_test: 256
+batch_size_train: 64
+config: luiz_exp.yaml
+continue_training: false
+cuda_device: null
+data_basedir: /fdl_sdo_data/SDOMLmm/fdl_sw/SDOMLmm
+data_inventory: /fdl_sdo_data/bucket/inventory.pkl
+dataloader_workers: 14
+day_step: 1
+determininistic_cuda: true
+experiment_name: luiz_exp_36_apodize
+h_step: 6
+instruments:
+- AIA
+- AIA
+- AIA
+- AIA
+- AIA
+- AIA
+- AIA
+log_interval: 10
+log_minimal: true
+loglevel: 20
+min_step: 60
+mnt_step: 1
+model_version: 6
+num_epochs: 1000
+optimizer_lr: 0.001
+optimizer_weight_decay: 0
+pipeline_name: AutocalibrationPipeline
+random_seed: 1
+results_path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/AUTOCAL/luiz_exp_36_apodize
+save_interval: 100
+saved_model_path: null
+saved_optimizer_path: null
+scaled_height: 256
+scaled_width: 256
+scaling: true
+start_epoch_at: 1
+subsample: 2
+test_ratio: 0.3
+vt_loss: ssim
+wavelengths:
+- '0094'
+- '0131'
+- '0171'
+- '0193'
+- '0211'
+- '0304'
+- '0335'
+yr_range:
+- 2010
+- 2013

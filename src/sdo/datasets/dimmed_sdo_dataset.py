@@ -7,8 +7,8 @@ import torch
 from sdo.datasets.mock_data import create_noise_image
 from sdo.datasets.sdo_dataset import SDO_Dataset
 
-_logger = logging.getLogger(__name__)
 
+_logger = logging.getLogger(__name__)
 
 class DimmedSDO_Dataset(SDO_Dataset):
     def __init__(self, num_channels, min_alpha, max_alpha,
@@ -21,7 +21,7 @@ class DimmedSDO_Dataset(SDO_Dataset):
         self.max_alpha = max_alpha
         self.noise_image = noise_image
         self.scaled_height = scaled_height
-        self.scaled_width = scaled_height
+        self.scaled_width = scaled_width
         self.threshold_black = threshold_black
         self.threshold_black_value = threshold_black_value
         self.flip_test_images = flip_test_images
