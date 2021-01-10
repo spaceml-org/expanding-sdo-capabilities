@@ -27,3 +27,12 @@ Documents to help you get up to speed on how we are working as a team:
 * SDO Git Workflow: https://paper.dropbox.com/doc/SDO-Git-Workflow--AgMf~CdQohUUTtrWKPfTOf1FAQ-fbjyVjGRf7ZHO7d8iHOin
 
 Details on setting up and running the pipeline are in this Dropbox Paper document: https://paper.dropbox.com/doc/SDO-Google-Cloud-Platform-GCP--AqzzXvlDgRUeyvdTrX2b2wt4Ag-E1lkEln3z83kB5Tp6QVIU
+
+# Publications
+
+All publications made in this project:
+
+* AutoCal  - NeurIPS 2019: https://arxiv.org/abs/1911.04008
+* VT - NeurIPS 2019: https://arxiv.org/abs/1911.04006
+* AutoCal - A&A Publication (pre-print): https://arxiv.org/abs/2012.14023
+
