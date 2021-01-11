@@ -17,7 +17,6 @@ batch-size-test: 256
 batch-size-train: 64
 config: luiz_exp.yaml
 continue-training: false
-cuda-device: null
 data-basedir: /fdl_sdo_data/SDOMLmm/fdl_sw/SDOMLmm
 data-inventory: /fdl_sdo_data/bucket/inventory.pkl
 dataloader-workers: 14
