@@ -278,7 +278,7 @@ class SDO_Dataset(Dataset):
                 item[c, :, :] = item[c, :, :] * mask
 
         timestamps = self.timestamps[index]
-        output = [to_tensor(item, dtype=torch.float), to_tensor(timestamps)]
+        output = [to_tensor(item), to_tensor(timestamps)]
    
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
