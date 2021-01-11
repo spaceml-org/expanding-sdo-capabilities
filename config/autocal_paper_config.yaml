@@ -5,7 +5,7 @@
 actual-resolution: 512
 add-metrics-interval: 100
 apodize: true
-autocal-flip-images: true
+autocal-flip-image: true
 autocal-max-alpha: 1.0
 autocal-min-alpha: 0.01
 autocal-noise-image: false
@@ -46,8 +46,6 @@ results-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/AUTOCAL/luiz_exp_36_apodiz
 save-interval: 100
 saved-model-path: null
 saved-optimizer-path: null
-scaled_height: 256
-scaled_width: 256
 scaling: true
 start-epoch-at: 1
 subsample: 2
