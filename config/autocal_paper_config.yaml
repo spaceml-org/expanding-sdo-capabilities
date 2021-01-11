@@ -50,7 +50,6 @@ scaling: true
 start-epoch-at: 1
 subsample: 2
 test-ratio: 0.3
-loss: ssim
 wavelengths:
 - '0094'
 - '0131'
