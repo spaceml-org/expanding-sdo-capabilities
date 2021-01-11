@@ -52,7 +52,6 @@ scaling: true
 start-epoch-at: 1
 subsample: 2
 test-ratio: 0.3
-verbose: 20
 loss: ssim
 wavelengths:
 - '0094'
