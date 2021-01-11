@@ -15,7 +15,7 @@ autocal-threshold-black-value: 0.09
 autocal-tolerance: 0.05
 batch-size-test: 256
 batch-size-train: 64
-config: luiz_exp.yaml
+config: autocal_paper_config.yaml
 continue-training: false
 data-basedir: /fdl_sdo_data/SDOMLmm/fdl_sw/SDOMLmm
 data-inventory: /fdl_sdo_data/bucket/inventory.pkl
