@@ -9,14 +9,13 @@ from sdo.io import format_epoch
 from sdo.parse_args import parse_args
 from sdo.pytorch_utilities import init_gpu, set_seed
 from sdo.pipelines.autocalibration_pipeline import AutocalibrationPipeline
-from sdo.pipelines.virtual_telescope_pipeline import VirtualTelescopePipeline
-
 
 __author__ = "vale-salvatelli"
 __copyright__ = "vale-salvatelli"
 __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
+
 
 def setup_logging(loglevel, minimal):
     """Setup basic logging
@@ -111,42 +110,6 @@ def main(args):
           flip_test_images=args.autocal_flip_test_images,
           sigmoid_scale=args.autocal_sigmoid_scale,
           loss=args.loss)
-    elif args.pipeline_name == 'VirtualTelescopePipeline':
-        pipeline = VirtualTelescopePipeline(
-          exp_name=args.experiment_name,
-          model_version=args.model_version,
-          actual_resolution=args.actual_resolution,
-          scaled_height=args.scaled_height,
-          scaled_width=args.scaled_width,
-          device=device,
-          data_basedir=args.data_basedir,
-          data_inventory=args.data_inventory,
-          instruments=args.instruments,
-          wavelengths=args.wavelengths,
-          subsample=args.subsample,
-          batch_size_train=args.batch_size_train,
-          batch_size_test=args.batch_size_test,
-          test_ratio=args.test_ratio,
-          log_interval=args.log_interval,
-          results_path=args.results_path,
-          num_epochs=args.num_epochs,
-          save_interval=args.save_interval,
-          additional_metrics_interval=args.additional_metrics_interval,
-          continue_training=args.continue_training,
-          saved_model_path=args.saved_model_path,
-          saved_optimizer_path=args.saved_optimizer_path,
-          start_epoch_at=args.start_epoch_at,
-          yr_range=args.yr_range,
-          mnt_step=args.mnt_step,
-          day_step=args.day_step,
-          h_step=args.h_step,
-          min_step=args.min_step,
-          dataloader_workers=args.dataloader_workers,
-          scaling=args.scaling,
-          optimizer_weight_decay=args.optimizer_weight_decay,
-          optimizer_lr=args.optimizer_lr,
-          loss=args.loss,
-          unet_depth=args.unet_depth)
     else:
         raise Exception('Unknown pipeline: {}'.format(args.pipeline_name))
 

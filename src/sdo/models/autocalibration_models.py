@@ -6,7 +6,7 @@ import logging
 import torch
 import torch.nn as nn
 
-from sdo.activations import positive_elu, PositiveELU
+from sdo.activations import positive_elu
 
 
 _logger = logging.getLogger(__name__)
@@ -264,10 +264,8 @@ class Autocalibration6(nn.Module):
         # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
         # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
-        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 
-        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
         self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
         self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
 
@@ -382,15 +380,9 @@ class Autocalibration8(nn.Module):
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
 
-        # Note: Two convolutional layers are needed to get results.
-        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
-        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
-        # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
-        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 
-        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
         self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
         self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
 
@@ -431,15 +423,9 @@ class Autocalibration9(nn.Module):
         self._sigmoid_scale = sigmoid_scale
         _logger.info('input_channels: {}'.format(self._input_channels))
 
-        # Note: Two convolutional layers are needed to get results.
-        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
-        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
-        # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
-        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 
-        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
         self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
         self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
 
@@ -479,15 +465,9 @@ class Autocalibration10(nn.Module):
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
 
-        # Note: Two convolutional layers are needed to get results.
-        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
-        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
-        # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
-        #self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=32, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 
-        #self._conv2d2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
         self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
         self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
 
@@ -529,10 +509,6 @@ class Autocalibration11(nn.Module):
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
 
-        # Note: Two convolutional layers are needed to get results.
-        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
-        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
-        # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 
@@ -576,10 +552,6 @@ class Autocalibration12(nn.Module):
         self._input_channels = input_shape[0]
         _logger.info('input_channels: {}'.format(self._input_channels))
 
-        # Note: Two convolutional layers are needed to get results.
-        # Wavelength 94 does bad _unless_ we restore the amount of filter banks to 64
-        # across both CNN layer 1 and 2. Wavelength 171 was fine with smaller filter
-        # banks (32) however
         self._conv2d1 = nn.Conv2d(in_channels=self._input_channels, out_channels=64, kernel_size=3)
         self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
 

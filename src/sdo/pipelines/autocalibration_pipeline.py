@@ -32,6 +32,7 @@ from sdo.metrics.hsced_loss import HeteroscedasticLoss
 
 _logger = logging.getLogger(__name__)
 
+
 class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
                  scaled_width, device, data_basedir, data_inventory, instruments,
@@ -220,8 +221,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             # Same as Autocalibration12, but ELU with alpha=0.1 used as activation
             # for log_var
             return Autocalibration13(input_shape=[self.num_channels, scaled_height,
-                                                  scaled_width],
-                                     output_dim=self.num_channels)
+                                                  scaled_width], output_dim=self.num_channels)
 
         else:
             # Note: For other model_versions, simply instantiate whatever class

@@ -1,38 +1,48 @@
-# Expanding SDO Capabilities
+# Frontier Development Lab - SDO Team
 
-1) Using spatial information to calibrate the extreme UV (EUV) telescopes: EUV telescopes operating in space are known to degrade over the course of months to years. The rate of degradation is, a priori, unknown. Over the same time scales, the Sun's activity also changes. This project aims to use the spatial patterns of features on the Sun to arrive at a self-calibration of EUV instruments. This would avoid the need to calibrate against other sources.
+The goal of the project is to use data from the Solar Dynamic Observatory (SDO) to expand the capabilities
+of this extreme UV (EUV) telescope and of future solar missions. EUV telescopes operating in space are known to 
+degrade over the course of months to years. The rate of degradation is, a priori, unknown. Over the same time 
+scales, the Sun's activity also changes. This project used spatial patterns of features on the Sun to arrive at 
+a self-calibration of EUV instruments. This approach avoids the need to calibrate against other sources.
 
-2) The Solar Dynamics Observatory takes images of the Sun's corona as well as magnetic maps of its surface. The million degree corona exists because of the presence of certain spatial patterns of magnetic fields. In this project we aim to apply style/content transfer techniques to create virtual telescopes. If successful, future NASA missions would be more capable with less hardware. This would allow us to make better space weather forecasts.
-
-We will use the data set described in Galvez et al. (2019, ApJS): https://iopscience.iop.org/article/10.3847/1538-4365/ab1005
+The main dataset used for the projects can be retrieved from https://github.com/fluxtransport/SDOML 
+and it is described in Galvez et al. (2019, ApJS): https://iopscience.iop.org/article/10.3847/1538-4365/ab1005.
 
 # How to use the repo
 
-1) Notebooks live in the notebooks folder and they follow the following naming convention {number}{initial of your name}_{topic}(i.e. 01v_exploration.ipynb)
-
-2) Reusable code lives inside src in the form of a package called sdo that can be installed. This makes easy to import our codes between notebooks and scripts. 
+1) Reusable code lives inside src in the form of a package called sdo that can be installed. 
+    
     In order to install the package:
+    
         1) cd expanding-sdo-capabilities
         2) pip install --user -e .
-    In order to import a specific function inside a notebook just use:
-        1) from sdo.name_of_the_module import name_of_the_function
-        2) Look at notebooks/01v_explore.ipynb for an example
+        
+2) The pipeline to train and test the autocalibration model can be started by running:
+   
+        1) export CONFIG_FILE=./config/autocal_paper_config.yaml 
+        2) ./src/sdo/main.py -c $CONFIG_FILE 
 
-
-# Tutorials/Documents
-
-Documents to help you get up to speed on how we are working as a team:
-
-* SDO Google Cloud Platform (GCP): https://paper.dropbox.com/doc/SDO-Google-Cloud-Platform-GCP--AqzzXvlDgRUeyvdTrX2b2wt4Ag-E1lkEln3z83kB5Tp6QVIU
-* SDO Git Workflow: https://paper.dropbox.com/doc/SDO-Git-Workflow--AgMf~CdQohUUTtrWKPfTOf1FAQ-fbjyVjGRf7ZHO7d8iHOin
-
-Details on setting up and running the pipeline are in this Dropbox Paper document: https://paper.dropbox.com/doc/SDO-Google-Cloud-Platform-GCP--AqzzXvlDgRUeyvdTrX2b2wt4Ag-E1lkEln3z83kB5Tp6QVIU
+    it requires access to a SDOML dataset in numpy memory mapped objects format.
+    
+ 3) Some scripts for data pre-processing are contained in scripts/data_preprocess.
+ 
+ 4) Notebooks with some analysis of the results live in the notebooks folder.s
 
 # Publications
+This repo contains the code developed to produce the paper:
+* "Multi-Channel Auto-Calibration for the Atmospheric Imaging Assembly using Machine Learning"
+   Accepted for A&A publication.
+   https://arxiv.org/abs/2012.14023.
 
-All publications made in this project:
+Other publications made under this project:
+* "Auto-Calibration of Remote Sensing Solar Telescopes with Deep Learning"
+    NeurIPS 2019 - ML4PS Workshop
+    https://arxiv.org/abs/1911.04008
+    
+* "Using U-Nets to Create High-Fidelity Virtual Observations of the Solar Corona"
+    ML4PS NeurIPS 2019 - ML4PS Workshop
+    https://arxiv.org/abs/1911.04006
 
-* AutoCal  - NeurIPS 2019: https://arxiv.org/abs/1911.04008
-* VT - NeurIPS 2019: https://arxiv.org/abs/1911.04006
-* AutoCal - A&A Publication (pre-print): https://arxiv.org/abs/2012.14023
+    
 

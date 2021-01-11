@@ -7,10 +7,10 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 _logger = logging.getLogger(__name__)
-_dtype = torch.float #this corresponds to float32
+_dtype = torch.float # this corresponds to float32
 
 
-def to_tensor(value, dtype=_dtype):
+def to_tensor(value):
     if not torch.is_tensor(value):
         if type(value) == np.int64:
             value = torch.tensor(float(value))

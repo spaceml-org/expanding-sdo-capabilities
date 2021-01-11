@@ -73,7 +73,7 @@ def parse_args(args):
         dest='pipeline_name',
         type=str,
         required=True,
-        help='Which pipeline to use: AutocalibrationPipeline or VirtualTelescopePipeline')
+        help='Which pipeline to use: only AutocalibrationPipeline implemented in this version')
     p.add_argument(
         '--experiment-name',
         dest='experiment_name',
@@ -283,7 +283,6 @@ def parse_args(args):
 
     # Parse arguments that are specific to each of the sub-projects.
     parse_autocal_args(p)
-    parse_vt_args(p)
 
     args = vars(p.parse_args(args))
 
@@ -373,24 +372,6 @@ def parse_autocal_args(p):
         type=str,
         default='mse',
         help='Loss function to be used for the auto-calibration. Accepted values: mse(default), hsced.')
-
-def parse_vt_args(p):
-    """
-    Parse arguments that are only for virtual telescope.
-    """
-    p.add_argument(
-        '--vt-loss',
-        dest='loss',
-        type=str,
-        default='ssim',
-        help= 'Loss function to be used for the virtual telescope. Accepted values: ssim(default), rmse, smoothL1.')
-
-    p.add_argument(
-        '--u-depth',
-        dest='unet_depth',
-        type=int,
-        default=4,
-        help='Depth of the UNet network. If the model is not UNet the argument is ignored.')
 
 
 def str2bool(v):
