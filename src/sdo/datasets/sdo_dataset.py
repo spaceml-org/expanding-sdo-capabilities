@@ -41,6 +41,7 @@ class SDO_Dataset(Dataset):
         scaling=True,
         apodize=False,
         holdout=False,
+        mm_files=True,
     ):
         """
         Args:
@@ -72,6 +73,8 @@ class SDO_Dataset(Dataset):
                             (see sdo.io.sdo_scale)
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
             apodize (bool): if True it masks the Sun’s limb. Remove anything farther than 1 solar radii from the center.
+            mm_files (bool): if True it loads memory maps format data. If False it loads npz format data. SDOML available
+            online is usually in npz format.
         """
         assert day_step > 0 and h_step > 0 and min_step > 0
 
@@ -92,6 +95,7 @@ class SDO_Dataset(Dataset):
         self.scaling = scaling
         self.apodize = apodize
         self.holdout = holdout
+        self.mm_files = mm_files
 
         _logger.info("apodize={}".format(self.apodize))
 
@@ -117,7 +121,7 @@ class SDO_Dataset(Dataset):
                 months = months[:n_months]
                 _logger.info('Training on months "%s"' % months)
         else:
-            n_months = [11, 12]
+            months = [11, 12]
         return months
 
     def create_list_files(self):
@@ -248,7 +252,10 @@ class SDO_Dataset(Dataset):
 
         img = np.zeros(shape=(size, size), dtype=np.float32)
         for c in range(n_channels):
-            temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            if self.mm_files: # Load the SDOML files depending on which extension used. mm_file = true will load memory maps.
+                temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            else:
+                temp = np.load(self.files[index][c], allow_pickle=True)['x']
             img[:, :] = temp[::self.subsample, ::self.subsample]
             if self.scaling:
                 # divide by roughly the mean of the channel

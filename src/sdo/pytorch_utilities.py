@@ -2,12 +2,9 @@ import logging
 import multiprocessing
 import os
 import random
-
 import torch
 from torch.utils.data import DataLoader
-
 import numpy as np
-
 
 _logger = logging.getLogger(__name__)
 _dtype = torch.float #this corresponds to float32
@@ -35,7 +32,7 @@ def to_numpy(value):
         except Exception as e:
             print(e)
             raise TypeError('Cannot convert to Numpy array.')
-            
+
 
 def init_gpu(cuda_device=None):
     """ Use the GPU. """
@@ -98,7 +95,7 @@ def pass_seed_to_worker(worker_id):
     set_seed(seed)
 
 
-def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
+def create_dataloader(dataset, batch_size, num_dataloader_workers, train, shuffle=True):
     assert num_dataloader_workers <= (multiprocessing.cpu_count() - 1), \
         'There are not enough CPU cores ({}) for requested dataloader ' \
         'workers ({})'.format(num_dataloader_workers, (multiprocessing.cpu_count() - 1))
@@ -106,7 +103,7 @@ def create_dataloader(dataset, batch_size, num_dataloader_workers, train):
     _logger.info('Using {} workers for the {} pytorch DataLoader'.format(
         num_dataloader_workers, 'training' if train else 'testing'))
     loader = DataLoader(dataset, batch_size=batch_size,
-                        shuffle=True, num_workers=num_dataloader_workers,
+                        shuffle=shuffle, num_workers=num_dataloader_workers,
                         # Ensure workers spawn with the right newly
                         # incremented random seed.
                         worker_init_fn=pass_seed_to_worker,
