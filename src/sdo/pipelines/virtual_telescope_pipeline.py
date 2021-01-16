@@ -40,10 +40,9 @@ class VirtualTelescopePipeline(TrainingPipeline):
                  scaling, optimizer_weight_decay, optimizer_lr, loss, unet_depth):
         self.num_channels = len(wavelengths)
         self.loss = loss
-        if model_version != 3:
-            _logger.warning('Unet depth is only implemented in model 3, this parameter will be ignored.')
-        else:
-            self.unet_depth = unet_depth
+        self.unet_depth = unet_depth
+        if model_version == 4:
+            _logger.warning('Unet depth is not implemented in model 4, this parameter will be ignored.')
 
         _logger.info('Using {} channels across the following wavelengths and instruments:'.format(
             self.num_channels))

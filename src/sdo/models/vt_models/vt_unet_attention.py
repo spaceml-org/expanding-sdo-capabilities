@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 
 class UNet_Attention(nn.Module):
-    def __init__(self,  input_shape=[3, 128, 128], num_filter=64,
+    def __init__(self,  input_shape=(3, 128, 128), num_filter=64,
                  LR_neg_slope=0.2, depth=4):
         # the depth corresponds to the number of convolution blocks applied
         super(UNet_Attention, self).__init__()
