@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from sdo.models.vt_models.vt_unet_basic_blocks import (maxpool,  conv_block_2_sym,
-                                                       up_conv, Attention_block)
+from sdo.models.vt_models.vt_unet_basic_blocks import (maxpool, conv_block_2_sym,
+                                                       up_conv_block, Attention_block)
 from sdo.models.utils import HookBasedFeatureExtractor
 
 _logger = logging.getLogger(__name__)
@@ -40,12 +40,12 @@ class UNet_Attention(nn.Module):
         self.att = []
         self.up_conv = []
         for i in range(0, self.depth):
-            up = up_conv(int(self.num_filter*alpha[1]), int(self.num_filter*alpha[0]),
-                              act_fn)
+            up = up_conv_block(int(self.num_filter*alpha[1]), int(self.num_filter*alpha[0]), act_fn)
             att = Attention_block(F_g=int(self.num_filter*alpha[0]), F_l=int(self.num_filter*alpha[0]),
-                                  F_int=int(self.num_filter*alpha[0])/2
-                                  )
-            up_conv = conv_block_2_sym(self.num_filter * alpha[1], self.num_filter * alpha[0], act_fn)
+                                  F_int=int(self.num_filter*alpha[0]/2)
+                                 )
+            up_conv = conv_block_2_sym(int(self.num_filter * alpha[1]), int(self.num_filter * alpha[0]),
+                                       act_fn)
             self.up.append(up)
             self.att.append(att)
             self.up_conv.append(up_conv)
@@ -73,17 +73,16 @@ class UNet_Attention(nn.Module):
 
         bridge = self.bridge(pool[self.depth - 1])
         up = self.up[0](bridge)
-        att = self.att[0](down[self.depth - 1], up)
-        concat = torch.cat([att, down[self.depth - 1]], dim=1)
+        att = self.att[0](down[i], bridge)
+        concat = torch.cat([att, up], dim=1)
         up_conv = self.up[0](concat)
-        down_i = self.depth - 2
+        down_i = i - 1
         for i in range(1, self.depth):
             up = self.up[i](up_conv)
             att = self.att[i](down[down_i], up)
             concat = torch.cat([up, att], dim=1)
             up_conv = self.up_conv[i](concat)
             down_i = down_i - 1
-
         out = self.out(up_conv)
         return out
 

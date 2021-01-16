@@ -54,7 +54,7 @@ def conv_block_2_sym(in_dim, out_dim, act_fn):
     return model
 
 
-def up_conv(in_ch, out_ch, act_fn):
+def up_conv_block(in_ch, out_ch, act_fn):
     model = nn.Sequential(
         nn.Upsample(scale_factor=2),
         nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True),
