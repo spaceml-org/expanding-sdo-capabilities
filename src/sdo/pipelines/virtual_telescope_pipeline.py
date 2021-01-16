@@ -21,6 +21,7 @@ from sdo.models.vt_models.vt_unet import (
     VT_UnetGenerator,
     VT_UnetGenerator2
     )
+from sdo.models.vt_models.vt_unet_attention import UNet_Attention
 from sdo.pipelines.training_pipeline import TrainingPipeline
 from sdo.pytorch_utilities import create_dataloader
 from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
@@ -138,14 +139,18 @@ class VirtualTelescopePipeline(TrainingPipeline):
                                                 scaled_width])
         elif model_version == 3:
             return VT_UnetGenerator(input_shape=[self.num_channels - 1, scaled_height,
-                                                 scaled_width], num_filter=64, LR_neg_slope=0.2, 
-                                                 depth=self.unet_depth)
+                                    scaled_width], num_filter=64, LR_neg_slope=0.2,
+                                    depth=self.unet_depth)
         elif model_version == 4:
             return VT_UnetGenerator2(input_shape=[self.num_channels - 1, scaled_height,
                                                   scaled_width], num_filter=64, LR_neg_slope=0.2)
         elif model_version == 5:
             return linearRegression(input_shape=[self.num_channels - 1, scaled_height,
                                                  scaled_width])
+        elif model_version == 6:
+            return UNet_Attention(input_shape=[self.num_channels - 1, scaled_height,
+                                  scaled_width], num_filter=64, LR_neg_slope=0.2,
+                                  depth=self.unet_depth)
 
         else:
             # Note: For other model_versions, simply instantiate whatever class
