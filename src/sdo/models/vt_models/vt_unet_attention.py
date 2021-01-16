@@ -1,7 +1,11 @@
 import logging
 import torch
 import torch.nn as nn
-from sdo.models.vt_models.vt_unet_basic_blocks import (maxpool,  conv_block_2_sym, up_conv, Attention_block)
+from torch.autograd import Variable
+
+from sdo.models.vt_models.vt_unet_basic_blocks import (maxpool,  conv_block_2_sym,
+                                                       up_conv, Attention_block)
+from sdo.models.utils import HookBasedFeatureExtractor
 
 _logger = logging.getLogger(__name__)
 
@@ -82,3 +86,7 @@ class UNet_Attention(nn.Module):
 
         out = self.out(up_conv)
         return out
+
+    def get_feature_maps(self, layer_name, upscale):
+        feature_extractor = HookBasedFeatureExtractor(self.net, layer_name, upscale)
+        return feature_extractor.forward(Variable(self.input))
