@@ -5,9 +5,6 @@ import os
 import sys
 import logging
 import yaml
-
-import torch
-
 from sdo.io import format_epoch
 from sdo.parse_args import parse_args
 from sdo.pytorch_utilities import init_gpu, set_seed
@@ -20,7 +17,6 @@ __copyright__ = "vale-salvatelli"
 __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
-
 
 def setup_logging(loglevel, minimal):
     """Setup basic logging

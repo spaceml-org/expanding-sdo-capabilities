@@ -7,7 +7,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import scipy.stats as stats
-
 from sdo.datasets.dimmed_sdo_dataset import DimmedSDO_Dataset
 from sdo.io import format_graph_prefix
 from sdo.models.autocalibration_models import (
@@ -32,7 +31,6 @@ from sdo.metrics.hsced_loss import HeteroscedasticLoss
 
 
 _logger = logging.getLogger(__name__)
-
 
 class AutocalibrationPipeline(TrainingPipeline):
     def __init__(self, exp_name, model_version, actual_resolution, scaled_height,
@@ -112,9 +110,9 @@ class AutocalibrationPipeline(TrainingPipeline):
           train_dataset_perf.elapsed + test_dataset_perf.elapsed))
 
         train_loader = create_dataloader(train_dataset, batch_size_train,
-                                         dataloader_workers, train=True)
+                                         dataloader_workers, shuffle=True, train=True)
         test_loader = create_dataloader(test_dataset, batch_size_test,
-                                        dataloader_workers, train=False)
+                                        dataloader_workers, shuffle=True, train=False)
 
         model = self.create_model(model_version, scaled_height, scaled_width, device,
                                   sigmoid_scale)

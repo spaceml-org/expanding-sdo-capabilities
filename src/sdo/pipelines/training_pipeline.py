@@ -2,14 +2,10 @@ from abc import ABCMeta, abstractmethod
 import math
 import logging
 import os
-
 from contexttimer import Timer
 from operator import itemgetter 
-
 import numpy as np
-
 import torch
-
 from sdo.io import format_graph_prefix
 from sdo.metrics.plotting import plot_loss, plot_primary_metric
 
