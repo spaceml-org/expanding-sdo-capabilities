@@ -71,11 +71,11 @@ class UNet_Attention(nn.Module):
             down.append(self.down[i](pool[i - 1]))
             pool.append(self.pool[i](down[i]))
 
-        bridge = self.bridge(pool[self.depth - 1])
+        bridge = self.bridge(pool[i])
         up = self.up[0](bridge)
-        att = self.att[0](down[i], bridge)
+        att = self.att[0](down[i], up)
         concat = torch.cat([att, up], dim=1)
-        up_conv = self.up[0](concat)
+        up_conv = self.up_conv[0](concat)
         down_i = i - 1
         for i in range(1, self.depth):
             up = self.up[i](up_conv)
