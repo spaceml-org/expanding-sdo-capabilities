@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 from sdo.io import sdo_find, sdo_scale
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
-from sdo.datasets.dates_selection import select_images_in_the_interval
+from sdo.datasets.dates_selection import select_images_in_the_interval, get_datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -58,8 +58,8 @@ class SDO_Dataset(Dataset):
             datetime_range (tuple datetimes): first element interpreted as start date and second element interpreted as
                 end date, all the images available in data_inventory between these datetimes (inclusive) will be
                 selected. If start_date == end_date a single image will be loaded, if available. It overwrites
-                yr_range, mnt_step, day_step, h_step, min_step. It's overwritten by datetime path !=None.
-            # TODO make possible to pass a list of files PLUS the other parameters, the danger is to overlap train/test
+                yr_range, mnt_step, day_step, h_step, min_step. It's overwritten by d_events !=None.
+            # TODO allow a list of files PLUS the other parameters, a challenge is to handle the train/test split
             d_events (dict {'path': str, h_buffer: int, m_buffer: int}): dictionary that contains info to select
                 specific events. Path is the path to a csv file that contains a list of events. The file is assumed to
                 have a column called start_date and one called end_date. h_buffer, m_buffer determine how many hours
@@ -156,10 +156,8 @@ class SDO_Dataset(Dataset):
 
         """
         _logger.info('Loading SDOML from "%s"' % self.data_basedir)
-        if self.datetime_range:
-            _logger.error('Not implemented yet')
-        if not self.d_events:
-            indexes = ['year', 'month', 'day', 'hour', 'min']
+        indexes = ['year', 'month', 'day', 'hour', 'min']
+        if not (self.d_events or self.datetime_range):
             yrs = np.arange(self.yr_range[0], self.yr_range[1] + 1)
             months = self.find_months()
             days = np.arange(1, 32, self.day_step)
@@ -167,28 +165,43 @@ class SDO_Dataset(Dataset):
             minus = np.arange(0, 60, self.min_step)
             tot_timestamps = np.prod([len(x) for x in [yrs, months, days, hours, minus]])
             _logger.debug("Timestamps requested values: ")
-            _logger.debug("Years: %s" % ','.join('{}'.format(i) for i in (yrs)))
-            _logger.debug("Months: %s" % ','.join('{}'.format(i) for i in (months)))
-            _logger.debug("Days: %s" % ','.join('{}'.format(i) for i in (days)))
-            _logger.debug("Hours: %s" % ','.join('{}'.format(i) for i in (hours)))
-            _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in (minus)))
-
-        _logger.info("Max number of timestamps: %d" % tot_timestamps)
+            _logger.debug("Years: %s" % ','.join('{}'.format(i) for i in yrs))
+            _logger.debug("Months: %s" % ','.join('{}'.format(i) for i in months))
+            _logger.debug("Days: %s" % ','.join('{}'.format(i) for i in days))
+            _logger.debug("Hours: %s" % ','.join('{}'.format(i) for i in hours))
+            _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in minus))
+            _logger.info("Max number of timestamps: %d" % tot_timestamps)
 
         if self.data_inventory:
             _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
+            df = pd.read_pickle(self.data_inventory)
+            df = df['channel'].isin(self.channels)
             if self.d_events:
+                sel_df = pd.DataFrame(columns=list(df))
                 df_events = pd.read_csv(self.d_events['path'])
+                _logger.info("Events loaded from {df_events['path']}, N events required: "
+                             "{df_events.shape[0]}")
                 for index in df_events.index:
                     start_time = df_events[index]['start_date']
                     end_time = df_events[index]['end_date']
-                    self.df_inventory = self.df_inventory['channel'].isin(self.channels)
-                    tmp_df = select_images_in_the_interval(start_time, end_time, self.df_inventory,
-                                                           self.d_events['buffer_h'],
-                                                           self.d_events['buffer_m'])
-                    sel_df = sel_df.append(tmp_df)
+                    first_datetime = get_datetime(start_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
+                    last_datetime = get_datetime(end_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
+                    tmp_df = select_images_in_the_interval(first_datetime, last_datetime, df)
+                    sel_df = sel_df.append(tmp_df, ignore_index= True)
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
+            elif self.datetime_range:
+                _logger.info("Loading events from datetime_range, N events required: "
+                             "{len(self.datetime_range)}")
+                sel_df = pd.DataFrame(columns=list(df))
+                for pair in self.datetime_range:
+                    start_time = pair[0]
+                    end_time = pair[1]
+                    tmp_df = select_images_in_the_interval(start_time, end_time, df)
+                    sel_df = sel_df.append(tmp_df, ignore_index=True)
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
             else:
-                df = pd.read_pickle(self.data_inventory)
                 cond0 = df['channel'].isin(self.channels)
                 cond1 = df['year'].isin(yrs)
                 cond2 = df['month'].isin(months)
@@ -196,10 +209,10 @@ class SDO_Dataset(Dataset):
                 cond4 = df['hour'].isin(hours)
                 cond5 = df['min'].isin(minus)
                 sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d (%.2f)" %
+                             (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))
 
-            n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
-            _logger.info("Timestamps found in the inventory: %d (%.2f)" %
-                         (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))
             grouped_df = sel_df.groupby(indexes).size()
             # we select only timestamp that have files for all the channels
             grouped_df = grouped_df[grouped_df == len(self.channels)].to_frame()
@@ -212,12 +225,11 @@ class SDO_Dataset(Dataset):
             timestamps = s_files.index.tolist()
             discarded_tm = n_sel_timestamps - len(timestamps)
         else:
-            _logger.warning(
-                'A valid inventory file has not been passed in, be prepared to wait.')
-            if self.datetime_path or self.datetime_range:
+            if self.d_events or self.datetime_range:
                 _logger.error(
                     'Using d_events or datetime_range currently requires to pass a valid inventory file.')
             else:
+                _logger.warning('A valid inventory file has not been passed in, be prepared to wait.')
                 _logger.info('Searching for files to load from "%s"' % self.data_basedir)
                 files = []
                 timestamps = []
@@ -265,7 +277,7 @@ class SDO_Dataset(Dataset):
         return files, timestamps
 
     @staticmethod
-    def normalize_by_img(self, img, norm_type):
+    def normalize_by_img(img, norm_type):
         if norm_type == 1:
             return minmax_normalization(img)
         else:
@@ -294,8 +306,10 @@ class SDO_Dataset(Dataset):
 
         img = np.zeros(shape=(size, size), dtype=np.float32)
         for c in range(n_channels):
-            if self.mm_files: # Load the SDOML files depending on which extension used. mm_file = true will load memory maps.
-                temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            # Load the SDOML files depending on which extension used. mm_file = true will load memory maps
+            if self.mm_files:
+                temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
+                                 dtype=np.float32)
             else:
                 temp = np.load(self.files[index][c], allow_pickle=True)['x']
             img[:, :] = temp[::self.subsample, ::self.subsample]

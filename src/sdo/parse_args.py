@@ -5,6 +5,7 @@ Provides a common pipeline for running and restarting training/testing experimen
 import logging
 import os
 import pprint
+import json
 
 import configargparse
 from configargparse import YAMLConfigFileParser
@@ -126,6 +127,21 @@ def parse_args(args):
         help='Path to a pre-computed inventory file that contains '
              'a dataframe of existing files. If False (or not valid) '
              'the file search is done by folder and is much slower')
+    p.add_argument(
+        '--datetime-range',
+        dest='datetime_range',
+        type=json.loads,
+        default=None,
+        help='List that contains datetimes range to be selected. The expected format is'
+             '[(start1, end1), (start2, end2)]')
+    p.add_argument(
+        '--d-events',
+        dest='d_events',
+        type=json.loads,
+        default=None,
+        help='Dictionary that has as 3 keys: path to a csv file with start and end dates of events of interest, '
+             'h_buffer how many hours to include before and after those date, m_buffer how many minutes to include '
+             'before and after those date')
     p.add_argument(
         '--test-ratio',
         dest='test_ratio',
@@ -274,7 +290,7 @@ def parse_args(args):
         '--optimizer-weight-decay',
         type=float,
         default=0,
-        help='The weight decay to use for whatever optimizer might be used; current default Torchs Adam default')
+        help='The weight decay to use for whatever optimizer might be used; current default Torch Adam default')
     p.add_argument(
         '--optimizer-lr',
         type=float,

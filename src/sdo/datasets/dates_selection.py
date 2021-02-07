@@ -29,16 +29,41 @@ def find_closest_datetimes(start_time, end_time, sel_df):
     return nearest_start_time, nearest_end_time
 
 
-def get_datetime(time, buffer_h, buffer_m):
+def get_datetime(time, buffer_h, buffer_m, add=False):
+    """
+    Function that convert string into datetime and adds/subtract time to it
+    Args:
+        time (str):  str in the format 2010-06-12T00:30:00
+        buffer_h (int): hours to be subtracted/added
+        buffer_m (int): minutes to be subtracted/added
+        add (bool): if True time is added. If False is subtracted.
+
+    Returns: (dt.datetime)
+
+    """
     d_time = split_time(time)
     time = dt.datetime(*map(int, list(d_time.values())))
-    time = time - dt.timedelta(hours=buffer_h, minutes=buffer_m)
+    if add:
+        time = time + dt.timedelta(hours=buffer_h, minutes=buffer_m)
+    else:
+        time = time - dt.timedelta(hours=buffer_h, minutes=buffer_m)
     return time
 
 
-def select_images_in_the_interval(start_time, end_time, df_inventory, buffer_h=1, buffer_m=0):
-    first_datetime = get_datetime(start_time, buffer_h, buffer_m)
-    last_datetime = get_datetime(end_time, buffer_h, buffer_m)
+def select_images_in_the_interval(first_datetime, last_datetime, df_inventory):
+    """
+    Function to select all the rows in df_inventory that have events happened after
+    first_datetime and before last_datetime.
+    Args:
+        first_datetime (dt.datetime): earliest datetime to be included
+        last_datetime (dt.datetime): most recent datetime to be included
+        df_inventory (pd.DataFrame): dataframe that contains available datetimes.
+            It's assumed to have the cols: 'year', 'month', 'day', 'hour', 'min'
+
+    Returns: pd.DataFrame. It returns an empty dataframe if the closest row is more than
+        one day apart from first_datetime.
+
+    """
     # select all the times of that day
     sel_df = df_inventory[(df_inventory.year == first_datetime.year)
                         & (df_inventory.month == first_datetime.month)
