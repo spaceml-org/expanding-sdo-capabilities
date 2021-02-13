@@ -35,7 +35,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
                  wavelengths, subsample, batch_size_train, batch_size_test,
                  test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
-                 start_epoch_at, yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers,
+                 start_epoch_at, d_events, datetime_range,yr_range, mnt_step, day_step, h_step, min_step, dataloader_workers,
                  scaling, optimizer_weight_decay, optimizer_lr, loss, unet_depth):
         self.num_channels = len(wavelengths)
         self.loss = loss
@@ -56,7 +56,8 @@ class VirtualTelescopePipeline(TrainingPipeline):
                                         data_inventory=data_inventory,
                                         num_channels=self.num_channels,
                                         instr=instruments,
-                                        channels=wavelengths, yr_range=yr_range,
+                                        channels=wavelengths, d_events=d_events,
+                                        datetime_range=datetime_range, yr_range=yr_range,
                                         mnt_step=mnt_step, day_step=day_step,
                                         h_step=h_step, min_step=min_step,
                                         resolution=actual_resolution,
@@ -73,7 +74,8 @@ class VirtualTelescopePipeline(TrainingPipeline):
                                        data_inventory=data_inventory,
                                        num_channels=self.num_channels,
                                        instr=instruments,
-                                       channels=wavelengths, yr_range=yr_range,
+                                       channels=wavelengths,  d_events=d_events,
+                                       datetime_range=datetime_range, yr_range=yr_range,
                                        mnt_step=mnt_step, day_step=day_step,
                                        h_step=h_step, min_step=min_step,
                                        resolution=actual_resolution,

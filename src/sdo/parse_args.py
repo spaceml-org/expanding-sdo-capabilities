@@ -6,6 +6,7 @@ import logging
 import os
 import pprint
 import json
+import yaml
 
 import configargparse
 from configargparse import YAMLConfigFileParser
@@ -130,14 +131,14 @@ def parse_args(args):
     p.add_argument(
         '--datetime-range',
         dest='datetime_range',
-        type=json.loads,
+        type=yaml.load,
         default=None,
         help='List that contains datetimes range to be selected. The expected format is'
              '[(start1, end1), (start2, end2)]')
     p.add_argument(
         '--d-events',
         dest='d_events',
-        type=json.loads,
+        type=yaml.load,
         default=None,
         help='Dictionary that has as 3 keys: path to a csv file with start and end dates of events of interest, '
              'h_buffer how many hours to include before and after those date, m_buffer how many minutes to include '

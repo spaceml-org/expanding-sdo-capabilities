@@ -28,7 +28,7 @@ class SDO_Dataset(Dataset):
         data_inventory,
         instr=["AIA", "AIA", "HMI"],
         channels=["0171", "0193", "bz"],
-        datetime_range=(),
+        datetime_range=None,
         d_events=None,
         yr_range=[2010, 2018],
         mnt_step=1,
@@ -157,7 +157,7 @@ class SDO_Dataset(Dataset):
         """
         _logger.info('Loading SDOML from "%s"' % self.data_basedir)
         indexes = ['year', 'month', 'day', 'hour', 'min']
-        if not (self.d_events or self.datetime_range):
+        if self.d_events is None and self.datetime_range is None:
             yrs = np.arange(self.yr_range[0], self.yr_range[1] + 1)
             months = self.find_months()
             days = np.arange(1, 32, self.day_step)
@@ -175,15 +175,16 @@ class SDO_Dataset(Dataset):
         if self.data_inventory:
             _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
             df = pd.read_pickle(self.data_inventory)
-            df = df['channel'].isin(self.channels)
+            _logger.info('Filtering events with all the required channels')
+            df = df[df['channel'].isin(self.channels)]
             if self.d_events:
                 sel_df = pd.DataFrame(columns=list(df))
                 df_events = pd.read_csv(self.d_events['path'])
-                _logger.info("Events loaded from {df_events['path']}, N events required: "
-                             "{df_events.shape[0]}")
+                _logger.info('Events loaded from %s, N events required: %d' % 
+                             (self.d_events['path'], df_events.shape[0]))
                 for index in df_events.index:
-                    start_time = df_events[index]['start_date']
-                    end_time = df_events[index]['end_date']
+                    start_time = df_events['start_time'][index]
+                    end_time = df_events['end_time'][index]
                     first_datetime = get_datetime(start_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
                     last_datetime = get_datetime(end_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
                     tmp_df = select_images_in_the_interval(first_datetime, last_datetime, df)
@@ -202,13 +203,12 @@ class SDO_Dataset(Dataset):
                 n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
                 _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
             else:
-                cond0 = df['channel'].isin(self.channels)
                 cond1 = df['year'].isin(yrs)
                 cond2 = df['month'].isin(months)
                 cond3 = df['day'].isin(days)
                 cond4 = df['hour'].isin(hours)
                 cond5 = df['min'].isin(minus)
-                sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
+                sel_df = df[cond1 & cond2 & cond3 & cond4 & cond5]
                 n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
                 _logger.info("Timestamps found in the inventory: %d (%.2f)" %
                              (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))

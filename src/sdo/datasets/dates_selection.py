@@ -2,13 +2,17 @@
 """
 import pandas as pd
 import datetime as dt
+from collections import OrderedDict
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 def split_time(str_time):
     yr, mth, rest = str_time.split('-')
     day, time = rest.split('T')
     hour, minus, _ = time.split(':')
-    return {'y': yr, 'mt': mth, 'd': day, 'h': hour, 'm': minus}
+    return OrderedDict([('y',yr), ('mt',mth), ('d',day), ('h',hour), ('m', minus)])
 
 
 def from_row_to_date(x):
@@ -75,5 +79,7 @@ def select_images_in_the_interval(first_datetime, last_datetime, df_inventory):
         sel_df = sel_df[(sel_df.date >= first_datetime) & (sel_df.date <= last_datetime)]
         return sel_df
     else:
-        print('This day is not available')
+        _logger.warning('This day %s-%s-%s is not available' % (first_datetime.year, 
+                                                                 first_datetime.month,
+                                                                 first_datetime.day))
         return pd.DataFrame(columns=df_inventory.columns)
