@@ -178,11 +178,23 @@ class SDO_Dataset(Dataset):
             _logger.info('Filtering events with all the required channels')
             df = df[df['channel'].isin(self.channels)]
             if self.d_events:
+                if self.holdout:
+                    _logger.warning('d_events mode is not compatible with the keyword holdout.'
+                                    'Be aware that no dates will be excluded for holdout')
                 sel_df = pd.DataFrame(columns=list(df))
                 df_events = pd.read_csv(self.d_events['path'])
-                _logger.info('Events loaded from %s, N events required: %d' % 
-                             (self.d_events['path'], df_events.shape[0]))
-                for index in df_events.index:
+                train_test_split = int(df_events.shape[0]*(1-self.test_ratio))
+                # this split it's imperfect because some events might not be available
+                # leading a trin/test split differently than expected 
+                if self.test:
+                    ev_ind = df_events.index[train_test_split:]
+                    mode = 'testing'
+                else:
+                    ev_ind = df_events.index[:train_test_split]
+                    mode = 'training'
+                _logger.info('Events loaded from %s, N events in the file: %d, Selected for %s: %d' % 
+                             (self.d_events['path'], df_events.shape[0], mode, len(ev_ind)))
+                for index in ev_ind:
                     start_time = df_events['start_time'][index]
                     end_time = df_events['end_time'][index]
                     first_datetime = get_datetime(start_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
@@ -192,6 +204,9 @@ class SDO_Dataset(Dataset):
                 n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
                 _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
             elif self.datetime_range:
+                if self.holdout or self.test:
+                    _logger.warning('d_events mode is not compatible with the keyword holdout and test.' 
+                                    'Be aware that no dates will be excluded for test and holdout')
                 _logger.info("Loading events from datetime_range, N events required: "
                              "{len(self.datetime_range)}")
                 sel_df = pd.DataFrame(columns=list(df))
