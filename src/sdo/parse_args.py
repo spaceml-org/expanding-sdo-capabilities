@@ -141,7 +141,7 @@ def parse_args(args):
         type=yaml.load,
         default=None,
         help='Dictionary that has as 3 keys: path to a csv file with start and end dates of events of interest, '
-             'h_buffer how many hours to include before and after those date, m_buffer how many minutes to include '
+             'buffer_h how many hours to include before and after those date, buffer_m how many minutes to include '
              'before and after those date')
     p.add_argument(
         '--test-ratio',

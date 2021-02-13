@@ -60,9 +60,9 @@ class SDO_Dataset(Dataset):
                 selected. If start_date == end_date a single image will be loaded, if available. It overwrites
                 yr_range, mnt_step, day_step, h_step, min_step. It's overwritten by d_events !=None.
             # TODO allow a list of files PLUS the other parameters, a challenge is to handle the train/test split
-            d_events (dict {'path': str, h_buffer: int, m_buffer: int}): dictionary that contains info to select
+            d_events (dict {'path': str, buffer_h: int, buffer_m: int}): dictionary that contains info to select
                 specific events. Path is the path to a csv file that contains a list of events. The file is assumed to
-                have a column called start_date and one called end_date. h_buffer, m_buffer determine how many hours
+                have a column called start_date and one called end_date. buffer_h, buffer_m determine how many hours
                 and minutes to include before and after those dates. The format of the dates is assumed to be like
                 2010-06-12T00:30:00 (standard format from https://www.lmsal.com/isolsearch). If d_events is passed,
                 it overwrites both datetime_range and yr_range, mnt_step, day_step, h_step, min_step.
