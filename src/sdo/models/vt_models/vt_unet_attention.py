@@ -5,11 +5,11 @@ from torch.autograd import Variable
 
 from sdo.models.vt_models.vt_unet_basic_blocks import (maxpool, conv_block_2_sym,
                                                        up_conv_block, Attention_block)
-from sdo.models.utils import HookBasedFeatureExtractor
+ #from sdo.models.utils import HookBasedFeatureExtractor
 
 _logger = logging.getLogger(__name__)
 
-# """https://jinglescode.github.io/2019/12/08/biomedical-image-segmentation-u-net-attention/"""
+"""Modified from https://jinglescode.github.io/2019/12/08/biomedical-image-segmentation-u-net-attention/"""
 
 
 class UNet_Attention(nn.Module):
@@ -86,6 +86,6 @@ class UNet_Attention(nn.Module):
         out = self.out(up_conv)
         return out
 
-    def get_feature_maps(self, layer_name, upscale):
-        feature_extractor = HookBasedFeatureExtractor(self.net, layer_name, upscale)
-        return feature_extractor.forward(Variable(self.input))
+ #    def get_feature_maps(self, layer_name, upscale):
+  #       feature_extractor = HookBasedFeatureExtractor(self.net, layer_name, upscale)
+   #      return feature_extractor.forward(Variable(self.input))

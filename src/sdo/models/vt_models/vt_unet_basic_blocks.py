@@ -55,6 +55,7 @@ def conv_block_2_sym(in_dim, out_dim, act_fn):
 
 
 def up_conv_block(in_ch, out_ch, act_fn):
+    """Block for up-sampling, this is alternative to con_trans_block. It's used in the attention UNet"""
     model = nn.Sequential(
         nn.Upsample(scale_factor=2),
         nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True),
@@ -64,6 +65,7 @@ def up_conv_block(in_ch, out_ch, act_fn):
 
 
 class Attention_block(nn.Module):
+    """Core block of the attention UNet architecture. It implements additive attention gate."""
     def __init__(self, F_g, F_l, F_int):
         super(Attention_block, self).__init__()
 
