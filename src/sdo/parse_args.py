@@ -133,6 +133,7 @@ def parse_args(args):
         dest='datetime_range',
         type=yaml.load,
         default=None,
+        nargs='+',
         help='List that contains datetimes range to be selected. The expected format is'
              '[(start1, end1), (start2, end2)]')
     p.add_argument(

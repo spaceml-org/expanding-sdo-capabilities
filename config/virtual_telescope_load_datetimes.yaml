@@ -1,0 +1,26 @@
+pipeline-name: VirtualTelescopePipeline
+model-version: 1
+results-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE
+log-minimal: True
+batch-size-train: 128
+batch-size-test: 128
+save-interval: 100
+log-interval: 10
+wavelengths:
+  - '0094'
+  - '0171'
+  - '0193'
+  - '0211'
+instruments:
+  - AIA
+  - AIA
+  - AIA
+  - AIA
+actual-resolution: 512
+subsample: 4
+datetime-range:
+  - ['2011-05-29 00:54:00', '2011-05-29 03:03:00']
+  - ['2011-02-14 18:23:00', '2011-02-14 20:36:00']
+scaling: True
+optimizer-weight-decay: 1e-5
+optimizer-lr: 0.0001

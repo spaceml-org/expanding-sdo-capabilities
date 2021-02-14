@@ -6,6 +6,7 @@ from os import path
 import random
 import numpy as np
 import pandas as pd
+import datetime as dt
 import torch
 from torch.utils.data import Dataset
 from sdo.io import sdo_find, sdo_scale
@@ -55,10 +56,11 @@ class SDO_Dataset(Dataset):
             channels (list string): channels to be selected
             instr (list string): instrument to which each channel corresponds to.
                                  It has to be of the same size of channels.
-            datetime_range (tuple datetimes): first element interpreted as start date and second element interpreted as
+            datetime_range (tuple strings): first element interpreted as start date and second element interpreted as
                 end date, all the images available in data_inventory between these datetimes (inclusive) will be
-                selected. If start_date == end_date a single image will be loaded, if available. It overwrites
-                yr_range, mnt_step, day_step, h_step, min_step. It's overwritten by d_events !=None.
+                selected. The expected date format is "%Y-%m-%d %H:%M:%S". If start_date == end_date a single image
+                will be loaded, if available. It overwrites yr_range, mnt_step, day_step, h_step, min_step. It's 
+                overwritten by d_events !=None. This mode is thought not for use in the pipeline.
             # TODO allow a list of files PLUS the other parameters, a challenge is to handle the train/test split
             d_events (dict {'path': str, buffer_h: int, buffer_m: int}): dictionary that contains info to select
                 specific events. Path is the path to a csv file that contains a list of events. The file is assumed to
@@ -177,11 +179,11 @@ class SDO_Dataset(Dataset):
             df = pd.read_pickle(self.data_inventory)
             _logger.info('Filtering events with all the required channels')
             df = df[df['channel'].isin(self.channels)]
+            sel_df = pd.DataFrame(columns=list(df))
             if self.d_events:
                 if self.holdout:
                     _logger.warning('d_events mode is not compatible with the keyword holdout.'
                                     'Be aware that no dates will be excluded for holdout')
-                sel_df = pd.DataFrame(columns=list(df))
                 df_events = pd.read_csv(self.d_events['path'])
                 train_test_split = int(df_events.shape[0]*(1-self.test_ratio))
                 # this split it's imperfect because some events might not be available
@@ -205,14 +207,14 @@ class SDO_Dataset(Dataset):
                 _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
             elif self.datetime_range:
                 if self.holdout or self.test:
-                    _logger.warning('d_events mode is not compatible with the keyword holdout and test.' 
-                                    'Be aware that no dates will be excluded for test and holdout')
-                _logger.info("Loading events from datetime_range, N events required: "
-                             "{len(self.datetime_range)}")
-                sel_df = pd.DataFrame(columns=list(df))
+                    _logger.warning('datetime_range mode is not compatible with the keyword holdout and test.' 
+                                    'Be aware that no dates will be excluded for test and holdout.')
+                _logger.info('Events loaded from datetime_range. N required events %d' % 
+                             len(self.datetime_range))
                 for pair in self.datetime_range:
-                    start_time = pair[0]
-                    end_time = pair[1]
+                    #import pdb; pdb.set_trace()
+                    start_time = dt.datetime.strptime(pair[0], "%Y-%m-%d %H:%M:%S")
+                    end_time = dt.datetime.strptime(pair[1],  "%Y-%m-%d %H:%M:%S")
                     tmp_df = select_images_in_the_interval(start_time, end_time, df)
                     sel_df = sel_df.append(tmp_df, ignore_index=True)
                 n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
