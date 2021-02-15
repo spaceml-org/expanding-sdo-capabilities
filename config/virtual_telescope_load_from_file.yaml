@@ -19,7 +19,7 @@ instruments:
 actual-resolution: 512
 subsample: 4
 d-events:
-  path: "./rare_events/flares.csv"
+  path: "./rare_events/flares_modelling.csv"
   buffer_h: 1
   buffer_m: 0
 scaling: True
