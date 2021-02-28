@@ -74,7 +74,7 @@ def select_images_in_the_interval(first_datetime, last_datetime, df_inventory):
                         & (df_inventory.day == first_datetime.day)]
     if sel_df.shape[0] > 0:
         # this operation is slow if applied to the full dataframe
-        sel_df['date'] = sel_df.apply(from_row_to_date, axis=1, sort=False)
+        sel_df['date'] = sel_df.apply(from_row_to_date, axis=1)
         first_datetime, last_datetime = find_closest_datetimes(first_datetime, last_datetime, sel_df)
         sel_df = sel_df[(sel_df.date >= first_datetime) & (sel_df.date <= last_datetime)]
         return sel_df

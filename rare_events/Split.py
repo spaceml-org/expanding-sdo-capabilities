@@ -1,5 +1,5 @@
 """
-Quick script to split all the available falres events in modelling and holdout datasets
+Quick script to split all the available flares events in modelling and holdout datasets
 """
 import pandas as pd
 
