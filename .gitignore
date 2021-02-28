@@ -8,3 +8,4 @@ src/sdo.egg-info/*
 *.pyc
 *.pyo
 __pycache__/
+.idea/
