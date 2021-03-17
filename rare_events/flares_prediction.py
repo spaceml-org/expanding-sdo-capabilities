@@ -14,8 +14,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from collections import OrderedDict
+import matplotlib.backends.backend_pdf
 import moviepy.video.io.ImageSequenceClip
 import img2pdf
+from PIL import Image
 
 from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
 from sdo.models.vt_models.vt_unet import VT_UnetGenerator
@@ -170,6 +172,8 @@ def main():
             # compute covariance map with rolling window
             logger.info('Computing covariance maps')
             cov_window = 15
+            filename = output_path + 'Covariance_maps.pdf'
+            pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
             for i, _ in enumerate(data.timestamps):
                 # taking one timestamp every 2 to reduce the size of the plot
                 if i%2 == 0:
@@ -190,9 +194,12 @@ def main():
                         fig.subplots_adjust(bottom=0.1, right=0.8, top=0.8)
                         cbar_ax = fig.add_axes([0.85, 0.3, 0.03, 0.3])
                         fig.colorbar(im, cax=cbar_ax)
-            filename = output_path + 'Covariance_maps.png'
-            plt.savefig(filename, bbox_inches='tight')
-            plt.close()
+                    #plt.show()
+                    pdf.savefig(fig)
+            
+            #plt.savefig(filename, bbox_inches='tight')
+            #plt.close()
+            pdf.close()
             run_flares.append(idx_flare)
             
             # as above but only for 211-094 covariance and save as single image to create a video
@@ -202,14 +209,15 @@ def main():
                 os.makedirs(video_folder)
             fig_format = '.png'
             fps = 2
-            cmap = plt.get_cmap('sdoaia211')
+            cmap = plt.get_cmap('sdoaia094')
             for i, timestamp in enumerate(data.timestamps):
                 fig, axs = plt.subplots(1,2, figsize=(15, 10))
                 filename = video_folder + '_'.join([str(number) for number in timestamp]) + fig_format
                 X_s = outputs[i].reshape(512, 512)
                 X_orig = gt_img[i].detach().numpy().reshape(512, 512)
-                axs[0].set_title(f'{timestamp} AIA 211 GT')
-                im = axs[0].imshow(X_orig, origin='lower', cmap=cmap)
+                input_94 = input_data[i][0].reshape(512, 512)
+                axs[0].set_title(f'{timestamp} AIA 094 GT')
+                im = axs[0].imshow(input_94, origin='lower', cmap=cmap)
                 for j, ch in enumerate(["094"]):
                     Y = input_data[i][j].detach().numpy().reshape(512,512)
                     cov_synth = neighbor_cov(X_s, Y, size=10)
@@ -232,19 +240,22 @@ def main():
             logger.info(f'Flare {idx_flare} did not complete. See error {e}')
 
     # aggregate plots
-    filenames_1dplots = []
-    filenames_maps = []
+    logger.info(f'Aggregated files will include {len(run_flares)} flares.')
+    l_converted_img = []
     for idx_flare in run_flares:
         output_path = output_folder + f'flare_{idx_flare}/'
-        filenames_1dplots.append(output_path + 'Errors_vs_timestamps.png')
-        filenames_maps.append(output_path + 'Covariance_maps.png')
-    with open(output_folder + "summary_1dplots.pdf", "wb") as f:
-        f.write(img2pdf.convert([i for i in filenames_1dplots]))
-    with open(output_folder + "summary_maps.pdf", "wb") as f:
-        f.write(img2pdf.convert([i for i in filenames_maps]))
+        png_filename = output_path + 'Errors_vs_timestamps.png'
+        pdf_filename = output_path + 'Errors_vs_timestamps.pdf'
+        rgba = Image.open(png_filename)
+        rgb = Image.new('RGB', rgba.size, (255, 255, 255))  # white background
+        rgb.paste(rgba, mask=rgba.split()[3])               # paste using alpha channel as mask
+        rgb.save(pdf_filename, 'PDF', resoultion=100.0)
+        l_converted_img.append(rgb)
+       
+    l_converted_img[0].save(output_folder + "summary_1dplots.pdf",save_all=True, 
+             append_images=l_converted_img[1:])
+    logger.info(f'summary_1dplots.pdf created.')
         
-    logger.info(f'Aggregated files will include {len(run_flares)} flares.')
-    
     
 if __name__ == "__main__":
     main()
