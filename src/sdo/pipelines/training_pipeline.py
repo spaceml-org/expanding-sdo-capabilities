@@ -212,7 +212,6 @@ class TrainingPipeline(object):
                                              epoch, train=False)
 
         if (epoch % self.save_interval == 0) or final_epoch:
-            self.save_training_results(epoch)
             self.save_predictions(epoch, gt_outputs, outputs, l_optional_data, train=False)
         return np.mean(losses), np.mean(total_primary_metrics)
 
