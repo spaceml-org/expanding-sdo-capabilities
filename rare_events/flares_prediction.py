@@ -16,7 +16,7 @@ import torch
 from collections import OrderedDict
 import matplotlib.backends.backend_pdf
 import moviepy.video.io.ImageSequenceClip
-import img2pdf
+# import img2pdf
 from PIL import Image
 
 from sdo.datasets.virtual_telescope_sdo_dataset import VirtualTelescopeSDO_Dataset
@@ -59,7 +59,7 @@ def main():
     
     run_flares = []
     for idx_flare in range(n_flares):
-        logger.info(f'Event {idx_flare + 1}/{n_flares}')
+        logger.info(f"Event {idx_flare + 1}/{n_flares}")
         output_path = output_folder + f'flare_{idx_flare}/'
         if not os.path.exists(output_path):
             os.makedirs(output_path)

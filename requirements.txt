@@ -123,3 +123,5 @@ Werkzeug==0.14.1
 widgetsnbextension==3.4.2
 wrapt==1.10.11
 zipp==0.5.1
+moviepy
+img2pdf

@@ -4,7 +4,7 @@ model-version: 3
 u-depth: 3
 vt-loss: smoothL1
 results-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE/vale_exp_21
-data-inventory: /fdl_sdo_data/bucket/inventory.pkl
+data-inventory: /home/Valentina/inventory_1904.pkl 
 saved-model-path: /fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE/vale_exp_20/0600_vale_exp_20_optimizer.pth
 log-minimal: True
 batch-size-train: 16
