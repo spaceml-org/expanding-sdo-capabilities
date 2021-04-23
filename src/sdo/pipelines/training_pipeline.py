@@ -19,7 +19,7 @@ class TrainingPipeline(object):
     def __init__(self, exp_name, train_dataset, test_dataset, train_loader, test_loader,
                  batch_size_train, batch_size_test, model, optimizer, log_interval,
                  results_path, num_epochs, device, save_interval, additional_metrics_interval,
-                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at, scaling):
+                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at, scaling, root_scaling):
         self.exp_name = exp_name
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -37,6 +37,7 @@ class TrainingPipeline(object):
         self.additional_metrics_interval = additional_metrics_interval
         self.start_epoch_at = start_epoch_at
         self.scaling = scaling
+        self.scaling = root_scaling
 
         if continue_training:
             self.load_saved_checkpoint(model, saved_model_path,

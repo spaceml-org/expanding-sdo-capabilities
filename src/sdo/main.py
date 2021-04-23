@@ -147,6 +147,7 @@ def main(args):
           min_step=args.min_step,
           dataloader_workers=args.dataloader_workers,
           scaling=args.scaling,
+          root_scaling= args.root_scaling,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
           loss=args.loss,

@@ -281,6 +281,13 @@ def parse_args(args):
         help='If True scaling of the images by mean of the channel is applied. Look at the values'
              'inside sdo_dataset.py for more detail.')
     p.add_argument(
+        '--root_scaling',
+        dest='root_scaling',
+        type=int,
+        default=0,
+        help='If an int >=2 the nth root is applied to the input image. '
+             '0 means no root scaling is applied')
+    p.add_argument(
         '--apodize',
         dest='apodize',
         type=str2bool,

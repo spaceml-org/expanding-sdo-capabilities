@@ -9,7 +9,7 @@ import pandas as pd
 import datetime as dt
 import torch
 from torch.utils.data import Dataset
-from sdo.io import sdo_find, sdo_scale
+from sdo.io import sdo_find, sdo_scale, sdo_root_scaling
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
 from sdo.datasets.dates_selection import select_images_in_the_interval, get_datetime
@@ -43,6 +43,7 @@ class SDO_Dataset(Dataset):
         shuffle=False,
         normalization=0,
         scaling=True,
+        root_scaling=False,
         apodize=False,
         holdout=False,
         mm_files=True,
@@ -87,6 +88,8 @@ class SDO_Dataset(Dataset):
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
+            root_scaling (bool or int): if a int >=2 is passed the nth root of the pixel values is taken.
+                                        if False nothing happens.
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
             apodize (bool): if True it masks the Sun’s limb. Remove anything farther than 1 solar radii from the center.
             mm_files (bool): if True it loads memory maps format data. If False it loads npz format data. SDOML available
@@ -333,6 +336,10 @@ class SDO_Dataset(Dataset):
             if self.scaling:
                 # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
+            if self.root_scaling:
+                if self.root_scaling < 2:
+                    _logger.error("self.root_scaling should be >=2")
+                img = sdo_root_scaling(img, self.root_scaling)
             if self.normalization > 0:
                 img = self.normalize_by_img(img, self.normalization)
             item[c, :, :] = img
