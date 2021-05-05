@@ -20,4 +20,4 @@ class DegradationSDO_Dataset(SDO_Dataset):
     def find_months(self):
         # Get all months of undegraded data
         months = np.arange(1, 13, self.mnt_step)
-        return month
+        return months
