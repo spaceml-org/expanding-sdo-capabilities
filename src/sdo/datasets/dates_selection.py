@@ -11,8 +11,8 @@ _logger = logging.getLogger(__name__)
 def split_time(str_time):
     yr, mth, rest = str_time.split('-')
     day, time = rest.split('T')
-    hour, minus, _ = time.split(':')
-    return OrderedDict([('y',yr), ('mt',mth), ('d',day), ('h',hour), ('m', minus)])
+    hour, minute, _ = time.split(':')
+    return OrderedDict([('y',yr), ('mt',mth), ('d',day), ('h',hour), ('m', minute)])
 
 
 def from_row_to_date(x):
