@@ -114,7 +114,7 @@ class SDO_Dataset(Dataset):
         self.test_ratio = test_ratio
         self.normalization = normalization
         self.scaling = scaling
-        self.root_scaling = scaling
+        self.root_scaling = root_scaling
         self.apodize = apodize
         self.holdout = holdout
         self.mm_files = mm_files
