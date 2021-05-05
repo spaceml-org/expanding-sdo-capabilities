@@ -37,7 +37,7 @@ class TrainingPipeline(object):
         self.additional_metrics_interval = additional_metrics_interval
         self.start_epoch_at = start_epoch_at
         self.scaling = scaling
-        self.scaling = root_scaling
+        self.root_scaling = root_scaling
 
         if continue_training:
             self.load_saved_checkpoint(model, saved_model_path,
