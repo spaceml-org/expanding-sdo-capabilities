@@ -339,7 +339,7 @@ class SDO_Dataset(Dataset):
                 img = sdo_scale(img, self.channels[c])
             if self.root_scaling:
                 if self.root_scaling < 2:
-                    _logger.error("self.root_scaling should be >=2")
+                    _logger.error("root_scaling is %d, it must be >=2" % self.root_scaling)
                 img = sdo_root_scaling(img, self.root_scaling)
             if self.normalization > 0:
                 img = self.normalize_by_img(img, self.normalization)
