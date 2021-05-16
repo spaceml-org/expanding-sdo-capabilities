@@ -85,3 +85,44 @@ def plot_difference(img_gt, img_pred, img_file, timestamp, bins=5000):
     
     plt.savefig(img_file, bbox_inches='tight')
     plt.close()
+    
+    
+def plot_2Dhist_95cl(Y_test, Y_pred, title='Model', mask_by_confidence=False, savefig=None, clower=-8, 
+                     bins=200, xy_range=[[-2,3.0],[-2,3.0]], normed=False):
+    """
+    Given an array of predicttion and an array of ground truth values, it plots a 2D histogram of the intensity 
+    at 95% confidence level. The color scale represents the density of pixels.
+    """
+    
+    H, xedges, yedges = np.histogram2d(np.log10(Y_test.flatten()), 
+                                       np.log10(Y_pred.flatten()), 
+                                       bins=bins, range=xy_range, normed=normed)
+ 
+    Hnorm = H/H.sum()
+
+    fig, ax = plt.subplots(figsize=(10,10))
+    plt.title(title, fontsize=20)
+    plt.plot(xy_range[0],xy_range[1], linewidth=3)
+    divider = make_axes_locatable(ax)
+    im = ax.imshow(np.log10(Hnorm.T+1e-20), origin='lower', clim=(clower,0), 
+               extent=(xedges.min(), xedges.max(), yedges.min(), yedges.max()),
+               cmap='jet', aspect='equal', interpolation='none')
+    cax = divider.append_axes('right', size='5%', pad=0.07)
+    ax.set_xlabel('Log10 Real Intensity',fontsize=20)
+    ax.set_ylabel('Log10 Predicted Intensity', fontsize=20)
+    fig.colorbar(im, cax=cax, orientation='vertical')
+    
+    Hcum = Hnorm.copy()
+    for i in range(Hnorm.shape[1]):
+        Hcum[:,i]=H[:,i].cumsum(axis=0)/H[:,i].sum()
+    Hcum[np.where(np.isnan(Hcum))] = 1.0
+    mask = np.ones(Hcum.shape)
+    mask[np.where(np.abs(Hcum-0.5) <= 0.45)] = np.nan
+    if mask_by_confidence:
+        ax.imshow(mask.T,extent=(xedges.min(), xedges.max(), yedges.min(), yedges.max()),
+               origin='lower', cmap='binary', alpha=1.0)
+    plt.tick_params(axis='both', which='major', size=15)
+    if savefig == None:
+        plt.show()
+    else:
+        plt.savefig(savefig)

@@ -143,10 +143,18 @@ def sdo_scale(img, ch, aunit_dict=AUNIT_BYCH, bunit=BUNIT):
     if ch in B_CHANNELS:
         return img/bunit
     elif ch in UV_CHANNELS:
-        return img/aunit_dict[ch]       
+        return img/aunit_dict[ch]
     else:
         _logger.error("Channel not found, input image is returned")
         return img
+
+
+def sdo_root_scaling(img, k=2):
+    if k % 2 != 0:
+        res = np.power(np.abs(img), 1./k)
+        return res * np.sign(img)
+    else:
+        return np.power(np.abs(img), 1./k)
 
 
 def sdo_reverse_scale(img, ch, aunit_dict=AUNIT, bunit=BUNIT):

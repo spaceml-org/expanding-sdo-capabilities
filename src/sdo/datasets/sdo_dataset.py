@@ -6,11 +6,13 @@ from os import path
 import random
 import numpy as np
 import pandas as pd
+import datetime as dt
 import torch
 from torch.utils.data import Dataset
-from sdo.io import sdo_find, sdo_scale
+from sdo.io import sdo_find, sdo_scale, sdo_root_scaling
 from sdo.pytorch_utilities import to_tensor
 from sdo.ds_utility import minmax_normalization
+from sdo.datasets.dates_selection import select_images_in_the_interval, get_datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -27,6 +29,8 @@ class SDO_Dataset(Dataset):
         data_inventory,
         instr=["AIA", "AIA", "HMI"],
         channels=["0171", "0193", "bz"],
+        datetime_range=None,
+        d_events=None,
         yr_range=[2010, 2018],
         mnt_step=1,
         day_step=1,
@@ -39,6 +43,7 @@ class SDO_Dataset(Dataset):
         shuffle=False,
         normalization=0,
         scaling=True,
+        root_scaling=False,
         apodize=False,
         holdout=False,
         mm_files=True,
@@ -52,6 +57,18 @@ class SDO_Dataset(Dataset):
             channels (list string): channels to be selected
             instr (list string): instrument to which each channel corresponds to.
                                  It has to be of the same size of channels.
+            datetime_range (tuple strings): first element interpreted as start date and second element interpreted as
+                end date, all the images available in data_inventory between these datetimes (inclusive) will be
+                selected. The expected date format is "%Y-%m-%d %H:%M:%S". If start_date == end_date a single image
+                will be loaded, if available. It overwrites yr_range, mnt_step, day_step, h_step, min_step. It's 
+                overwritten by d_events !=None. This mode is thought not for use in the pipeline.
+            # TODO allow a list of files PLUS the other parameters, a challenge is to handle the train/test split
+            d_events (dict {'path': str, buffer_h: int, buffer_m: int}): dictionary that contains info to select
+                specific events. Path is the path to a csv file that contains a list of events. The file is assumed to
+                have a column called start_date and one called end_date. buffer_h, buffer_m determine how many hours
+                and minutes to include before and after those dates. The format of the dates is assumed to be like
+                2010-06-12T00:30:00 (standard format from https://www.lmsal.com/isolsearch). If d_events is passed,
+                it overwrites both datetime_range and yr_range, mnt_step, day_step, h_step, min_step.
             yr_range (list int): range of years to be selected
             mnt_step (int): month frequency
             day_step (int): day frequency
@@ -71,6 +88,8 @@ class SDO_Dataset(Dataset):
                                  for now)
             scaling (bool): if True pixel values are scaled by the expected max value in active regions
                             (see sdo.io.sdo_scale)
+            root_scaling (bool or int): if a int >=2 is passed the nth root of the pixel values is taken.
+                                        if False nothing happens.
             holdout (bool): if True use the holdout as test set. test_ratio is ignored in this case.
             apodize (bool): if True it masks the Sun’s limb. Remove anything farther than 1 solar radii from the center.
             mm_files (bool): if True it loads memory maps format data. If False it loads npz format data. SDOML available
@@ -84,6 +103,8 @@ class SDO_Dataset(Dataset):
         self.resolution = resolution
         self.subsample = subsample
         self.shuffle = shuffle
+        self.datetime_range = datetime_range
+        self.d_events = d_events
         self.yr_range = yr_range
         self.mnt_step = mnt_step
         self.day_step = day_step
@@ -93,6 +114,7 @@ class SDO_Dataset(Dataset):
         self.test_ratio = test_ratio
         self.normalization = normalization
         self.scaling = scaling
+        self.root_scaling = root_scaling
         self.apodize = apodize
         self.holdout = holdout
         self.mm_files = mm_files
@@ -128,42 +150,90 @@ class SDO_Dataset(Dataset):
         """
         Find path to files that correspond to the requested timestamps. A timestamp
         is returned only if the files from ALL the requested channels are found.
+        Depending of the input parameters the list of files is determined:
+        * by selecting files from self.data_inventory according to the events in self.d_events
+        * by taking all the files available in the self.data_inventory in the self.datetime_range
+        * by sampling from all the files available in the data_inventory between self.year_range[0] and
+        self.year_range[0] every self.month, self.day, self.hour, self.min. This last is the default option.
 
         Returns: list of lists of strings, list of tuples. The first argument are the 
              path to the files, each row is a timestamp. The second argument are the
-             correspondant timestamps.
+             correspondent timestamps.
 
         """
         _logger.info('Loading SDOML from "%s"' % self.data_basedir)
-        _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
         indexes = ['year', 'month', 'day', 'hour', 'min']
-        yrs = np.arange(self.yr_range[0], self.yr_range[1] + 1)
-        months = self.find_months()
-        days = np.arange(1, 32, self.day_step)
-        hours = np.arange(0, 24, self.h_step)
-        minus = np.arange(0, 60, self.min_step)
-        tot_timestamps = np.prod([len(x) for x in [yrs, months, days, hours, minus]])
-        _logger.debug("Timestamps requested values: ")
-        _logger.debug("Years: %s" % ','.join('{}'.format(i) for i in (yrs)))
-        _logger.debug("Months: %s" % ','.join('{}'.format(i) for i in (months)))
-        _logger.debug("Days: %s" % ','.join('{}'.format(i) for i in (days)))
-        _logger.debug("Hours: %s" % ','.join('{}'.format(i) for i in (hours)))
-        _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in (minus)))
-        _logger.info("Max number of timestamps: %d" % tot_timestamps)
+        if self.d_events is None and self.datetime_range is None:
+            yrs = np.arange(self.yr_range[0], self.yr_range[1] + 1)
+            months = self.find_months()
+            days = np.arange(1, 32, self.day_step)
+            hours = np.arange(0, 24, self.h_step)
+            minus = np.arange(0, 60, self.min_step)
+            tot_timestamps = np.prod([len(x) for x in [yrs, months, days, hours, minus]])
+            _logger.debug("Timestamps requested values: ")
+            _logger.debug("Years: %s" % ','.join('{}'.format(i) for i in yrs))
+            _logger.debug("Months: %s" % ','.join('{}'.format(i) for i in months))
+            _logger.debug("Days: %s" % ','.join('{}'.format(i) for i in days))
+            _logger.debug("Hours: %s" % ','.join('{}'.format(i) for i in hours))
+            _logger.debug("Minutes: %s" % ','.join('{}'.format(i) for i in minus))
+            _logger.info("Max number of timestamps: %d" % tot_timestamps)
 
         if self.data_inventory:
+            _logger.info('Loading SDOML inventory file from "%s"' % self.data_inventory)
             df = pd.read_pickle(self.data_inventory)
-            cond0 = df['channel'].isin(self.channels)
-            cond1 = df['year'].isin(yrs)
-            cond2 = df['month'].isin(months)
-            cond3 = df['day'].isin(days)
-            cond4 = df['hour'].isin(hours)
-            cond5 = df['min'].isin(minus)
+            _logger.info('Filtering events with all the required channels')
+            df = df[df['channel'].isin(self.channels)]
+            sel_df = pd.DataFrame(columns=list(df))
+            if self.d_events:
+                if self.holdout:
+                    _logger.warning('d_events mode is not compatible with the keyword holdout.'
+                                    'Be aware that no dates will be excluded for holdout')
+                df_events = pd.read_csv(self.d_events['path'])
+                train_test_split = int(df_events.shape[0]*(1-self.test_ratio))
+                # this split it's imperfect because some events might not be available
+                # leading a trin/test split differently than expected 
+                if self.test:
+                    ev_ind = df_events.index[train_test_split:]
+                    mode = 'testing'
+                else:
+                    ev_ind = df_events.index[:train_test_split]
+                    mode = 'training'
+                _logger.info('Events loaded from %s, N events in the file: %d, Selected for %s: %d' % 
+                             (self.d_events['path'], df_events.shape[0], mode, len(ev_ind)))
+                for index in ev_ind:
+                    start_time = df_events['start_time'][index]
+                    end_time = df_events['end_time'][index]
+                    first_datetime = get_datetime(start_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
+                    last_datetime = get_datetime(end_time, self.d_events['buffer_h'], self.d_events['buffer_m'])
+                    tmp_df = select_images_in_the_interval(first_datetime, last_datetime, df)
+                    sel_df = sel_df.append(tmp_df, ignore_index= True)
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
+            elif self.datetime_range:
+                if self.holdout or self.test:
+                    _logger.warning('datetime_range mode is not compatible with the keyword holdout and test.' 
+                                    'Be aware that no dates will be excluded for test and holdout.')
+                _logger.info('Events loaded from datetime_range. N required events %d' % 
+                             len(self.datetime_range))
+                for pair in self.datetime_range:
+                    #import pdb; pdb.set_trace()
+                    start_time = dt.datetime.strptime(pair[0], "%Y-%m-%d %H:%M:%S")
+                    end_time = dt.datetime.strptime(pair[1],  "%Y-%m-%d %H:%M:%S")
+                    tmp_df = select_images_in_the_interval(start_time, end_time, df)
+                    sel_df = sel_df.append(tmp_df, ignore_index=True)
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d " % n_sel_timestamps)
+            else:
+                cond1 = df['year'].isin(yrs)
+                cond2 = df['month'].isin(months)
+                cond3 = df['day'].isin(days)
+                cond4 = df['hour'].isin(hours)
+                cond5 = df['min'].isin(minus)
+                sel_df = df[cond1 & cond2 & cond3 & cond4 & cond5]
+                n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
+                _logger.info("Timestamps found in the inventory: %d (%.2f)" %
+                             (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))
 
-            sel_df = df[cond0 & cond1 & cond2 & cond3 & cond4 & cond5]
-            n_sel_timestamps = sel_df.groupby(indexes).head(1).shape[0]
-            _logger.info("Timestamps found in the inventory: %d (%.2f)" %
-                         (n_sel_timestamps, float(n_sel_timestamps) / tot_timestamps))
             grouped_df = sel_df.groupby(indexes).size()
             # we select only timestamp that have files for all the channels
             grouped_df = grouped_df[grouped_df == len(self.channels)].to_frame()
@@ -176,32 +246,36 @@ class SDO_Dataset(Dataset):
             timestamps = s_files.index.tolist()
             discarded_tm = n_sel_timestamps - len(timestamps)
         else:
-            _logger.warning(
-                'A valid inventory file has not been passed in, be prepared to wait.')
-            files = []
-            timestamps = []
-            n_sel_timestamps = 0
-            discarded_tm = 0
-            for y in yrs:
-                for month in months:
-                    for d in days:
-                        for h in hours:
-                            for minu in minus:
-                                # if a single channel is missing for the combination
-                                # of parameters result is -1
-                                result = sdo_find(y, month, d, h, minu,
-                                                  initial_size=self.resolution,
-                                                  basedir=self.data_basedir,
-                                                  instrs=self.instr,
-                                                  channels=self.channels,
-                                                  )
-                                n_sel_timestamps += n_sel_timestamps
-                            if result != -1:
-                                files.append(result)
-                                timestamp = (y, month, d, h, minu)
-                                timestamps.append(timestamp)
-                            else:
-                                discarded_tm += 1
+            if self.d_events or self.datetime_range:
+                _logger.error(
+                    'Using d_events or datetime_range currently requires to pass a valid inventory file.')
+            else:
+                _logger.warning('A valid inventory file has not been passed in, be prepared to wait.')
+                _logger.info('Searching for files to load from "%s"' % self.data_basedir)
+                files = []
+                timestamps = []
+                n_sel_timestamps = 0
+                discarded_tm = 0
+                for y in yrs:
+                    for month in months:
+                        for d in days:
+                            for h in hours:
+                                for minu in minus:
+                                    # if a single channel is missing for the combination
+                                    # of parameters result is -1
+                                    result = sdo_find(y, month, d, h, minu,
+                                                      initial_size=self.resolution,
+                                                      basedir=self.data_basedir,
+                                                      instrs=self.instr,
+                                                      channels=self.channels,
+                                                      )
+                                    n_sel_timestamps += n_sel_timestamps
+                                if result != -1:
+                                    files.append(result)
+                                    timestamp = (y, month, d, h, minu)
+                                    timestamps.append(timestamp)
+                                else:
+                                    discarded_tm += 1
         if len(files) == 0:
             _logger.error("No input images found")
         else:
@@ -223,7 +297,8 @@ class SDO_Dataset(Dataset):
                 timestamps = tmp_timestamps
         return files, timestamps
 
-    def normalize_by_img(self, img, norm_type):
+    @staticmethod
+    def normalize_by_img(img, norm_type):
         if norm_type == 1:
             return minmax_normalization(img)
         else:
@@ -252,14 +327,20 @@ class SDO_Dataset(Dataset):
 
         img = np.zeros(shape=(size, size), dtype=np.float32)
         for c in range(n_channels):
-            if self.mm_files: # Load the SDOML files depending on which extension used. mm_file = true will load memory maps.
-                temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r', dtype=np.float32)
+            # Load the SDOML files depending on which extension used. mm_file = true will load memory maps
+            if self.mm_files:
+                temp = np.memmap(self.files[index][c], shape=(self.resolution, self.resolution), mode='r',
+                                 dtype=np.float32)
             else:
                 temp = np.load(self.files[index][c], allow_pickle=True)['x']
             img[:, :] = temp[::self.subsample, ::self.subsample]
             if self.scaling:
                 # divide by roughly the mean of the channel
                 img = sdo_scale(img, self.channels[c])
+            if self.root_scaling:
+                if self.root_scaling < 2:
+                    _logger.error("root_scaling is %d, it must be >=2" % self.root_scaling)
+                img = sdo_root_scaling(img, self.root_scaling)
             if self.normalization > 0:
                 img = self.normalize_by_img(img, self.normalization)
             item[c, :, :] = img
