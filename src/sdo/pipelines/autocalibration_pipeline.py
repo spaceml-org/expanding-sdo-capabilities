@@ -40,8 +40,8 @@ class AutocalibrationPipeline(TrainingPipeline):
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, d_events, datetime_range, yr_range, mnt_step, day_step, h_step, min_step,
                  dataloader_workers, scaling, apodize,
-                 optimizer_weight_decay, optimizer_lr, tolerance, min_alpha, max_alpha, noise_image,
-                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale, loss):
+                 optimizer_weight_decay, optimizer_lr, optimizer_eps, tolerance, min_alpha, max_alpha, noise_image,
+                 threshold_black, threshold_black_value, flip_test_images, sigmoid_scale, loss, grad_clip):
         self.num_channels = len(wavelengths)
         self.results_path = results_path
         self.wavelengths = wavelengths
@@ -123,7 +123,7 @@ class AutocalibrationPipeline(TrainingPipeline):
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
-                                     lr=optimizer_lr)
+                                     lr=optimizer_lr, eps=optimizer_eps)
 
         super(AutocalibrationPipeline, self).__init__(
             exp_name=exp_name,
@@ -145,7 +145,7 @@ class AutocalibrationPipeline(TrainingPipeline):
             saved_model_path=saved_model_path,
             saved_optimizer_path=saved_optimizer_path,
             start_epoch_at=start_epoch_at,
-            scaling=scaling)
+            scaling=scaling, grad_clip=grad_clip)
 
     def create_model(self, model_version, scaled_height, scaled_width, device, sigmoid_scale):
         """
