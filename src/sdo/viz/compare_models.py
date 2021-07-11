@@ -65,6 +65,8 @@ def datapoints_to_bins(Y_test: np.array, binEdges: np.array, binCenters: np.arra
     j = 0
     l_bins = []
     l_bincenters = []
+    print('min Y test', min(Y_test))
+    print('min bin Edges', min(binEdges))
     print('max Y test', max(Y_test))
     print('max bin Edges', max(binEdges))
     for i in range(len(Y_test)):
@@ -147,7 +149,7 @@ def create_combined_plots(exp_name: str, output_path: str, df1: pd.DataFrame,df1
     ax1.fill_between(df2_q[groupby_col], df2_q[val_col][0.05],
                      df2_q[val_col][0.95],
                      label='95% c.l._'+label2, alpha=0.2, color='green')
-    ax1.plot([-4, 2], [0, 0])
+    ax1.plot(xrange, [0, 0])
     ax1.legend()
     ax1.set_ylabel(val_col)
 
@@ -155,7 +157,7 @@ def create_combined_plots(exp_name: str, output_path: str, df1: pd.DataFrame,df1
     ax2.bar(bin_centers, ynorm, width=hwidth, color='b', alpha=0.8)
     ax2.set_xlabel('Log10 Real Intensity')
     ax2.set_ylabel('% Pixels')
-    ax2.set_xlim(-4, 2)
+    ax2.set_xlim(xrange)
     ax1.grid()
     ax2.grid()
 
