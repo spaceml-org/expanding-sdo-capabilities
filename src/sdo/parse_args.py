@@ -306,6 +306,19 @@ def parse_args(args):
         default=1e-3,
         help='The learning rate to use for whatever optimizer might be used; current default Torchs Adam default')
 
+    p.add_argument(
+        '--optimizer-eps',
+        type=float,
+        default=1e-8,
+        help='Value used to avoid division by zero when taking the ratio of the mean and square of the gradients.'
+    )
+    p.add_argument(
+        '--grad-clip',
+        type=float,
+        default=0,
+        help='Value to be used to clip the gradients. If 0 or False no clipping is applied.'
+    )
+
     # Parse arguments that are specific to each of the sub-projects.
     parse_autocal_args(p)
     parse_vt_args(p)

@@ -19,7 +19,8 @@ class TrainingPipeline(object):
     def __init__(self, exp_name, train_dataset, test_dataset, train_loader, test_loader,
                  batch_size_train, batch_size_test, model, optimizer, log_interval,
                  results_path, num_epochs, device, save_interval, additional_metrics_interval,
-                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at, scaling, root_scaling):
+                 continue_training, saved_model_path, saved_optimizer_path, start_epoch_at, scaling,
+                 root_scaling, grad_clip):
         self.exp_name = exp_name
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -38,6 +39,7 @@ class TrainingPipeline(object):
         self.start_epoch_at = start_epoch_at
         self.scaling = scaling
         self.root_scaling = root_scaling
+        self.grad_clip = grad_clip
 
         if continue_training:
             self.load_saved_checkpoint(model, saved_model_path,
@@ -120,6 +122,8 @@ class TrainingPipeline(object):
                     output = output.to(self.device)
                     loss = self.get_loss_func(output, gt_output)
                     loss.backward()
+                    if self.grad_clip and self.grad_clip > 0:
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
                     self.optimizer.step()
 
                     # Make sure that saving outputs don't end up with gradient tracking.
@@ -169,11 +173,9 @@ class TrainingPipeline(object):
             self.model.eval()
             losses = []
             total_primary_metrics = []
-            times = []
             gt_outputs = []
             outputs = []
             l_optional_data =[]
-            correct = 0
             for batch_idx, (input_data,
                             gt_output,
                             optional_debug_data) in enumerate(self.test_loader):

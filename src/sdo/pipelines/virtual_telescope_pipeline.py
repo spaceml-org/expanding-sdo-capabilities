@@ -36,7 +36,8 @@ class VirtualTelescopePipeline(TrainingPipeline):
                  test_ratio, log_interval, results_path, num_epochs, save_interval,
                  additional_metrics_interval, continue_training, saved_model_path, saved_optimizer_path,
                  start_epoch_at, d_events, datetime_range,yr_range, mnt_step, day_step, h_step, min_step,
-                 dataloader_workers, scaling, root_scaling, optimizer_weight_decay, optimizer_lr, loss, unet_depth):
+                 dataloader_workers, scaling, root_scaling, optimizer_weight_decay, optimizer_lr,
+                 optimizer_eps, grad_clip, loss, unet_depth):
         self.num_channels = len(wavelengths)
         self.loss = loss
         if model_version != 3:
@@ -105,7 +106,7 @@ class VirtualTelescopePipeline(TrainingPipeline):
 
         model.cuda(device)
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=optimizer_weight_decay,
-                                     lr=optimizer_lr)
+                                     lr=optimizer_lr, eps=optimizer_eps)
 
         super(VirtualTelescopePipeline, self).__init__(
             exp_name=exp_name,
@@ -127,7 +128,8 @@ class VirtualTelescopePipeline(TrainingPipeline):
             saved_model_path=saved_model_path,
             saved_optimizer_path=saved_optimizer_path,
             start_epoch_at=start_epoch_at,
-            scaling=scaling, root_scaling=root_scaling)
+            scaling=scaling, root_scaling=root_scaling,
+            grad_clip=grad_clip)
 
     def create_model(self, model_version, scaled_height, scaled_width):
         """

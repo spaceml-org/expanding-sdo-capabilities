@@ -104,6 +104,7 @@ def main(args):
           apodize=args.apodize,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
+          optimizer_eps=args.optimizer_eps,
           tolerance=args.autocal_tolerance,
           min_alpha=args.autocal_min_alpha,
           max_alpha=args.autocal_max_alpha,
@@ -112,7 +113,8 @@ def main(args):
           threshold_black_value=args.autocal_threshold_black_value,
           flip_test_images=args.autocal_flip_test_images,
           sigmoid_scale=args.autocal_sigmoid_scale,
-          loss=args.loss)
+          loss=args.loss,
+          grad_clip=args.grad_clip,)
     elif args.pipeline_name == 'VirtualTelescopePipeline':
         pipeline = VirtualTelescopePipeline(
           exp_name=args.experiment_name,
@@ -148,8 +150,10 @@ def main(args):
           dataloader_workers=args.dataloader_workers,
           scaling=args.scaling,
           root_scaling= args.root_scaling,
+          grad_clip=args.grad_clip,
           optimizer_weight_decay=args.optimizer_weight_decay,
           optimizer_lr=args.optimizer_lr,
+          optimizer_eps= args.optimizer_eps,
           loss=args.loss,
           unet_depth=args.unet_depth)
     else:
