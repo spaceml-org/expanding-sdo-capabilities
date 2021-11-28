@@ -1,8 +1,8 @@
 """
 This script is designed to compute some variables before and after a series of timestamps and save:
 * the predicted images at different timestamps
-* plots of the reconstruction error, on the image and on the covariance, vs timestamps
-* video of the real image + reconstruction error on covariance
+* plots of the reconstruction error on the image vs timestamps 
+* video of the real image + reconstructed image + diff
 
 In its current format the script assumes the reconstructed channel is 211.
 """
@@ -32,12 +32,12 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                         format=logformat, datefmt="%Y-%m-%d %H:%M:%S")
 
 def main():
-    # choose parameters
-    events_path = '/home/Valentina/expanding-sdo-capabilities/rare_events/flares_modelling.csv'
-    results_path = '/fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE/vale_exp_20/'
+    # choose parameters - change to adapt to your local machine
+    events_path = '/home/Valentina/expanding-sdo-capabilities/flares/data/flares_modelling.csv'
+    results_path = '/fdl_sdo_data/bucket2/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE/vale_exp_20/'
     model_path = results_path + '0600_vale_exp_20_model.pth'
-    output_folder = "../../results/plots/"
-    n_events = 20 # the top n_events will be selected from the file
+    output_folder = "../results/plots/"
+    n_events = 2 # the top n_events will be selected from the file
     orig_channel = '211'
     
     # select timewindows for each video 
@@ -98,7 +98,7 @@ def main():
                 if len(outputs) != len(data.timestamps):
                     logger.error("Error, length of the saved files doesn't match")
             else:
-                logger.info('Computing predictions')
+                logger.info('Computing predictions - this step will take several minutes - be patient')
                 for idx, _ in enumerate(data.timestamps):
                     logger.info(f'Computing timestamp: {data[idx][2]}')
                     outputs.append(
@@ -111,7 +111,6 @@ def main():
             # compute and save reconstruction errors
             logger.info('Computing reconstruction errors')
             results = pd.DataFrame()
-            results_cov = pd.DataFrame()
             for i, _ in enumerate(data.timestamps):
                 ts = '-'.join([str(i.item()) for i in timestamps[i]])
                 X_s = outputs[i].reshape(512, 512)
@@ -126,31 +125,13 @@ def main():
                                                                        '%Diff': percent_diff_orig}
                                                     )
                                        )
-                # reconstruction error on co-variance
-                for j, ch in enumerate(["094", "193", "171"]):
-                    cov_orig, cov_synth = 0, 0
-                    Y = input_data[i][j].detach().numpy().reshape(512, 512)
-                    cov_orig = cov_1d(X_orig, Y)
-                    cov_synth = cov_1d(X_s, Y)
-                    flux = input_data[i][j].detach().numpy().sum()
-                    results_cov = results_cov.append(
-                        pd.DataFrame(index=[i], data={'Timestamp': ts, 'Channel': ch,
-                                                    'Flux': flux,
-                                                    'True Cov': cov_orig, 'Pred Cov': cov_synth,
-                                                    'Diff': (cov_orig - cov_synth),
-                                                    '%Diff': (cov_orig - cov_synth) * 100 / cov_orig})
-                    )
-            results_cov.reset_index().drop('index', axis=1).to_csv(output_path + 'results.csv')
-            results_cov.reset_index().drop('index', axis=1).to_csv(output_path + 'results_cov.csv')
 
-            # plot reconstruction errors and total flux
+            results.reset_index().drop('index', axis=1).to_csv(output_path + 'results.csv')
+
+            
             logger.info('Plotting reconstruction errors')
-            fig, axs = plt.subplots(3, 1)
-            for channel in ["094", "193", "171"]:
-                tmp_results = results_cov[results_cov.Channel == channel]
-                factor = tmp_results.Flux.min()
-                tmp_results.Flux = tmp_results.Flux / factor
-                tmp_results.plot(x='Timestamp', y='Flux', label=channel, figsize=(17, 10), ax=axs[0])
+            fig, axs = plt.subplots(2, 1)
+            # plot total flux
             factor = results.Flux.min()
             results.Flux = results.Flux / factor
             results.plot(x='Timestamp', y='Flux', label='211', figsize=(17, 10), ax=axs[0])
@@ -158,76 +139,34 @@ def main():
             axs[0].set_title('Flux by Channel /normalized to the min')
 
             results.plot(x='Timestamp', y='%Diff', label='211', figsize=(17, 10), ax=axs[1])
-            axs[1].set_ylabel('Real-Synt Image')
+            axs[1].set_ylabel('Real-Synt Image % Diff')
             axs[1].set_title('Reconstruction Error on Image')
 
-            for channel in ["094", "193", "171"]:
-                results_cov[results_cov.Channel == channel].plot(x='Timestamp', y='%Diff', label=channel,
-                                                               figsize=(17, 10), ax=axs[2])
-            axs[2].set_ylabel('Real-Synt Cov')
-            axs[2].set_title('Reconstruction Error on Covariance')
             fig.tight_layout()
             filename = output_path + 'Errors_vs_timestamps.png'
             plt.savefig(filename, bbox_inches='tight')
-
-            # compute covariance map with rolling window
-            logger.info('Computing covariance maps')
-            cov_window = 15
-            filename = output_path + 'Covariance_maps.pdf'
-            pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
-            for i, _ in enumerate(data.timestamps):
-                # taking one timestamp every 2 to reduce the size of the plot
-                if i%2 == 0:
-                    fig, axs = plt.subplots(1, 5, figsize=(15, 10))
-                    str_time = '_'.join([str(number) for number in data.timestamps[i]])
-                    X_s = outputs[i].reshape(512, 512)
-                    X_orig = gt_img[i].detach().numpy().reshape(512, 512)
-                    im = axs[0].set_title(f'AIA 211 GT')
-                    im = axs[0].imshow(X_orig, origin='lower', cmap=plt.get_cmap('sdoaia211'))
-                    im = axs[1].set_title(f'{str_time} AIA 211 PR - GT')
-                    im = axs[1].imshow((X_s - X_orig), cmap='seismic', origin='lower', vmin=-0.8, vmax=0.8)
-                    for j, ch in enumerate(["094", "193", "171"]):
-                        Y = input_data[i][j].detach().numpy().reshape(512, 512)
-                        cov_synth = neighbor_cov(X_s, Y, size=cov_window)
-                        cov_orig = neighbor_cov(X_orig, Y, size=cov_window)
-                        im = axs[j + 2].set_title(f'Cov AIA {ch}-{211} PR - GT')
-                        im = axs[j + 2].imshow((cov_synth - cov_orig), cmap='seismic', origin='lower', vmin=-0.8, vmax=0.8)
-                        fig.subplots_adjust(bottom=0.1, right=0.8, top=0.8)
-                        cbar_ax = fig.add_axes([0.85, 0.3, 0.03, 0.3])
-                        fig.colorbar(im, cax=cbar_ax)
-                    #plt.show()
-                    pdf.savefig(fig)
             
-            #plt.savefig(filename, bbox_inches='tight')
-            #plt.close()
-            pdf.close()
-            run_events.append(idx_event)
-            
-            # as above but only for 211-094 covariance and save as single image to create a video
             logger.info('Creating video')
             video_folder = output_path + 'video/'
             if not os.path.exists(video_folder):
                 os.makedirs(video_folder)
             fig_format = '.png'
             fps = 2
-            cmap = plt.get_cmap('sdoaia094')
+            cmap = plt.get_cmap('sdoaia211')
             for i, timestamp in enumerate(data.timestamps):
-                fig, axs = plt.subplots(1,2, figsize=(15, 10))
+                fig, axs = plt.subplots(1, 3, figsize=(20, 10))
                 filename = video_folder + '_'.join([str(number) for number in timestamp]) + fig_format
                 X_s = outputs[i].reshape(512, 512)
                 X_orig = gt_img[i].detach().numpy().reshape(512, 512)
-                input_94 = input_data[i][0].reshape(512, 512)
-                axs[0].set_title(f'{timestamp} AIA 094 GT')
-                im = axs[0].imshow(input_94, origin='lower', cmap=cmap)
-                for j, ch in enumerate(["094"]):
-                    Y = input_data[i][j].detach().numpy().reshape(512,512)
-                    cov_synth = neighbor_cov(X_s, Y, size=10)
-                    cov_orig = neighbor_cov(X_orig, Y, size=10)
-                    axs[j+1].set_title(f'Cov AIA {ch}-{211} PR - GT')
-                    im = axs[j+1].imshow((cov_synth - cov_orig), cmap='seismic', origin='lower', vmin=-0.8, vmax=0.8)
-                    fig.subplots_adjust(bottom=0.1, right=0.8, top=0.8)
-                    cbar_ax = fig.add_axes([0.85, 0.3, 0.03, 0.3])
-                    fig.colorbar(im, cax=cbar_ax)
+                axs[0].set_title(f'{timestamp} AIA 211 GT')
+                im = axs[0].imshow(X_orig, origin='lower', cmap=cmap)
+                xs[1].set_title(f'{timestamp} AIA 211 PR')
+                im = axs[1].imshow(X_s, origin='lower', cmap=cmap)
+                axs[2].set_title('AIA 211 PR - GT')
+                im = axs[2].imshow((X_s - X_orig), cmap='seismic', origin='lower', vmin=-0.8, vmax=0.8)
+                fig.subplots_adjust(bottom=0.1, right=0.8, top=0.8)
+                cbar_ax = fig.add_axes([0.85, 0.3, 0.03, 0.3])
+                fig.colorbar(im, cax=cbar_ax)
                 plt.savefig(filename, bbox_inches='tight')
                 plt.close()
 
