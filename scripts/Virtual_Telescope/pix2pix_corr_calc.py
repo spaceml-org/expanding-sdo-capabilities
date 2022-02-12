@@ -1,14 +1,13 @@
 import logging
-from sdo.viz.compare_models import load_pred_and_gt_images, create_df_combined_plots, create_combined_plots
+from sdo.viz.compare_models import load_images_pred_and_gt_npz
 import numpy as np
-from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
-import datetime
+# from sdo.viz.plot_vt_outputs import plot_vt_sample, plot_2d_hist, plot_difference
 from sdo.metrics.correlation import pixel2pixelcor
 
 def main(): 
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     # data_inventory = '/home/Valentina/inventory_1904.pkl'
-    results_path = '/fdl_sdo_data/bucket2/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE'
+    results_path = '/fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE'
     output_path = '/home/luiz0992/results/plots/'
     # keep this low for testing
     
@@ -36,8 +35,8 @@ def main():
         pred1_path = results_path +  dict_exp[key][0]
         pred2_path = results_path + dict_exp[key][1]
         logging.info('Loading predictions')
-        Y1_test, Y1_pred = load_pred_and_gt_images(pred1_path, revert_root=True)
-        Y2_test, Y2_pred = load_pred_and_gt_images(pred2_path, revert_root=False)
+        Y1_test, Y1_pred = load_images_pred_and_gt_npz(pred1_path, revert_root=True)
+        Y2_test, Y2_pred = load_images_pred_and_gt_npz(pred2_path, revert_root=False)
         
         # init = int(((512-1)//2) - 256/2)
         # end = int(((512-1)//2) + 256/2)
