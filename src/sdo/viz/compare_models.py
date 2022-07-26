@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Optional, List, Tuple
 import logging
+import math
 
 
 def load_pred_and_gt(results_path: str, revert_root: bool = False, 
@@ -120,12 +121,12 @@ def create_df_errors(Y_test: np.array, Y_pred: np.array, bins: Optional[int] = 5
          'BinCenters': l_bincenters,
          'YTest': Y_test,
          'YPred': Y_pred,
-         'log10_YTest': log10Y_test,
-         'log10_YPred': log10Y_pred,
+         'log(YTest)': log10Y_test,
+         'log(YPred)': log10Y_pred,
          }
     )
     df['YTest-YPred'] = df.YTest - df.YPred
-    df['log10_YTest-log10_YPred'] = df.log10_YTest - df.log10_YPred
+    df['log(YTest)-log(YPred)'] = df['log(YTest)'] - df['log(YPred)']
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.dropna(inplace=True)
     df['(YTest-YPred)/YTest'] = (df.YTest - df.YPred) / df.YTest * 100
@@ -145,7 +146,7 @@ def create_df_combined_plots(Y_test : np.array, Y_pred: np.array, bins: Optional
                              xrange: Optional[Tuple[int, int]] = (-4, 2), frac_sample: Optional[float] = 1.0,
                              quantiles: Optional[List[int]] = [0.05, 0.5, 0.95],
                              groupby_col: Optional[str] = 'BinCenters',
-                             val_col: Optional[str] = 'log10_YTest-log10_YPred') -> (pd.DataFrame, pd.DataFrame):
+                             val_col: Optional[str] = 'log(YTest)-log(YPred)') -> (pd.DataFrame, pd.DataFrame):
     df = create_df_errors(Y_test, Y_pred, bins, xrange)
     df_q = create_df_quantiles(df, frac_sample, quantiles, groupby_col, val_col)
     return df, df_q
@@ -154,36 +155,46 @@ def create_df_combined_plots(Y_test : np.array, Y_pred: np.array, bins: Optional
 def create_combined_plots(exp_name: str, output_path: str, df1: pd.DataFrame,df1_q: pd.DataFrame, 
                           df2_q: pd.DataFrame,
                           groupby_col: Optional[str] = 'BinCenters', 
-                          val_col: Optional[str] = 'log10_YTest-log10_YPred',
-                          label1: Optional[str] = 'root scaling',
-                          label2: Optional[str] = 'no scaling',
-                          hwidth: Optional[float] = 0.1, hcol: Optional[str] = 'log10_YTest',
+                          val_col: Optional[str] = 'log(YTest)-log(YPred)',
+                          label1: Optional[str] = 'root',
+                          label2: Optional[str] = 'no_root',
+                          hwidth: Optional[float] = 0.1, hcol: Optional[str] = 'log(YTest)',
                           hbins: Optional[int] = 50, xrange: Optional[Tuple[int, int]] = (-4, 2)):
-
+   
+    scaling_factors = {'94': 10, '171': 2000, '193': 3000, '211': 1000, }
+    alpha = scaling_factors[exp_name]
+    
     fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(10, 8))
-    fig.suptitle(exp_name, fontsize=16)
+    fig.suptitle(exp_name, size=24)
     fig.subplots_adjust(hspace=0, wspace=0)
-    fig.suptitle('Error on Predictions by True Intensity - 95% c.l.')
+    #fig.suptitle('Error on Predictions by True Intensity - 95% c.l.')
 
-    ax1.plot(df1_q[groupby_col], df1_q[val_col][0.5], color='blue', label='median_' + label1)
-    ax1.plot(df2_q[groupby_col], df2_q[val_col][0.5], color='green', label='median_' + label2)
+    ax1.plot(df1_q[groupby_col], df1_q[val_col][0.5], color='blue', label='median ' + label1)
+    ax1.plot(df2_q[groupby_col], df2_q[val_col][0.5], color='green', label='median ' + label2)
     ax1.fill_between(df1_q[groupby_col], df1_q[val_col][0.05],
                      df1_q[val_col][0.95],
-                     label='95% c.l._'+label1, color='blue', alpha=0.2)
+                     label='95% c.l. '+ label1, color='blue', alpha=0.2)
     ax1.fill_between(df2_q[groupby_col], df2_q[val_col][0.05],
                      df2_q[val_col][0.95],
-                     label='95% c.l._'+label2, alpha=0.2, color='green')
+                     label='95% c.l. '+ label2, alpha=0.2, color='green')
     ax1.plot(xrange, [0, 0])
     ax1.legend()
-    ax1.set_ylabel(val_col)
-
+    ax1.set_ylim([-2.5, 1])
+    ax1.set_ylabel(val_col, fontsize=18)
+    plt.setp(ax1.get_xticklabels(), fontsize=14)
+    plt.setp(ax1.get_yticklabels(), fontsize=14)
+    ax1.grid()
+    
     ynorm, _, bin_centers = compute_hist_values(df1[hcol], bins=hbins, xrange=xrange)
     ax2.bar(bin_centers, ynorm, width=hwidth, color='b', alpha=0.8)
-    ax2.set_xlabel('Log10 Real Intensity')
-    ax2.set_ylabel('% Pixels')
+    ax2.set_xlabel('Log(True Count Rate)', fontsize=18)
+    ax2.set_ylabel('% Pixels', fontsize=18)
     ax2.set_xlim(xrange)
-    ax1.grid()
+    ax2.set_ylim([0, 13])
+    plt.setp(ax2.get_xticklabels(), fontsize=14)
+    plt.setp(ax2.get_yticklabels(), fontsize=14)
     ax2.grid()
+    
 
     fig_title = output_path + exp_name + 'error_hist.pdf'
     plt.savefig(fig_title, bbox_inches='tight')

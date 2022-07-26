@@ -160,7 +160,7 @@ def main():
                 X_orig = gt_img[i].detach().numpy().reshape(512, 512)
                 axs[0].set_title(f'{timestamp} AIA 211 GT')
                 im = axs[0].imshow(X_orig, origin='lower', cmap=cmap)
-                xs[1].set_title(f'{timestamp} AIA 211 PR')
+                axs[1].set_title(f'{timestamp} AIA 211 PR')
                 im = axs[1].imshow(X_s, origin='lower', cmap=cmap)
                 axs[2].set_title('AIA 211 PR - GT')
                 im = axs[2].imshow((X_s - X_orig), cmap='seismic', origin='lower', vmin=-0.8, vmax=0.8)

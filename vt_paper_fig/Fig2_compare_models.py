@@ -4,7 +4,7 @@ from sdo.viz.compare_models import load_pred_and_gt, create_df_combined_plots, c
 def main(): 
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     data_inventory = '/home/Valentina/inventory_1904.pkl'
-    results_path = '/fdl_sdo_data/bucket2/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE'
+    results_path = '/fdl_sdo_data/bucket/EXPERIMENT_RESULTS/VIRTUAL_TELESCOPE'
     output_path = '/home/Valentina/results/plots/'
     # keep this low for testing
     frac_pixels = 1.0
