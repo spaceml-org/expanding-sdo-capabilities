@@ -163,7 +163,7 @@ class VT_UnetGenerator2(nn.Module):
         out = self.out(up_4)
         return out
 
-class VT_UnetGenerator_Alternate(nn.Module):
+class VT_UnetGenerator_OldLayersName(nn.Module):
     """
     Modified from https://github.com/GunhoChoi/Kind-PyTorch-Tutorial/blob/master/12_Semantic_Segmentation/UNet.py
     
@@ -172,7 +172,7 @@ class VT_UnetGenerator_Alternate(nn.Module):
     """
 
     def __init__(self, input_shape=[3, 128, 128], num_filter=64, LR_neg_slope=0.2):
-        super(VT_UnetGenerator_Alternate, self).__init__()
+        super(VT_UnetGenerator_OldLayersName, self).__init__()
         self.in_dim = input_shape[0]
         self.out_dim = 1
         self.num_filter = num_filter
