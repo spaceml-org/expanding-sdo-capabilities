@@ -53,6 +53,30 @@ def load_pred_and_gt(results_path: str, revert_root: bool = False,
     return Y_test, Y_pred
 
 
+def load_images_pred_and_gt_npz(results_path: str, revert_root: bool = False) -> Tuple[np.array, np.array]:
+    """
+    Load predictions and ground truths from npz file, optionally remove
+    root scaling.
+    Args:
+        results_path: path to file containing gt and predictions in npz format
+        revert_root: if True both predictions and ground truth are **2
+
+    Returns:
+        Y_test, Y_pred
+    """
+    Y = np.load(results_path)
+
+    Y_test = Y['img']
+    Y_pred = Y['gt_img']
+
+    if revert_root:
+        logging.info('Reverting root scaling')
+        Y_test = np.power(Y_test, 2)
+        Y_pred = np.power(Y_pred, 2)
+
+    return Y_test, Y_pred
+
+
 def compute_hist_values(Y_test: np.array, bins: Optional[int] = 50,
                         xrange: Optional[Tuple[int, int]] = (-4, 3)) -> Tuple[np.array, np.array, np.array]:
     y, binEdges = np.histogram(Y_test, bins=bins, range=xrange)
