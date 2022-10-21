@@ -11,29 +11,25 @@ The available models cover two main use-cases:
 
 The above use cases have been explored in the following publications:
 
-* "Exploring the Limits of Synthetic Creation of Solar EUV Images via Image-to-Image Translation"
-    Accepted for publication on ApJ (2022)
+* ["Exploring the Limits of Synthetic Creation of Solar EUV Images via Image-to-Image Translation"](https://iopscience.iop.org/article/10.3847/1538-4357/ac867b/meta)
+  ApJ 937 100 (2022) 
+ 
+* ["Multi-Channel Auto-Calibration for the Atmospheric Imaging Assembly using Machine Learning"](https://www.aanda.org/articles/aa/abs/2021/04/aa40051-20/aa40051-20.html)
+  A&A 648, A53 (2021)
 
-* "Multi-Channel Auto-Calibration for the Atmospheric Imaging Assembly using Machine Learning"
-   A&A 648, A53 (2021)
-   https://arxiv.org/abs/2012.14023.
-   
-* "Auto-Calibration of Remote Sensing Solar Telescopes with Deep Learning"
-    NeurIPS 2019 - ML4PS Workshop
-    https://arxiv.org/abs/1911.04008
-    
-* "Using U-Nets to Create High-Fidelity Virtual Observations of the Solar Corona"
-    ML4PS NeurIPS 2019 - ML4PS Workshop
-    https://arxiv.org/abs/1911.04006
-    
-All the results can be reproduced with the code in this repo.
+* ["Auto-Calibration of Remote Sensing Solar Telescopes with Deep Learning"](https://arxiv.org/abs/1911.04008)
+   NeurIPS 2019 - ML4PS Workshop
+
+* ["Using U-Nets to Create High-Fidelity Virtual Observations of the Solar Corona"](https://arxiv.org/abs/1911.04006)
+  NeurIPS 2019 - ML4PS Workshop
+
+All the results can be reproduced with the code contained in this repo.
 
 The data uncorrected for degradation used in the [autocalibration paper](https://arxiv.org/abs/1911.04008) is 
 available [here](https://zenodo.org/record/4430801#.X_xiP-lKhmE).
 
 # How to use the repo
 
-1# How to use the repo
 1) Reusable code lives inside src in the form of a package called sdo that can be installed. 
     
     In order to install the package:
@@ -67,5 +63,8 @@ available [here](https://zenodo.org/record/4430801#.X_xiP-lKhmE).
 # More on this project 
 This project started as part of the [2019 Frontier Development Lab (FDL) SDO team](https://frontierdevelopmentlab.org/2019-sdo). 
 A description of this program is available [here](https://frontierdevelopmentlab.org/about-1).
+
+# Citations
+If you decide to reuse this code, please cite [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6954828.svg)](https://doi.org/10.5281/zenodo.6954828)
 
 
